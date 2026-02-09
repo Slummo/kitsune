@@ -1,8 +1,9 @@
 #include <kitsune/core/log.h>
 
-int kit_log_level = KIT_LOG_INFO;
+int kitlog_level = KITINFO;
 
 int main(void) {
-    kit_log(KIT_LOG_INFO, "Hello World!");
-    return 0;
+    kit_log(KITINFO, "Hello from example 1!");
+    kit_log(KITINFO, "Hello World!");
+    return EXIT_SUCCESS;
 }

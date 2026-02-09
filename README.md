@@ -18,16 +18,6 @@ target_link_libraries(target PRIVATE Kitsune::LinkedList)
 ```
 
 ## State
-- Core: 100%
-    1. log: 100%
-- Utils: 25%
-    1. bit: 100%
-    2. optional: 0%
-    3. result: 0%
-    4. slice: 0%
-- Types: 50%
-    1. number: 100%
-    2. string: 0%
 - Mem: 0%
     1. smart pointer: 0%
 

@@ -1,5 +1,4 @@
-#ifndef KITSUNE_UTILS_BIT_H
-#define KITSUNE_UTILS_BIT_H
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -47,14 +46,12 @@ static inline uint64_t kit_bswap64(uint64_t x) {
 
 #define kit_bswap(x) _Generic((x), uint32_t: kit_bswap32, uint64_t: kit_bswap64)(x)
 
-#define KIT_BIT(n) (1ULL << (n))
-#define KIT_BITCHECK(x, n) (!!((x) & KIT_BIT(n)))
-#define KIT_BITSET(x, n) ((x) | KIT_BIT(n))
-#define KIT_BITCLEAR(x, n) ((x) & ~KIT_BIT(n))
-#define KIT_BITFLIP(x, n) ((x) ^ KIT_BIT(n))
+#define kit_bit(n) (1ULL << (n))
+#define kit_bitcheck(x, n) (!!((x) & kit_bit(n)))
+#define kit_bitset(x, n) ((x) | kit_bit(n))
+#define kit_bitclear(x, n) ((x) & ~kit_bit(n))
+#define kit_bitflip(x, n) ((x) ^ kit_bit(n))
 
-#define KIT_BITMASK(len) ((len) >= 64 ? ~0ULL : ((1ULL << (len)) - 1))
+#define kit_bitmask(len) ((len) >= 64 ? ~0ULL : (kit_bit(len) - 1))
 
 #define kit_foreach_bit(i, mask) for (uint64_t _m = (mask); _m && ((i) = kit_ctz(_m), 1); _m &= (_m - 1))
-
-#endif
