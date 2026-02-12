@@ -8,36 +8,38 @@
 
 // Unsigned integers
 
-kit_alias(uint8_t, U8);
-kit_alias(uint8_t, Byte);
-kit_alias(uint16_t, U16);
-kit_alias(uint32_t, U32);
-kit_alias(uint64_t, U64);
-kit_alias(uint_fast8_t, UF8);
-kit_alias(uint_fast16_t, UF16);
-kit_alias(uint_fast32_t, UF32);
-kit_alias(uint_fast64_t, UF64);
-kit_alias(uint_least8_t, UL8);
-kit_alias(uint_least16_t, UL16);
-kit_alias(uint_least32_t, UL32);
-kit_alias(uint_least64_t, UL64);
+ksAlias(uint8_t, U8);
+ksAlias(uint8_t, Byte);
+ksAlias(uint16_t, U16);
+ksAlias(uint32_t, U32);
+ksAlias(uint64_t, U64);
+ksAlias(uint_fast8_t, UF8);
+ksAlias(uint_fast16_t, UF16);
+ksAlias(uint_fast32_t, UF32);
+ksAlias(uint_fast64_t, UF64);
+ksAlias(uint_least8_t, UL8);
+ksAlias(uint_least16_t, UL16);
+ksAlias(uint_least32_t, UL32);
+ksAlias(uint_least64_t, UL64);
+ksAlias(size_t, Size);
 
 // Signed integers
 
-kit_alias(int8_t, I8);
-kit_alias(int16_t, I16);
-kit_alias(int32_t, I32);
-kit_alias(int64_t, I64);
-kit_alias(int_fast8_t, IF8);
-kit_alias(int_fast16_t, IF16);
-kit_alias(int_fast32_t, IF32);
-kit_alias(int_fast64_t, IF64);
-kit_alias(int_least8_t, IL8);
-kit_alias(int_least16_t, IL16);
-kit_alias(int_least32_t, IL32);
-kit_alias(int_least64_t, IL64);
+ksAlias(int8_t, I8);
+ksAlias(int16_t, I16);
+ksAlias(int32_t, I32);
+ksAlias(int64_t, I64);
+ksAlias(int_fast8_t, IF8);
+ksAlias(int_fast16_t, IF16);
+ksAlias(int_fast32_t, IF32);
+ksAlias(int_fast64_t, IF64);
+ksAlias(int_least8_t, IL8);
+ksAlias(int_least16_t, IL16);
+ksAlias(int_least32_t, IL32);
+ksAlias(int_least64_t, IL64);
+ksAlias(ptrdiff_t, PtrDiff);
 
 // Floats
 
-kit_alias(float, F32);
-kit_alias(double, F64);
+ksAlias(float, F32);
+ksAlias(double, F64);

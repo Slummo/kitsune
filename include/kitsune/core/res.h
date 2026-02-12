@@ -2,8 +2,8 @@
 
 #include <kitsune/core/def.h>
 
-kit_enum(Res, {KIT_OK = 0, KIT_ERR_GENERIC = -1, KIT_ERR_INVALID = -2, KIT_ERR_OOM = -3, KIT_ERR_NOT_FOUND = -4,
-               KIT_ERR_DUPLICATE = -5, KIT_ERR_EMPTY = -6, KIT_ERR_FULL = -7, KIT_ERR_BOUNDS = -8});
+ksEnum(Res, {KIT_OK = 0, KIT_ERR_GENERIC = -1, KIT_ERR_INVALID = -2, KIT_ERR_OOM = -3, KIT_ERR_NOT_FOUND = -4,
+             KIT_ERR_DUPLICATE = -5, KIT_ERR_EMPTY = -6, KIT_ERR_FULL = -7, KIT_ERR_BOUNDS = -8});
 
 static inline const char* kit_res_str(int err) {
     switch (err) {

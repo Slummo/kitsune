@@ -1,26 +1,31 @@
 #pragma once
 
-#define __kit_concat2(a, b) a##b
-#define kit_concat2(a, b) __kit_concat2(a, b)
-#define kit_concat3(a, b, c) kit_concat2(kit_concat2(a, b), c)
-#define kit_concat4(a, b, c, d) kit_concat2(kit_concat2(a, b), kit_concat2(c, d))
+#define _ksConcat2(a, b) a##b
+#define ksConcat2(a, b) _ksConcat2(a, b)
+#define ksConcat3(a, b, c) ksConcat2(ksConcat2(a, b), c)
+#define ksConcat4(a, b, c, d) ksConcat2(ksConcat2(a, b), ksConcat2(c, d))
 
-#define __kit_type(name) kit_concat2(kit, name)
+#define ksType(name) ksConcat2(ks, name)
+#define ksTemplatedType(name, T) ksConcat3(ksType(name), _, T)
 
-#define kit_struct_decl(name) typedef struct __kit_type(name) __kit_type(name)
-#define kit_struct_def(name, ...) struct __kit_type(name) __VA_ARGS__
-#define kit_struct(name, ...) \
-    kit_struct_decl(name);    \
-    kit_struct_def(name, __VA_ARGS__)
+#define ksStructDecl(name) typedef struct ksType(name) ksType(name)
+#define ksStructDef(name, ...) struct ksType(name) __VA_ARGS__
+#define ksStruct(name, ...) \
+    ksStructDecl(name);     \
+    ksStructDef(name, __VA_ARGS__)
+#define ksTemplatedStruct(name, T, ...) typedef struct ksTemplatedType(name, T) __VA_ARGS__ ksTemplatedType(name, T)
 
-#define kit_union_decl(name) typedef union __kit_type(name) __kit_type(name)
-#define kit_union_def(name, ...) union __kit_type(name) __VA_ARGS__
-#define kit_union(name, ...) \
-    kit_union_decl(name);    \
-    kit_union_def(name, __VA_ARGS__)
+#define ksUnionDecl(name) typedef union ksType(name) ksType(name)
+#define ksUnionDef(name, ...) union ksType(name) __VA_ARGS__
+#define ksUnion(name, ...) \
+    ksUnionDecl(name);     \
+    ksUnionDef(name, __VA_ARGS__)
+#define ksTemplatedUnion(name, T, ...) typedef union ksTemplatedType(name, T) __VA_ARGS__ ksTemplatedType(name, T)
 
-#define kit_enum(name, ...) typedef enum __kit_type(name) __VA_ARGS__ __kit_type(name)
+#define ksTemplatedMethod(name, T, action) ksConcat3(ksTemplatedType(name, T), _, action)
 
-#define kit_alias(OLD_T, NEW_T) typedef OLD_T kit_concat2(kit, NEW_T)
+#define ksEnum(name, ...) typedef enum ksType(name) __VA_ARGS__ ksType(name)
 
-#define kit_using(KIT_T, USING_T) typedef KIT_T USING_T
+#define ksAlias(oldT, newT) typedef oldT ksConcat2(ks, newT)
+
+#define ksUsing(kitT, usingT) typedef kitT usingT
