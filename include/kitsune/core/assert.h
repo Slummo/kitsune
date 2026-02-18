@@ -1,7 +1,6 @@
 #pragma once
 
 #include <kitsune/core/log.h>
-#include <stdlib.h>
 
 #define ksPanic(fmt, ...)                                                                                    \
     do {                                                                                                     \

@@ -22,10 +22,16 @@
     ksUnionDef(name, __VA_ARGS__)
 #define ksTemplatedUnion(name, T, ...) typedef union ksTemplatedType(name, T) __VA_ARGS__ ksTemplatedType(name, T)
 
-#define ksTemplatedMethod(name, T, action) ksConcat3(ksTemplatedType(name, T), _, action)
+#define ksTemplatedMethod(name, action, T) ksConcat4(ksType(name), action, _, T)
 
 #define ksEnum(name, ...) typedef enum ksType(name) __VA_ARGS__ ksType(name)
 
 #define ksAlias(oldT, newT) typedef oldT ksConcat2(ks, newT)
 
-#define ksUsing(kitT, usingT) typedef kitT usingT
+#define ksUsing(T, usingT) typedef T usingT
+
+#ifdef __GNUC__
+#define ksUnused __attribute__((unused))
+#else
+#define ksUnused
+#endif
