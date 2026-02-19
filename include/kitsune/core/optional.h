@@ -3,7 +3,6 @@
 #include <kitsune/core/def.h>
 #include <kitsune/core/assert.h>
 #include <stdbool.h>
-#include <stddef.h>
 
 #define _ksOpt(T) ksTemplatedType(Opt, T)
 #define _ksOptFn(action, T) ksTemplatedMethod(Opt, action, T)

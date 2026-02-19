@@ -7,3 +7,8 @@ add_executable(optional 2-optional/main.c)
 target_link_libraries(optional PRIVATE
     Kitsune::Core
 )
+
+add_executable(result 3-result/main.c)
+target_link_libraries(result PRIVATE
+    Kitsune::Core
+)
