@@ -29,9 +29,3 @@
 #define ksAlias(oldT, newT) typedef oldT ksConcat2(ks, newT)
 
 #define ksUsing(T, usingT) typedef T usingT
-
-#ifdef __GNUC__
-#define ksUnused __attribute__((unused))
-#else
-#define ksUnused
-#endif

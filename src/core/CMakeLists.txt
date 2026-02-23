@@ -6,3 +6,4 @@ kitsune_create_module(
     INTERFACE
     HEADERS ${CORE_HEADERS}
 )
+

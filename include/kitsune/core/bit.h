@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-static inline int ksCtz32(uint32_t x) {
+static inline int32_t ksCtz32(uint32_t x) {
     if (x == 0) {
         return 32;
     }
@@ -11,7 +11,7 @@ static inline int ksCtz32(uint32_t x) {
     return __builtin_ctz(x);
 }
 
-static inline int ksCtz64(uint64_t x) {
+static inline int32_t ksCtz64(uint64_t x) {
     if (x == 0) {
         return 64;
     }
@@ -19,11 +19,27 @@ static inline int ksCtz64(uint64_t x) {
     return __builtin_ctzll(x);
 }
 
-static inline int ksPopcount32(uint32_t x) {
+static inline int32_t ksClz32(uint32_t x) {
+    if (x == 0) {
+        return 32;
+    }
+
+    return __builtin_clz(x);
+}
+
+static inline int32_t ksClz64(uint64_t x) {
+    if (x == 0) {
+        return 64;
+    }
+
+    return __builtin_clzll(x);
+}
+
+static inline int32_t ksPopcount32(uint32_t x) {
     return __builtin_popcount(x);
 }
 
-static inline int ksPopcount64(uint64_t x) {
+static inline int32_t ksPopcount64(uint64_t x) {
     return __builtin_popcountll(x);
 }
 
@@ -36,6 +52,7 @@ static inline uint64_t ksBswap64(uint64_t x) {
 }
 
 #define ksCtz(x) _Generic((x), uint32_t: ksCtz32, int32_t: ksCtz32, uint64_t: ksCtz64, int64_t: ksCtz64)(x)
+#define ksClz(x) _Generic((x), uint32_t: ksClz32, int32_t: ksClz32, uint64_t: ksClz64, int64_t: ksClz64)(x)
 
 #define ksPopcount(x) \
     _Generic((x), uint32_t: ksPopcount32, int32_t: ksPopcount32, uint64_t: ksPopcount64, int64_t: ksPopcount64)(x)

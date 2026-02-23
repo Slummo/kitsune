@@ -12,3 +12,9 @@ add_executable(result 3-result/main.c)
 target_link_libraries(result PRIVATE
     Kitsune::Core
 )
+
+add_executable(string 4-string/main.c)
+target_link_libraries(string PRIVATE
+    Kitsune::Core
+)
+

@@ -25,7 +25,7 @@ clean:
 	rm -rf ./build/*
 
 help:
-	@echo "make:			setup debug build"
+	@echo "make:			run debug build"
 	@echo "make setup_debug:	setup debug build"
 	@echo "make debug:		run debug build"
 	@echo "make setup_release:	setup release build"

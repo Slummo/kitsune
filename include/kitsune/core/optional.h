@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kitsune/core/def.h>
+#include <kitsune/core/utils.h>
 #include <kitsune/core/assert.h>
 #include <stdbool.h>
 
