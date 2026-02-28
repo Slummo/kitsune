@@ -47,3 +47,5 @@
 #define ksAlignUp(x, a) ksAlignDown((x) + (a) - 1, (a))
 #define ksNextPow2(x) ((x <= 1) ? 1ULL : (ksBit(sizeof(x) * 8 - (size_t)ksClz((x) - 1))))
 #define ksPtrOffset(ptr, off) ((uint8_t*)(ptr) + (off))
+#define ksPtrDiff(ptr1, ptr2) ((ptrdiff_t)((ptr1) - (ptr2)))
+#define ksPtrAbsDiff(ptr1, ptr2) ((size_t)((ptr1) - (ptr2)))

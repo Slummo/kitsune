@@ -10,7 +10,7 @@
 
 #define ksAssert(condition, message)                                   \
     do {                                                               \
-        if (!condition) {                                              \
+        if (!(condition)) {                                            \
             ksPanic("Assertion failed (" #condition "): %s", message); \
         }                                                              \
     } while (0)
