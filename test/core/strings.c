@@ -11,353 +11,353 @@ void tearDown(void) {
 // -----------------------------------------------------------------------------
 // Creation & Destruction Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Creation(void) {
-    ksString s1 = ksStringNew("hello");
-    TEST_ASSERT_EQUAL_STRING("hello", ksStringAsRaw(&s1));
-    TEST_ASSERT_EQUAL_UINT(5, ksStringLen(&s1));
-    TEST_ASSERT_FALSE(ksStringIsEmpty(&s1));
+static void test_creation(void) {
+    ks_string s1 = ks_string_new("hello");
+    TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s1));
+    TEST_ASSERT_EQUAL_UINT(5, ks_string_len(&s1));
+    TEST_ASSERT_FALSE(ks_string_is_empty(&s1));
 
-    ksString s2 = ksStringNew2("hello world", 5);
-    TEST_ASSERT_EQUAL_STRING("hello", ksStringAsRaw(&s2));
-    TEST_ASSERT_EQUAL_UINT(5, ksStringLen(&s2));
+    ks_string s2 = ks_string_new2("hello world", 5);
+    TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s2));
+    TEST_ASSERT_EQUAL_UINT(5, ks_string_len(&s2));
 
-    ksString s3 = ksStringFrom(&s1);
-    TEST_ASSERT_EQUAL_STRING("hello", ksStringAsRaw(&s3));
-    TEST_ASSERT_EQUAL_INT(0, ksStringCmp(&s1, &s3));
+    ks_string s3 = ks_string_from(&s1);
+    TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s3));
+    TEST_ASSERT_EQUAL_INT(0, ks_string_cmp(&s1, &s3));
 
-    ksStr view = ksStrNew("hello view", 0, 5);
-    ksString s4 = ksStringFromView(&view);
-    TEST_ASSERT_EQUAL_STRING("hello", ksStringAsRaw(&s4));
+    ks_str view = ks_str_new("hello view", 0, 5);
+    ks_string s4 = ks_string_from_view(&view);
+    TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s4));
 
-    ksStringFree(&s1);
-    ksStringFree(&s2);
-    ksStringFree(&s3);
-    ksStringFree(&s4);
+    ks_string_free(&s1);
+    ks_string_free(&s2);
+    ks_string_free(&s3);
+    ks_string_free(&s4);
 }
 
 // -----------------------------------------------------------------------------
 // Append Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Append(void) {
-    ksString dst = ksStringNew("foo");
-    ksString src = ksStringNew("bar");
+static void test_append(void) {
+    ks_string dst = ks_string_new("foo");
+    ks_string src = ks_string_new("bar");
 
-    ksStringAppend(&dst, &src);
-    TEST_ASSERT_EQUAL_STRING("foobar", ksStringAsRaw(&dst));
+    ks_string_append(&dst, &src);
+    TEST_ASSERT_EQUAL_STRING("foobar", ks_string_as_raw(&dst));
 
-    ksStringAppendRaw(&dst, "baz");
-    TEST_ASSERT_EQUAL_STRING("foobarbaz", ksStringAsRaw(&dst));
+    ks_string_append_raw(&dst, "baz");
+    TEST_ASSERT_EQUAL_STRING("foobarbaz", ks_string_as_raw(&dst));
 
-    ksStringAppendRaw2(&dst, "qux_ignore", 3);
-    TEST_ASSERT_EQUAL_STRING("foobarbazqux", ksStringAsRaw(&dst));
+    ks_string_append_raw2(&dst, "qux_ignore", 3);
+    TEST_ASSERT_EQUAL_STRING("foobarbazqux", ks_string_as_raw(&dst));
 
-    ksStr view = ksStrNew("-view-test", 0, 5);
-    ksStringAppendView(&dst, &view);
-    TEST_ASSERT_EQUAL_STRING("foobarbazqux-view", ksStringAsRaw(&dst));
+    ks_str view = ks_str_new("-view-test", 0, 5);
+    ks_string_append_view(&dst, &view);
+    TEST_ASSERT_EQUAL_STRING("foobarbazqux-view", ks_string_as_raw(&dst));
 
-    ksStringFree(&dst);
-    ksStringFree(&src);
+    ks_string_free(&dst);
+    ks_string_free(&src);
 }
 
 // -----------------------------------------------------------------------------
 // Concatenation Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Concat(void) {
-    ksString s1 = ksStringNew("kit");
-    ksString s2 = ksStringNew("sune");
+static void test_concat(void) {
+    ks_string s1 = ks_string_new("kit");
+    ks_string s2 = ks_string_new("sune");
 
-    ksString s3 = ksStringConcat(&s1, &s2);
-    TEST_ASSERT_EQUAL_STRING("kitsune", ksStringAsRaw(&s3));
+    ks_string s3 = ks_string_concat(&s1, &s2);
+    TEST_ASSERT_EQUAL_STRING("kitsune", ks_string_as_raw(&s3));
 
-    ksString s4 = ksStringConcatRaw("foo", "bar");
-    TEST_ASSERT_EQUAL_STRING("foobar", ksStringAsRaw(&s4));
+    ks_string s4 = ks_string_concat_raw("foo", "bar");
+    TEST_ASSERT_EQUAL_STRING("foobar", ks_string_as_raw(&s4));
 
-    ksString s5 = ksStringConcatRaw2("helloxxx", 5, "worldyyy", 5);
-    TEST_ASSERT_EQUAL_STRING("helloworld", ksStringAsRaw(&s5));
+    ks_string s5 = ks_string_concat_raw2("helloxxx", 5, "worldyyy", 5);
+    TEST_ASSERT_EQUAL_STRING("helloworld", ks_string_as_raw(&s5));
 
-    ksStringFree(&s1);
-    ksStringFree(&s2);
-    ksStringFree(&s3);
-    ksStringFree(&s4);
-    ksStringFree(&s5);
+    ks_string_free(&s1);
+    ks_string_free(&s2);
+    ks_string_free(&s3);
+    ks_string_free(&s4);
+    ks_string_free(&s5);
 }
 
 // -----------------------------------------------------------------------------
 // Modification Tests (Push, Pop, Cut)
 // -----------------------------------------------------------------------------
-void test_ksString_Modifications(void) {
-    ksString s = ksStringEmpty(10);
+static void test_modifiy(void) {
+    ks_string s = ks_string_empty(10);
 
-    ksStringPush(&s, 'A');
-    ksStringPush(&s, 'B');
-    ksStringPush(&s, 'C');
-    TEST_ASSERT_EQUAL_STRING("ABC", ksStringAsRaw(&s));
-    TEST_ASSERT_EQUAL_UINT(3, ksStringLen(&s));
+    ks_string_push(&s, 'A');
+    ks_string_push(&s, 'B');
+    ks_string_push(&s, 'C');
+    TEST_ASSERT_EQUAL_STRING("ABC", ks_string_as_raw(&s));
+    TEST_ASSERT_EQUAL_UINT(3, ks_string_len(&s));
 
-    char c = ksStringPop(&s);
+    char c = ks_string_pop(&s);
     TEST_ASSERT_EQUAL_CHAR('C', c);
-    TEST_ASSERT_EQUAL_STRING("AB", ksStringAsRaw(&s));
-    TEST_ASSERT_EQUAL_UINT(2, ksStringLen(&s));
+    TEST_ASSERT_EQUAL_STRING("AB", ks_string_as_raw(&s));
+    TEST_ASSERT_EQUAL_UINT(2, ks_string_len(&s));
 
-    ksStringAppendRaw(&s, "CDEF");
-    ksStringCut(&s, 2);
-    TEST_ASSERT_EQUAL_STRING("ABCD", ksStringAsRaw(&s));
-    TEST_ASSERT_EQUAL_UINT(4, ksStringLen(&s));
+    ks_string_append_raw(&s, "CDEF");
+    ks_string_cut(&s, 2);
+    TEST_ASSERT_EQUAL_STRING("ABCD", ks_string_as_raw(&s));
+    TEST_ASSERT_EQUAL_UINT(4, ks_string_len(&s));
 
-    ksStringFree(&s);
+    ks_string_free(&s);
 }
 
 // -----------------------------------------------------------------------------
 // Trim Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Trim(void) {
-    ksString s1 = ksStringNew("  hello  ");
-    ksStringTrimLeft(&s1);
-    TEST_ASSERT_EQUAL_STRING("hello  ", ksStringAsRaw(&s1));
+static void test_trim(void) {
+    ks_string s1 = ks_string_new("  hello  ");
+    ks_string_trim_left(&s1);
+    TEST_ASSERT_EQUAL_STRING("hello  ", ks_string_as_raw(&s1));
 
-    ksStringTrimRight(&s1);
-    TEST_ASSERT_EQUAL_STRING("hello", ksStringAsRaw(&s1));
+    ks_string_trim_right(&s1);
+    TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s1));
 
-    ksString s2 = ksStringNew(" \t kitsune \n ");
-    ksStringTrim(&s2);
-    TEST_ASSERT_EQUAL_STRING("kitsune", ksStringAsRaw(&s2));
+    ks_string s2 = ks_string_new(" \t kitsune \n ");
+    ks_string_trim(&s2);
+    TEST_ASSERT_EQUAL_STRING("kitsune", ks_string_as_raw(&s2));
 
-    ksString s3 = ksStringNew("   ");
-    ksStringTrim(&s3);
-    TEST_ASSERT_TRUE(ksStringIsEmpty(&s3));
+    ks_string s3 = ks_string_new("   ");
+    ks_string_trim(&s3);
+    TEST_ASSERT_TRUE(ks_string_is_empty(&s3));
 
-    ksStringFree(&s1);
-    ksStringFree(&s2);
-    ksStringFree(&s3);
+    ks_string_free(&s1);
+    ks_string_free(&s2);
+    ks_string_free(&s3);
 }
 
 // -----------------------------------------------------------------------------
 // Case & Character Checking Tests
 // -----------------------------------------------------------------------------
-void test_ksString_CaseAndChecks(void) {
-    ksString s = ksStringNew("kItSuNe");
+static void test_case(void) {
+    ks_string s = ks_string_new("kItSuNe");
 
-    TEST_ASSERT_TRUE(ksStringIsAscii(&s));
-    TEST_ASSERT_TRUE(ksStringIsAlpha(&s));
-    TEST_ASSERT_FALSE(ksStringIsNum(&s));
+    TEST_ASSERT_TRUE(ks_string_is_ascii(&s));
+    TEST_ASSERT_TRUE(ks_string_is_alpha(&s));
+    TEST_ASSERT_FALSE(ks_string_is_num(&s));
 
-    ksStringUpper(&s);
-    TEST_ASSERT_EQUAL_STRING("KITSUNE", ksStringAsRaw(&s));
-    TEST_ASSERT_TRUE(ksStringIsUpper(&s));
+    ks_string_upper(&s);
+    TEST_ASSERT_EQUAL_STRING("KITSUNE", ks_string_as_raw(&s));
+    TEST_ASSERT_TRUE(ks_string_is_upper(&s));
 
-    ksStringLower(&s);
-    TEST_ASSERT_EQUAL_STRING("kitsune", ksStringAsRaw(&s));
-    TEST_ASSERT_TRUE(ksStringIsLower(&s));
+    ks_string_lower(&s);
+    TEST_ASSERT_EQUAL_STRING("kitsune", ks_string_as_raw(&s));
+    TEST_ASSERT_TRUE(ks_string_is_lower(&s));
 
-    ksString snum = ksStringNew("12345");
-    TEST_ASSERT_TRUE(ksStringIsNum(&snum));
-    TEST_ASSERT_TRUE(ksStringIsAlnum(&snum));
-    TEST_ASSERT_FALSE(ksStringIsAlpha(&snum));
+    ks_string snum = ks_string_new("12345");
+    TEST_ASSERT_TRUE(ks_string_is_num(&snum));
+    TEST_ASSERT_TRUE(ks_string_is_alnum(&snum));
+    TEST_ASSERT_FALSE(ks_string_is_alpha(&snum));
 
-    ksStringFree(&s);
-    ksStringFree(&snum);
+    ks_string_free(&s);
+    ks_string_free(&snum);
 }
 
 // -----------------------------------------------------------------------------
 // Conversion Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Conversion(void) {
-    ksString s = ksStringNew("-42");
+static void test_convert(void) {
+    ks_string s = ks_string_new("-42");
     int64_t val = 0;
 
-    ksStringToInt64(&s, &val, 10);
+    ks_string_to_int64(&s, &val, 10);
     TEST_ASSERT_EQUAL_INT64(-42, val);
 
-    ksString hex = ksStringNew("1A");
-    ksStringToInt64(&hex, &val, 16);
+    ks_string hex = ks_string_new("1A");
+    ks_string_to_int64(&hex, &val, 16);
     TEST_ASSERT_EQUAL_INT64(26, val);
 
-    ksStringFree(&s);
-    ksStringFree(&hex);
+    ks_string_free(&s);
+    ks_string_free(&hex);
 }
 
 // -----------------------------------------------------------------------------
 // Split & Join Tests
 // -----------------------------------------------------------------------------
-void test_ksString_SplitAndJoin(void) {
-    ksString s = ksStringNew("apple,banana,orange");
-    ksStr* parts = ksStringSplit(&s, ",");
+static void test_splitjoin(void) {
+    ks_string s = ks_string_new("apple,banana,orange");
+    ks_str* parts = ks_string_split(&s, ",");
 
     TEST_ASSERT_NOT_NULL(parts);
     TEST_ASSERT_EQUAL_UINT(5, parts[0].len);
-    TEST_ASSERT_EQUAL_MEMORY("apple", ksStrAsRaw(&parts[0]), 5);
+    TEST_ASSERT_EQUAL_MEMORY("apple", ks_str_as_raw(&parts[0]), 5);
     TEST_ASSERT_EQUAL_UINT(6, parts[1].len);
-    TEST_ASSERT_EQUAL_MEMORY("banana", ksStrAsRaw(&parts[1]), 6);
+    TEST_ASSERT_EQUAL_MEMORY("banana", ks_str_as_raw(&parts[1]), 6);
     TEST_ASSERT_EQUAL_UINT(6, parts[2].len);
-    TEST_ASSERT_EQUAL_MEMORY("orange", ksStrAsRaw(&parts[2]), 6);
+    TEST_ASSERT_EQUAL_MEMORY("orange", ks_str_as_raw(&parts[2]), 6);
     TEST_ASSERT_NULL(parts[3].ptr);
 
-    ksString joined = ksStringJoin(parts, " | ");
-    TEST_ASSERT_EQUAL_STRING("apple | banana | orange", ksStringAsRaw(&joined));
+    ks_string joined = ks_string_join(parts, " | ");
+    TEST_ASSERT_EQUAL_STRING("apple | banana | orange", ks_string_as_raw(&joined));
 
     free(parts);
-    ksStringFree(&s);
-    ksStringFree(&joined);
+    ks_string_free(&s);
+    ks_string_free(&joined);
 }
 
 // -----------------------------------------------------------------------------
 // Search & Replace Tests
 // -----------------------------------------------------------------------------
-void test_ksString_FindAndReplace(void) {
-    ksString s = ksStringNew("the quick brown fox");
-    ksString needle = ksStringNew("quick");
-    ksString replacement = ksStringNew("slow");
+static void test_findreplace(void) {
+    ks_string s = ks_string_new("the quick brown fox");
+    ks_string needle = ks_string_new("quick");
+    ks_string replacement = ks_string_new("slow");
 
-    char* p1 = ksStringFind(&s, &needle);
+    char* p1 = ks_string_find(&s, &needle);
     TEST_ASSERT_NOT_NULL(p1);
     TEST_ASSERT_EQUAL_STRING("quick brown fox", p1);
 
-    char* p2 = ksStringFindRaw(&s, "brown");
+    char* p2 = ks_string_find_raw(&s, "brown");
     TEST_ASSERT_NOT_NULL(p2);
     TEST_ASSERT_EQUAL_STRING("brown fox", p2);
 
-    char* p3 = ksStringFindRaw2(&s, "foxes", 3);
+    char* p3 = ks_string_find_raw2(&s, "foxes", 3);
     TEST_ASSERT_NOT_NULL(p3);
     TEST_ASSERT_EQUAL_STRING("fox", p3);
 
-    char* p4 = ksStringFindRaw(&s, "wolf");
+    char* p4 = ks_string_find_raw(&s, "wolf");
     TEST_ASSERT_NULL(p4);
 
-    ksStringReplace(&s, &needle, &replacement);
-    TEST_ASSERT_EQUAL_STRING("the slow brown fox", ksStringAsRaw(&s));
+    ks_string_replace(&s, &needle, &replacement);
+    TEST_ASSERT_EQUAL_STRING("the slow brown fox", ks_string_as_raw(&s));
 
-    ksStringReplaceRaw(&s, "brown", "red");
-    TEST_ASSERT_EQUAL_STRING("the slow red fox", ksStringAsRaw(&s));
+    ks_string_replace_raw(&s, "brown", "red");
+    TEST_ASSERT_EQUAL_STRING("the slow red fox", ks_string_as_raw(&s));
 
-    ksStringReplaceRaw2(&s, "slow cat", 4, "fast", 4);
-    TEST_ASSERT_EQUAL_STRING("the fast red fox", ksStringAsRaw(&s));
+    ks_string_replace_raw2(&s, "slow cat", 4, "fast", 4);
+    TEST_ASSERT_EQUAL_STRING("the fast red fox", ks_string_as_raw(&s));
 
-    ksStringFree(&s);
-    ksStringFree(&needle);
-    ksStringFree(&replacement);
+    ks_string_free(&s);
+    ks_string_free(&needle);
+    ks_string_free(&replacement);
 }
 
 // -----------------------------------------------------------------------------
 // Comparison Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Cmp(void) {
-    ksString s1 = ksStringNew("apple");
-    ksString s2 = ksStringNew("apple");
-    ksString s3 = ksStringNew("banana");
-    ksString s4 = ksStringNew("app");
+static void test_compare(void) {
+    ks_string s1 = ks_string_new("apple");
+    ks_string s2 = ks_string_new("apple");
+    ks_string s3 = ks_string_new("banana");
+    ks_string s4 = ks_string_new("app");
 
-    TEST_ASSERT_EQUAL_INT(0, ksStringCmp(&s1, &s2));
-    TEST_ASSERT_LESS_THAN_INT(0, ksStringCmp(&s1, &s3));
-    TEST_ASSERT_GREATER_THAN_INT(0, ksStringCmp(&s1, &s4));
+    TEST_ASSERT_EQUAL_INT(0, ks_string_cmp(&s1, &s2));
+    TEST_ASSERT_LESS_THAN_INT(0, ks_string_cmp(&s1, &s3));
+    TEST_ASSERT_GREATER_THAN_INT(0, ks_string_cmp(&s1, &s4));
 
-    ksStringFree(&s1);
-    ksStringFree(&s2);
-    ksStringFree(&s3);
-    ksStringFree(&s4);
+    ks_string_free(&s1);
+    ks_string_free(&s2);
+    ks_string_free(&s3);
+    ks_string_free(&s4);
 }
 
 // -----------------------------------------------------------------------------
 // Formatting Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Format(void) {
-    ksString s1 = ksStringFormat("Hello %s, score: %d", "Player1", 999);
-    TEST_ASSERT_EQUAL_STRING("Hello Player1, score: 999", ksStringAsRaw(&s1));
-    TEST_ASSERT_EQUAL_UINT(25, ksStringLen(&s1));
+static void test_format(void) {
+    ks_string s1 = ks_string_format("Hello %s, score: %d", "Player1", 999);
+    TEST_ASSERT_EQUAL_STRING("Hello Player1, score: 999", ks_string_as_raw(&s1));
+    TEST_ASSERT_EQUAL_UINT(25, ks_string_len(&s1));
 
     // Test formatting that exceeds SSO capacity
-    ksString s2 =
-        ksStringFormat("This string %s is %d characters long, forcing it onto the heap", "deliberately", 123456789);
+    ks_string s2 =
+        ks_string_format("This string %s is %d characters long, forcing it onto the heap", "deliberately", 123456789);
     TEST_ASSERT_EQUAL_STRING("This string deliberately is 123456789 characters long, forcing it onto the heap",
-                             ksStringAsRaw(&s2));
-    TEST_ASSERT_GREATER_THAN_UINT(KS_SSO_CAP, ksStringLen(&s2));
+                             ks_string_as_raw(&s2));
+    TEST_ASSERT_GREATER_THAN_UINT(KS_SSO_CAP, ks_string_len(&s2));
 
-    ksStringFree(&s1);
-    ksStringFree(&s2);
+    ks_string_free(&s1);
+    ks_string_free(&s2);
 }
 
 // -----------------------------------------------------------------------------
 // Capacity & Memory Management Tests
 // -----------------------------------------------------------------------------
-void test_ksString_MemoryManagement(void) {
-    ksString s = ksStringEmpty(16);
-    TEST_ASSERT_TRUE(ksStringIsEmpty(&s));
-    TEST_ASSERT_EQUAL_UINT(0, ksStringLen(&s));
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(16, ksStringCap(&s));
+static void test_memory(void) {
+    ks_string s = ks_string_empty(16);
+    TEST_ASSERT_TRUE(ks_string_is_empty(&s));
+    TEST_ASSERT_EQUAL_UINT(0, ks_string_len(&s));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(16, ks_string_cap(&s));
 
-    ksStringReserve(&s, 128);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(128, ksStringCap(&s));
+    ks_string_reserve(&s, 128);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(128, ks_string_cap(&s));
 
-    ksStringAppendRaw(&s, "temporary data");
-    TEST_ASSERT_FALSE(ksStringIsEmpty(&s));
+    ks_string_append_raw(&s, "temporary data");
+    TEST_ASSERT_FALSE(ks_string_is_empty(&s));
 
-    ksStringClear(&s);
-    TEST_ASSERT_TRUE(ksStringIsEmpty(&s));
-    TEST_ASSERT_EQUAL_UINT(0, ksStringLen(&s));
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(128, ksStringCap(&s));
+    ks_string_clear(&s);
+    TEST_ASSERT_TRUE(ks_string_is_empty(&s));
+    TEST_ASSERT_EQUAL_UINT(0, ks_string_len(&s));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(128, ks_string_cap(&s));
 
-    ksStringShrink(&s);
-    TEST_ASSERT_EQUAL_UINT(0, ksStringLen(&s));
+    ks_string_shrink(&s);
+    TEST_ASSERT_EQUAL_UINT(0, ks_string_len(&s));
 
-    TEST_ASSERT_TRUE_MESSAGE(ksStringIsShort(&s) == true || ksStringIsShort(&s) == false,
+    TEST_ASSERT_TRUE_MESSAGE(ks_string_is_short(&s) == true || ks_string_is_short(&s) == false,
                              "IsShort should return a valid boolean");
 
-    ksStringFree(&s);
+    ks_string_free(&s);
 }
 
 // -----------------------------------------------------------------------------
-// View Tests (ksStr)
+// View Tests (ks_str)
 // -----------------------------------------------------------------------------
-void test_ksStr_Views(void) {
+static void test_views(void) {
     const char* raw_text = "hello, world!";
 
-    ksStr view1 = ksStrNew(raw_text, 7, 12);
-    TEST_ASSERT_EQUAL_UINT(5, ksStrLen(&view1));
-    TEST_ASSERT_FALSE(ksStrIsEmpty(&view1));
-    TEST_ASSERT_EQUAL_MEMORY("world", ksStrAsRaw(&view1), 5);
+    ks_str view1 = ks_str_new(raw_text, 7, 12);
+    TEST_ASSERT_EQUAL_UINT(5, ks_str_len(&view1));
+    TEST_ASSERT_FALSE(ks_str_is_empty(&view1));
+    TEST_ASSERT_EQUAL_MEMORY("world", ks_str_as_raw(&view1), 5);
 
-    ksStr view2 = ksStrFrom(&view1, 1, 4);
-    TEST_ASSERT_EQUAL_UINT(3, ksStrLen(&view2));
-    TEST_ASSERT_EQUAL_MEMORY("orl", ksStrAsRaw(&view2), 3);
+    ks_str view2 = ks_str_from(&view1, 1, 4);
+    TEST_ASSERT_EQUAL_UINT(3, ks_str_len(&view2));
+    TEST_ASSERT_EQUAL_MEMORY("orl", ks_str_as_raw(&view2), 3);
 
-    ksStr view3 = ksStrNew("world", 0, 5);
-    ksStr view4 = ksStrNew("apple", 0, 5);
-    TEST_ASSERT_EQUAL_INT(0, ksStrCmp(&view1, &view3));
-    TEST_ASSERT_GREATER_THAN_INT(0, ksStrCmp(&view1, &view4));
+    ks_str view3 = ks_str_new("world", 0, 5);
+    ks_str view4 = ks_str_new("apple", 0, 5);
+    TEST_ASSERT_EQUAL_INT(0, ks_str_cmp(&view1, &view3));
+    TEST_ASSERT_GREATER_THAN_INT(0, ks_str_cmp(&view1, &view4));
 
-    TEST_ASSERT_TRUE(ksStrStartsWith(&view1, "wor"));
-    TEST_ASSERT_TRUE(ksStrEndsWith(&view1, "rld"));
-    TEST_ASSERT_FALSE(ksStrStartsWith(&view1, "abc"));
+    TEST_ASSERT_TRUE(ks_str_starts_with(&view1, "wor"));
+    TEST_ASSERT_TRUE(ks_str_ends_with(&view1, "rld"));
+    TEST_ASSERT_FALSE(ks_str_starts_with(&view1, "abc"));
 
-    ksStr view_trim = ksStrNew("  test  ", 0, 8);
-    ksStrTrim(&view_trim);
-    TEST_ASSERT_EQUAL_UINT(4, ksStrLen(&view_trim));
-    TEST_ASSERT_EQUAL_MEMORY("test", ksStrAsRaw(&view_trim), 4);
+    ks_str view_trim = ks_str_new("  test  ", 0, 8);
+    ks_str_trim(&view_trim);
+    TEST_ASSERT_EQUAL_UINT(4, ks_str_len(&view_trim));
+    TEST_ASSERT_EQUAL_MEMORY("test", ks_str_as_raw(&view_trim), 4);
 
-    ksString s = ksStringNew("test view string");
-    ksStr sv = ksStringView(&s);
-    TEST_ASSERT_EQUAL_UINT(16, ksStrLen(&sv));
-    TEST_ASSERT_EQUAL_MEMORY("test view string", ksStrAsRaw(&sv), 16);
-    ksStringFree(&s);
+    ks_string s = ks_string_new("test view string");
+    ks_str sv = ks_string_view(&s);
+    TEST_ASSERT_EQUAL_UINT(16, ks_str_len(&sv));
+    TEST_ASSERT_EQUAL_MEMORY("test view string", ks_str_as_raw(&sv), 16);
+    ks_string_free(&s);
 }
 
 // -----------------------------------------------------------------------------
 // Foreach Macros Tests
 // -----------------------------------------------------------------------------
-void test_ksString_Foreach(void) {
-    ksString s = ksStringNew("abc");
+static void test_foreach(void) {
+    ks_string s = ks_string_new("abc");
     int i = 0;
-    ksStringForeach(it, &s) {
+    ks_string_foreach(it, &s) {
         *it = *it - 32;
         i++;
     }
     TEST_ASSERT_EQUAL_INT(3, i);
-    TEST_ASSERT_EQUAL_STRING("ABC", ksStringAsRaw(&s));
-    ksStringFree(&s);
+    TEST_ASSERT_EQUAL_STRING("ABC", ks_string_as_raw(&s));
+    ks_string_free(&s);
 
-    ksStr view = ksStrNew("123", 0, 3);
+    ks_str view = ks_str_new("123", 0, 3);
     int sum = 0;
     int safety_counter = 0;
-    ksStrForeach(it, view) {
+    ks_str_foreach(it, view) {
         sum += (*it - '0');
         if (++safety_counter >= 3)
             break;
@@ -368,20 +368,20 @@ void test_ksString_Foreach(void) {
 int main(void) {
     UNITY_BEGIN();
 
-    RUN_TEST(test_ksString_Creation);
-    RUN_TEST(test_ksString_Append);
-    RUN_TEST(test_ksString_Concat);
-    RUN_TEST(test_ksString_Modifications);
-    RUN_TEST(test_ksString_Trim);
-    RUN_TEST(test_ksString_CaseAndChecks);
-    RUN_TEST(test_ksString_Conversion);
-    RUN_TEST(test_ksString_SplitAndJoin);
-    RUN_TEST(test_ksString_FindAndReplace);
-    RUN_TEST(test_ksString_Cmp);
-    RUN_TEST(test_ksString_Format);
-    RUN_TEST(test_ksString_MemoryManagement);
-    RUN_TEST(test_ksStr_Views);
-    RUN_TEST(test_ksString_Foreach);
+    RUN_TEST(test_creation);
+    RUN_TEST(test_append);
+    RUN_TEST(test_concat);
+    RUN_TEST(test_modifiy);
+    RUN_TEST(test_trim);
+    RUN_TEST(test_case);
+    RUN_TEST(test_convert);
+    RUN_TEST(test_splitjoin);
+    RUN_TEST(test_findreplace);
+    RUN_TEST(test_compare);
+    RUN_TEST(test_format);
+    RUN_TEST(test_memory);
+    RUN_TEST(test_views);
+    RUN_TEST(test_foreach);
 
     return UNITY_END();
 }

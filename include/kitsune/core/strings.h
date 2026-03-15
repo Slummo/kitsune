@@ -14,7 +14,7 @@
 
 #define KS_SSO_CAP (sizeof(size_t) * 3 - 1)
 
-ksStruct(String, {
+KS_STRUCT(string, {
     union {
         struct {
             char data[KS_SSO_CAP];
@@ -28,89 +28,89 @@ ksStruct(String, {
     };
 });
 
-ksStruct(Str, {
+KS_STRUCT(str, {
     const char* ptr;
     size_t len;
 });
 
-ksString ksStringNew(const char* s);
-ksString ksStringNew2(const char* s, size_t len);
-ksString ksStringFrom(const ksString* s);
-ksString ksStringFromView(const ksStr* view);
-ksString ksStringEmpty(size_t cap);
-void ksStringReserve(ksString* s, size_t newcap);
-void ksStringUpper(ksString* s);
-void ksStringLower(ksString* s);
-int32_t ksStringToInt64(const ksString* s, int64_t* out, int32_t base);
-void ksStringAppend(ksString* dst, const ksString* src);
-void ksStringAppendView(ksString* dst, const ksStr* src);
-void ksStringAppendRaw(ksString* dst, const char* src);
-void ksStringAppendRaw2(ksString* dst, const char* src, size_t srclen);
-ksString ksStringConcat(const ksString* s1, const ksString* s2);
-ksString ksStringConcatRaw(const char* s1, const char* s2);
-ksString ksStringConcatRaw2(const char* s1, size_t len1, const char* s2, size_t len2);
-void ksStringPush(ksString* dst, char c);
-void ksStringCut(ksString* s, size_t n);
-char ksStringPop(ksString* s);
-void ksStringTrimLeft(ksString* s);
-void ksStringTrimRight(ksString* s);
-void ksStringTrim(ksString* s);
-ksStr* ksStringSplit(const ksString* s, const char* separator);
-ksString ksStringJoin(const ksStr* parts, const char* separator);
-char* ksStringFind(const ksString* s, const ksString* needle);
-char* ksStringFindRaw(const ksString* s, const char* needle);
-char* ksStringFindRaw2(const ksString* s, const char* needle, size_t len);
-void ksStringReplace(ksString* s, const ksString* a, const ksString* b);
-void ksStringReplaceRaw(ksString* s, const char* a, const char* b);
-void ksStringReplaceRaw2(ksString* s, const char* a, size_t lena, const char* b, size_t lenb);
-ksString ksStringFormat(const char* fmt, ...);
-char* ksStringAsRaw(ksString* s);
-ksStr ksStringView(const ksString* s);
-bool ksStringIsEmpty(const ksString* s);
-bool ksStringIsShort(const ksString* s);
-bool ksStringIsAscii(const ksString* s);
-bool ksStringIsUpper(const ksString* s);
-bool ksStringIsLower(const ksString* s);
-bool ksStringIsAlpha(const ksString* s);
-bool ksStringIsNum(const ksString* s);
-bool ksStringIsAlnum(const ksString* s);
-static inline size_t ksStringCap(const ksString* s);
-static inline size_t ksStringLen(const ksString* s);
-int32_t ksStringCmp(const ksString* s1, const ksString* s2);
-void ksStringShrink(ksString* s);
-void ksStringClear(ksString* s);
-void ksStringFree(ksString* s);
+ks_string ks_string_new(const char* s);
+ks_string ks_string_new2(const char* s, size_t len);
+ks_string ks_string_from(const ks_string* s);
+ks_string ks_string_from_view(const ks_str* view);
+ks_string ks_string_empty(size_t cap);
+void ks_string_reserve(ks_string* s, size_t newcap);
+void ks_string_upper(ks_string* s);
+void ks_string_lower(ks_string* s);
+int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base);
+void ks_string_append(ks_string* dst, const ks_string* src);
+void ks_string_append_view(ks_string* dst, const ks_str* src);
+void ks_string_append_raw(ks_string* dst, const char* src);
+void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen);
+ks_string ks_string_concat(const ks_string* s1, const ks_string* s2);
+ks_string ks_string_concat_raw(const char* s1, const char* s2);
+ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2);
+void ks_string_push(ks_string* dst, char c);
+void ks_string_cut(ks_string* s, size_t n);
+char ks_string_pop(ks_string* s);
+void ks_string_trim_left(ks_string* s);
+void ks_string_trim_right(ks_string* s);
+void ks_string_trim(ks_string* s);
+ks_str* ks_string_split(const ks_string* s, const char* separator);
+ks_string ks_string_join(const ks_str* parts, const char* separator);
+char* ks_string_find(const ks_string* s, const ks_string* needle);
+char* ks_string_find_raw(const ks_string* s, const char* needle);
+char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len);
+void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b);
+void ks_string_replace_raw(ks_string* s, const char* a, const char* b);
+void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb);
+ks_string ks_string_format(const char* fmt, ...);
+char* ks_string_as_raw(ks_string* s);
+ks_str ks_string_view(const ks_string* s);
+bool ks_string_is_empty(const ks_string* s);
+bool ks_string_is_short(const ks_string* s);
+bool ks_string_is_ascii(const ks_string* s);
+bool ks_string_is_upper(const ks_string* s);
+bool ks_string_is_lower(const ks_string* s);
+bool ks_string_is_alpha(const ks_string* s);
+bool ks_string_is_num(const ks_string* s);
+bool ks_string_is_alnum(const ks_string* s);
+static inline size_t ks_string_cap(const ks_string* s);
+static inline size_t ks_string_len(const ks_string* s);
+int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2);
+void ks_string_shrink(ks_string* s);
+void ks_string_clear(ks_string* s);
+void ks_string_free(ks_string* s);
 
-ksStr ksStrNew(const char* s, size_t start, size_t end);
-ksStr ksStrFrom(const ksStr* s, size_t start, size_t end);
-const char* ksStrAsRaw(const ksStr* s);
-void ksStrTrim(ksStr* s);
-int32_t ksStrCmp(const ksStr* s1, const ksStr* s2);
-bool ksStrStartsWith(const ksStr* s, const char* prefix);
-bool ksStrEndsWith(const ksStr* s, const char* suffix);
-static inline bool ksStrIsEmpty(const ksStr* s);
-static inline size_t ksStrLen(const ksStr* s);
+ks_str ks_str_new(const char* s, size_t start, size_t end);
+ks_str ks_str_from(const ks_str* s, size_t start, size_t end);
+const char* ks_str_as_raw(const ks_str* s);
+void ks_str_trim(ks_str* s);
+int32_t ks_str_cmp(const ks_str* s1, const ks_str* s2);
+bool ks_str_starts_with(const ks_str* s, const char* prefix);
+bool ks_str_ends_with(const ks_str* s, const char* suffix);
+static inline bool ks_str_is_empty(const ks_str* s);
+static inline size_t ks_str_len(const ks_str* s);
 
-#define ksStringForeach(it, s) \
-    for (char *it = ksStringAsRaw((ksString*)s), *_end = it + ksStringLen(s); it < _end; ++it)
-#define ksStrForeach(it, s) \
-    for (const char *it = (s).ptr, *_end = (const char*)ksPtrOffset((s).ptr, (s).len); it < _end; ++it)
+#define ks_string_foreach(it, s) \
+    for (char *it = ks_string_as_raw((ks_string*)s), *_end = it + ks_string_len(s); it < _end; ++it)
+#define ks_str_foreach(it, s) \
+    for (const char *it = (s).ptr, *_end = (const char*)KS_PTROFF((s).ptr, (s).len); it < _end; ++it)
 
-static inline void _ksStringResize(ksString* s, size_t newcap) {
-    size_t len = ksStringLen(s);
-    size_t oldcap = ksStringCap(s);
+static inline void _ks_string_resize(ks_string* s, size_t newcap) {
+    size_t len = ks_string_len(s);
+    size_t oldcap = ks_string_cap(s);
 
-    if (ksStringIsShort(s)) {
+    if (ks_string_is_short(s)) {
         if (newcap <= KS_SSO_CAP) {
             return;
         }
 
         // upgrade to a long string
         char* newdata = malloc(newcap + 1);
-        ksAssert(newdata, "OOM");
+        KS_ASSERT(newdata, "OOM");
         memcpy(newdata, s->s.data, len);
         newdata[len] = '\0';
-        memset(s, 0, sizeof(ksString));
+        memset(s, 0, sizeof(ks_string));
 
         s->l.cap = newcap;
         s->l.len = len;
@@ -118,7 +118,7 @@ static inline void _ksStringResize(ksString* s, size_t newcap) {
     } else if (newcap <= KS_SSO_CAP) {
         // downgrade to a short string
         char* oldata = s->l.data;
-        size_t newlen = ksMin(len, newcap);
+        size_t newlen = KS_MIN(len, newcap);
         memcpy(s->s.data, oldata, newlen);
         s->s.data[newlen] = '\0';
         s->s.meta = newlen << 1 | 1;
@@ -130,7 +130,7 @@ static inline void _ksStringResize(ksString* s, size_t newcap) {
 
         // create a shorter/longer long string
         char* newdata = realloc(s->l.data, newcap + 1);
-        ksAssert(newdata, "OOM");
+        KS_ASSERT(newdata, "OOM");
         s->l.data = newdata;
         s->l.cap = newcap;
         if (newcap < len) {
@@ -140,15 +140,15 @@ static inline void _ksStringResize(ksString* s, size_t newcap) {
     }
 }
 
-static inline void _ksStringSetLen(ksString* str, size_t newlen) {
-    if (ksStringIsShort(str)) {
+static inline void _ks_string_set_len(ks_string* str, size_t newlen) {
+    if (ks_string_is_short(str)) {
         str->s.meta = newlen << 1 | 1;
     } else {
         str->l.len = newlen;
     }
 }
 
-static inline void _ksSkipWhiteSpaces(const char** str_ptr) {
+static inline void _ks_skip_white_spaces(const char** str_ptr) {
     const char* str = *str_ptr;
     while (isspace((unsigned char)*str)) {
         ++str;
@@ -156,22 +156,22 @@ static inline void _ksSkipWhiteSpaces(const char** str_ptr) {
     *str_ptr = str;
 }
 
-ksString ksStringNew(const char* s) {
-    return ksStringNew2(s, strlen(s));
+ks_string ks_string_new(const char* s) {
+    return ks_string_new2(s, strlen(s));
 }
 
-ksString ksStringNew2(const char* s, size_t len) {
-    ksAssert(s, "s is NULL");
+ks_string ks_string_new2(const char* s, size_t len) {
+    KS_ASSERT(s, "s is NULL");
 
-    ksString string = {0};
+    ks_string string = {0};
     if (len <= KS_SSO_CAP) {
         memcpy(string.s.data, s, len);
         string.s.data[len] = '\0';
         string.s.meta = len << 1 | 1;
     } else {
-        size_t cap = ksNextPow2(len + 1);
+        size_t cap = KS_NEXTPOW2(len + 1);
         char* data = malloc(cap);
-        ksAssert(data, "OOM");
+        KS_ASSERT(data, "OOM");
         string.l.cap = cap - 1;
         string.l.len = len;
         string.l.data = data;
@@ -182,62 +182,62 @@ ksString ksStringNew2(const char* s, size_t len) {
     return string;
 }
 
-ksString ksStringFrom(const ksString* s) {
+ks_string ks_string_from(const ks_string* s) {
     if (!s) {
-        return ksStringEmpty(0);
+        return ks_string_empty(0);
     }
 
-    char* str = ksStringAsRaw((ksString*)s);
-    size_t len = ksStringLen(s);
-    return ksStringNew2(str, len);
+    char* str = ks_string_as_raw((ks_string*)s);
+    size_t len = ks_string_len(s);
+    return ks_string_new2(str, len);
 }
 
-ksString ksStringFromView(const ksStr* view) {
-    ksAssert(view, "view is NULL");
-    return ksStringNew2(view->ptr, view->len);
+ks_string ks_string_from_view(const ks_str* view) {
+    KS_ASSERT(view, "view is NULL");
+    return ks_string_new2(view->ptr, view->len);
 }
 
-ksString ksStringEmpty(size_t cap) {
-    ksString s = {0};
+ks_string ks_string_empty(size_t cap) {
+    ks_string s = {0};
     s.s.data[0] = '\0';
     s.s.meta = 0 << 1 | 1;
 
     if (cap > KS_SSO_CAP) {
-        ksStringReserve(&s, cap);
+        ks_string_reserve(&s, cap);
     }
     return s;
 }
 
-void ksStringReserve(ksString* s, size_t newcap) {
-    ksAssert(s, "s is NULL");
+void ks_string_reserve(ks_string* s, size_t newcap) {
+    KS_ASSERT(s, "s is NULL");
 
-    size_t oldcap = ksStringCap(s);
+    size_t oldcap = ks_string_cap(s);
     if (newcap <= oldcap) {
         return;
     }
 
-    _ksStringResize(s, newcap);
+    _ks_string_resize(s, newcap);
 }
 
-void ksStringUpper(ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+void ks_string_upper(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         *c = toupper(*c);
     }
 }
 
-void ksStringLower(ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+void ks_string_lower(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         *c = tolower(*c);
     }
 }
 
-int32_t ksStringToInt64(const ksString* s, int64_t* out, int32_t base) {
-    ksAssert(s && out, "NULL parameters");
+int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base) {
+    KS_ASSERT(s && out, "NULL parameters");
 
-    const char* str = ksStringAsRaw((ksString*)s);
-    _ksSkipWhiteSpaces(&str);
+    const char* str = ks_string_as_raw((ks_string*)s);
+    _ks_skip_white_spaces(&str);
 
     if (*str == '\0') {
         return -1;
@@ -251,7 +251,7 @@ int32_t ksStringToInt64(const ksString* s, int64_t* out, int32_t base) {
         return -1;
     }
 
-    _ksSkipWhiteSpaces((const char**)&endptr);
+    _ks_skip_white_spaces((const char**)&endptr);
 
     if (*endptr != '\0') {
         return -1;
@@ -262,119 +262,119 @@ int32_t ksStringToInt64(const ksString* s, int64_t* out, int32_t base) {
     return 0;
 }
 
-void ksStringAppend(ksString* dst, const ksString* src) {
-    ksStringAppendRaw2(dst, ksStringAsRaw((ksString*)src), ksStringLen(src));
+void ks_string_append(ks_string* dst, const ks_string* src) {
+    ks_string_append_raw2(dst, ks_string_as_raw((ks_string*)src), ks_string_len(src));
 }
 
-void ksStringAppendView(ksString* dst, const ksStr* src) {
-    ksAssert(dst && src, "dst or src is NULL");
+void ks_string_append_view(ks_string* dst, const ks_str* src) {
+    KS_ASSERT(dst && src, "dst or src is NULL");
     if (src->len == 0 || !src->ptr) {
         return;
     }
 
-    ksStringAppendRaw2(dst, src->ptr, src->len);
+    ks_string_append_raw2(dst, src->ptr, src->len);
 }
 
-void ksStringAppendRaw(ksString* dst, const char* src) {
-    ksStringAppendRaw2(dst, src, strlen(src));
+void ks_string_append_raw(ks_string* dst, const char* src) {
+    ks_string_append_raw2(dst, src, strlen(src));
 }
 
-void ksStringAppendRaw2(ksString* dst, const char* src, size_t srclen) {
-    ksAssert(dst && src, "dst or src is NULL");
+void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen) {
+    KS_ASSERT(dst && src, "dst or src is NULL");
 
     if (srclen == 0) {
         return;
     }
 
-    size_t dstlen = ksStringLen(dst);
+    size_t dstlen = ks_string_len(dst);
     size_t newlen = srclen + dstlen;
 
-    char* dstraw = ksStringAsRaw(dst);
+    char* dstraw = ks_string_as_raw(dst);
     bool is_overlapping = src >= dstraw && src < dstraw + dstlen;
     size_t srcoff = is_overlapping ? (size_t)(src - dstraw) : 0;
 
-    if (ksStringCap(dst) < newlen) {
-        size_t newcap = newlen <= KS_SSO_CAP ? KS_SSO_CAP : ksNextPow2(newlen + 1);
-        _ksStringResize(dst, newcap);
+    if (ks_string_cap(dst) < newlen) {
+        size_t newcap = newlen <= KS_SSO_CAP ? KS_SSO_CAP : KS_NEXTPOW2(newlen + 1);
+        _ks_string_resize(dst, newcap);
 
-        dstraw = ksStringAsRaw(dst);
+        dstraw = ks_string_as_raw(dst);
         if (is_overlapping) {
             src = dstraw + srcoff;
         }
     }
 
-    memcpy(ksPtrOffset(dstraw, dstlen), src, srclen);
+    memcpy(KS_PTROFF(dstraw, dstlen), src, srclen);
     dstraw[newlen] = '\0';
 
-    _ksStringSetLen(dst, newlen);
+    _ks_string_set_len(dst, newlen);
 }
 
-ksString ksStringConcat(const ksString* s1, const ksString* s2) {
-    return ksStringConcatRaw2(ksStringAsRaw((ksString*)s1), ksStringLen(s1), ksStringAsRaw((ksString*)s2),
-                              ksStringLen(s2));
+ks_string ks_string_concat(const ks_string* s1, const ks_string* s2) {
+    return ks_string_concat_raw2(ks_string_as_raw((ks_string*)s1), ks_string_len(s1), ks_string_as_raw((ks_string*)s2),
+                                 ks_string_len(s2));
 }
 
-ksString ksStringConcatRaw(const char* s1, const char* s2) {
-    return ksStringConcatRaw2(s1, strlen(s1), s2, strlen(s2));
+ks_string ks_string_concat_raw(const char* s1, const char* s2) {
+    return ks_string_concat_raw2(s1, strlen(s1), s2, strlen(s2));
 }
 
-ksString ksStringConcatRaw2(const char* s1, size_t len1, const char* s2, size_t len2) {
-    ksString str = ksStringNew2(s1, len1);
-    ksStringAppendRaw2(&str, s2, len2);
+ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2) {
+    ks_string str = ks_string_new2(s1, len1);
+    ks_string_append_raw2(&str, s2, len2);
     return str;
 }
 
-void ksStringPush(ksString* dst, char c) {
-    ksAssert(dst, "dst is NULL");
+void ks_string_push(ks_string* dst, char c) {
+    KS_ASSERT(dst, "dst is NULL");
 
-    ksStringAppendRaw2(dst, &c, 1);
+    ks_string_append_raw2(dst, &c, 1);
 }
 
-void ksStringCut(ksString* s, size_t n) {
-    ksAssert(s, "s is NULL");
+void ks_string_cut(ks_string* s, size_t n) {
+    KS_ASSERT(s, "s is NULL");
     if (n == 0) {
         return;
     }
 
-    size_t len = ksStringLen(s);
-    ksAssert(n <= len, "n is greater than the current length");
+    size_t len = ks_string_len(s);
+    KS_ASSERT(n <= len, "n is greater than the current length");
 
     size_t newlen = len - n;
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     raw[newlen] = '\0';
 
-    _ksStringSetLen(s, newlen);
+    _ks_string_set_len(s, newlen);
 
-    size_t cap = ksStringCap(s);
-    if (!ksStringIsShort(s) && newlen < cap >> 2) {
-        _ksStringResize(s, cap >> 1);
+    size_t cap = ks_string_cap(s);
+    if (!ks_string_is_short(s) && newlen < cap >> 2) {
+        _ks_string_resize(s, cap >> 1);
     }
 }
 
-char ksStringPop(ksString* s) {
-    ksAssert(s, "s is NULL");
+char ks_string_pop(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
 
-    size_t len = ksStringLen(s);
+    size_t len = ks_string_len(s);
     if (len == 0) {
         return '\0';
     }
 
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     char last = raw[len - 1];
 
-    ksStringCut(s, 1);
+    ks_string_cut(s, 1);
 
     return last;
 }
 
-void ksStringTrimLeft(ksString* s) {
-    ksAssert(s, "s is NULL");
-    size_t len = ksStringLen(s);
+void ks_string_trim_left(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    size_t len = ks_string_len(s);
     if (len == 0) {
         return;
     }
 
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     size_t start = 0;
 
     while (start < len && isspace(raw[start])) {
@@ -385,18 +385,18 @@ void ksStringTrimLeft(ksString* s) {
         size_t newlen = len - start;
         memmove(raw, raw + start, newlen);
         raw[newlen] = '\0';
-        _ksStringSetLen(s, newlen);
+        _ks_string_set_len(s, newlen);
     }
 }
 
-void ksStringTrimRight(ksString* s) {
-    ksAssert(s, "s is NULL");
-    size_t len = ksStringLen(s);
+void ks_string_trim_right(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    size_t len = ks_string_len(s);
     if (len == 0) {
         return;
     }
 
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     size_t end = len;
 
     while (end > 0 && isspace((unsigned char)raw[end - 1])) {
@@ -405,25 +405,25 @@ void ksStringTrimRight(ksString* s) {
 
     if (end < len) {
         raw[end] = '\0';
-        _ksStringSetLen(s, end);
+        _ks_string_set_len(s, end);
     }
 }
 
-void ksStringTrim(ksString* s) {
-    ksAssert(s, "s is NULL");
-    size_t len = ksStringLen(s);
+void ks_string_trim(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    size_t len = ks_string_len(s);
     if (len == 0) {
         return;
     }
 
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     size_t start = 0;
     while (start < len && isspace((unsigned char)raw[start])) {
         ++start;
     }
 
     if (start == len) {
-        ksStringClear(s);
+        ks_string_clear(s);
         return;
     }
 
@@ -438,19 +438,19 @@ void ksStringTrim(ksString* s) {
     }
 
     raw[newlen] = '\0';
-    _ksStringSetLen(s, newlen);
+    _ks_string_set_len(s, newlen);
 }
 
-ksStr* ksStringSplit(const ksString* s, const char* separator) {
-    ksAssert(s && separator, "s or separator is NULL");
+ks_str* ks_string_split(const ks_string* s, const char* separator) {
+    KS_ASSERT(s && separator, "s or separator is NULL");
 
     size_t seplen = strlen(separator);
     if (seplen == 0) {
         return NULL;
     }
 
-    char* raw = ksStringAsRaw((ksString*)s);
-    size_t slen = ksStringLen(s);
+    char* raw = ks_string_as_raw((ks_string*)s);
+    size_t slen = ks_string_len(s);
 
     size_t count = 1;
     char* temp = raw;
@@ -459,22 +459,22 @@ ksStr* ksStringSplit(const ksString* s, const char* separator) {
         temp += seplen;
     }
 
-    ksStr* result = malloc((count + 1) * sizeof(ksStr));
-    ksAssert(result, "OOM");
+    ks_str* result = malloc((count + 1) * sizeof(ks_str));
+    KS_ASSERT(result, "OOM");
 
     size_t i = 0;
     char* startptr = raw;
     char* matchptr;
 
     while ((matchptr = strstr(startptr, separator))) {
-        size_t startidx = ksPtrAbsDiff(startptr, raw);
-        size_t endidx = ksPtrAbsDiff(matchptr, raw);
+        size_t startidx = KS_PTRDIFF_ABS(startptr, raw);
+        size_t endidx = KS_PTRDIFF_ABS(matchptr, raw);
 
-        result[i++] = ksStrNew(raw, startidx, endidx);
+        result[i++] = ks_str_new(raw, startidx, endidx);
         startptr = matchptr + seplen;
     }
 
-    result[i++] = ksStrNew(raw, (size_t)(startptr - raw), slen);
+    result[i++] = ks_str_new(raw, (size_t)(startptr - raw), slen);
 
     result[i].ptr = NULL;
     result[i].len = 0;
@@ -482,9 +482,9 @@ ksStr* ksStringSplit(const ksString* s, const char* separator) {
     return result;
 }
 
-ksString ksStringJoin(const ksStr* parts, const char* separator) {
+ks_string ks_string_join(const ks_str* parts, const char* separator) {
     if (!parts) {
-        return ksStringEmpty(0);
+        return ks_string_empty(0);
     }
     size_t seplen = separator ? strlen(separator) : 0;
 
@@ -497,34 +497,34 @@ ksString ksStringJoin(const ksStr* parts, const char* separator) {
     }
 
     if (count == 0) {
-        return ksStringEmpty(0);
+        return ks_string_empty(0);
     }
 
     if (count > 1) {
         totlen += (count - 1) * seplen;
     }
 
-    ksString result = ksStringEmpty(totlen);
+    ks_string result = ks_string_empty(totlen);
     for (size_t i = 0; i < count; i++) {
-        ksStringAppendRaw2(&result, parts[i].ptr, parts[i].len);
+        ks_string_append_raw2(&result, parts[i].ptr, parts[i].len);
         if (i < count - 1 && seplen > 0) {
-            ksStringAppendRaw(&result, separator);
+            ks_string_append_raw(&result, separator);
         }
     }
 
     return result;
 }
 
-char* ksStringFind(const ksString* s, const ksString* needle) {
-    return ksStringFindRaw2(s, ksStringAsRaw((ksString*)needle), ksStringLen(needle));
+char* ks_string_find(const ks_string* s, const ks_string* needle) {
+    return ks_string_find_raw2(s, ks_string_as_raw((ks_string*)needle), ks_string_len(needle));
 }
 
-char* ksStringFindRaw(const ksString* s, const char* needle) {
-    return ksStringFindRaw2(s, needle, strlen(needle));
+char* ks_string_find_raw(const ks_string* s, const char* needle) {
+    return ks_string_find_raw2(s, needle, strlen(needle));
 }
 
-char* ksStringFindRaw2(const ksString* s, const char* needle, size_t len) {
-    char* s1 = ksStringAsRaw((ksString*)s);
+char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len) {
+    char* s1 = ks_string_as_raw((ks_string*)s);
     const char* p = s1;
 
     if (!len) {
@@ -540,48 +540,49 @@ char* ksStringFindRaw2(const ksString* s, const char* needle, size_t len) {
     return NULL;
 }
 
-void ksStringReplace(ksString* s, const ksString* a, const ksString* b) {
-    ksStringReplaceRaw2(s, ksStringAsRaw((ksString*)a), ksStringLen(a), ksStringAsRaw((ksString*)b), ksStringLen(b));
+void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b) {
+    ks_string_replace_raw2(s, ks_string_as_raw((ks_string*)a), ks_string_len(a), ks_string_as_raw((ks_string*)b),
+                           ks_string_len(b));
 }
 
-void ksStringReplaceRaw(ksString* s, const char* a, const char* b) {
-    ksStringReplaceRaw2(s, a, strlen(a), b, strlen(b));
+void ks_string_replace_raw(ks_string* s, const char* a, const char* b) {
+    ks_string_replace_raw2(s, a, strlen(a), b, strlen(b));
 }
 
-void ksStringReplaceRaw2(ksString* s, const char* a, size_t lena, const char* b, size_t lenb) {
-    ksAssert(s && a && b, "Some parameters are NULL");
+void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb) {
+    KS_ASSERT(s && a && b, "Some parameters are NULL");
 
-    char* pos = ksStringFindRaw2(s, a, lena);
+    char* pos = ks_string_find_raw2(s, a, lena);
     if (!pos) {
         return;
     }
 
-    char* haystack = ksStringAsRaw(s);
+    char* haystack = ks_string_as_raw(s);
     size_t prelen = (size_t)(pos - haystack);
-    size_t suflen = ksStringLen(s) - prelen - lena;
+    size_t suflen = ks_string_len(s) - prelen - lena;
     size_t totlen = prelen + lenb + suflen;
 
-    ksString tmp = ksStringEmpty(totlen);
+    ks_string tmp = ks_string_empty(totlen);
 
     if (prelen > 0) {
-        ksStringAppendRaw2(&tmp, haystack, prelen);
+        ks_string_append_raw2(&tmp, haystack, prelen);
     }
 
     if (lenb > 0) {
-        ksStringAppendRaw2(&tmp, b, lenb);
+        ks_string_append_raw2(&tmp, b, lenb);
     }
 
     if (suflen > 0) {
-        ksStringAppendRaw2(&tmp, pos + lena, suflen);
+        ks_string_append_raw2(&tmp, pos + lena, suflen);
     }
 
-    ksStringFree(s);
+    ks_string_free(s);
 
     *s = tmp;
 }
 
-ksString ksStringFormat(const char* fmt, ...) {
-    ksAssert(fmt, "fmt is NULL");
+ks_string ks_string_format(const char* fmt, ...) {
+    KS_ASSERT(fmt, "fmt is NULL");
 
     va_list args;
     va_start(args, fmt);
@@ -593,45 +594,45 @@ ksString ksStringFormat(const char* fmt, ...) {
 
     if (len < 0) {
         va_end(args);
-        return ksStringEmpty(0);
+        return ks_string_empty(0);
     }
 
-    ksString result = ksStringEmpty((size_t)len);
+    ks_string result = ks_string_empty((size_t)len);
 
-    char* raw = ksStringAsRaw(&result);
+    char* raw = ks_string_as_raw(&result);
     vsnprintf(raw, (size_t)len + 1, fmt, args);
     va_end(args);
 
-    _ksStringSetLen(&result, (size_t)len);
+    _ks_string_set_len(&result, (size_t)len);
 
     return result;
 }
 
-char* ksStringAsRaw(ksString* s) {
+char* ks_string_as_raw(ks_string* s) {
     if (!s) {
         return NULL;
     }
 
-    return ksStringIsShort(s) ? s->s.data : s->l.data;
+    return ks_string_is_short(s) ? s->s.data : s->l.data;
 }
 
-ksStr ksStringView(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    return ksStrNew(ksStringAsRaw((ksString*)s), 0, ksStringLen(s));
+ks_str ks_string_view(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    return ks_str_new(ks_string_as_raw((ks_string*)s), 0, ks_string_len(s));
 }
 
-bool ksStringIsEmpty(const ksString* s) {
-    return ksStringLen(s) == 0;
+bool ks_string_is_empty(const ks_string* s) {
+    return ks_string_len(s) == 0;
 }
 
-bool ksStringIsShort(const ksString* s) {
-    ksAssert(s, "s is NULL");
+bool ks_string_is_short(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
     return s->s.meta & 1;
 }
 
-bool ksStringIsAscii(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_ascii(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (!isascii(*c)) {
             return false;
         }
@@ -640,9 +641,9 @@ bool ksStringIsAscii(const ksString* s) {
     return true;
 }
 
-bool ksStringIsUpper(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_upper(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (!isupper(*c)) {
             return false;
         }
@@ -651,9 +652,9 @@ bool ksStringIsUpper(const ksString* s) {
     return true;
 }
 
-bool ksStringIsLower(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_lower(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (!islower(*c)) {
             return false;
         }
@@ -662,9 +663,9 @@ bool ksStringIsLower(const ksString* s) {
     return true;
 }
 
-bool ksStringIsAlpha(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_alpha(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (!isalpha(*c)) {
             return false;
         }
@@ -672,9 +673,9 @@ bool ksStringIsAlpha(const ksString* s) {
 
     return true;
 }
-bool ksStringIsNum(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_num(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (*c < '0' || *c > '9') {
             return false;
         }
@@ -682,9 +683,9 @@ bool ksStringIsNum(const ksString* s) {
 
     return true;
 }
-bool ksStringIsAlnum(const ksString* s) {
-    ksAssert(s, "s is NULL");
-    ksStringForeach(c, s) {
+bool ks_string_is_alnum(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    ks_string_foreach(c, s) {
         if (!isalnum(*c)) {
             return false;
         }
@@ -693,72 +694,72 @@ bool ksStringIsAlnum(const ksString* s) {
     return true;
 }
 
-static inline size_t ksStringCap(const ksString* s) {
+static inline size_t ks_string_cap(const ks_string* s) {
     if (!s) {
         return 0;
     }
 
-    return ksStringIsShort(s) ? KS_SSO_CAP : s->l.cap;
+    return ks_string_is_short(s) ? KS_SSO_CAP : s->l.cap;
 }
 
-static inline size_t ksStringLen(const ksString* s) {
+static inline size_t ks_string_len(const ks_string* s) {
     if (!s) {
         return 0;
     }
 
-    return ksStringIsShort(s) ? s->s.meta >> 1 : s->l.len;
+    return ks_string_is_short(s) ? s->s.meta >> 1 : s->l.len;
 }
 
-int32_t ksStringCmp(const ksString* s1, const ksString* s2) {
-    ksAssert(s1 && s2, "s1 or s2 is NULL");
-    return strcmp(ksStringAsRaw((ksString*)s1), ksStringAsRaw((ksString*)s2));
+int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2) {
+    KS_ASSERT(s1 && s2, "s1 or s2 is NULL");
+    return strcmp(ks_string_as_raw((ks_string*)s1), ks_string_as_raw((ks_string*)s2));
 }
 
-void ksStringShrink(ksString* s) {
-    ksAssert(s, "s is NULL");
+void ks_string_shrink(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
 
-    size_t len = ksStringLen(s);
-    _ksStringResize(s, len);
+    size_t len = ks_string_len(s);
+    _ks_string_resize(s, len);
 }
 
-void ksStringClear(ksString* s) {
-    ksAssert(s, "s is NULL");
+void ks_string_clear(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
 
-    char* raw = ksStringAsRaw(s);
+    char* raw = ks_string_as_raw(s);
     raw[0] = '\0';
-    _ksStringSetLen(s, 0);
+    _ks_string_set_len(s, 0);
 }
 
-void ksStringFree(ksString* s) {
-    ksAssert(s, "s is NULL");
+void ks_string_free(ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
 
-    if (!ksStringIsShort(s)) {
+    if (!ks_string_is_short(s)) {
         free(s->l.data);
     }
 
-    memset(s, 0, sizeof(ksString));
+    memset(s, 0, sizeof(ks_string));
     s->s.meta = 1;
 }
 
-ksStr ksStrNew(const char* s, size_t start, size_t end) {
-    ksAssert(s, "s is NULL");
-    ksAssert(end >= start, "end greater or equal to start");
-    return (ksStr){.ptr = (const char*)ksPtrOffset(s, start), .len = end - start};
+ks_str ks_str_new(const char* s, size_t start, size_t end) {
+    KS_ASSERT(s, "s is NULL");
+    KS_ASSERT(end >= start, "end greater or equal to start");
+    return (ks_str){.ptr = (const char*)KS_PTROFF(s, start), .len = end - start};
 }
 
-ksStr ksStrFrom(const ksStr* s, size_t start, size_t end) {
-    ksAssert(s, "s is NULL");
-    ksAssert(end >= start && end <= s->len, "Invalid bounds");
-    return (ksStr){.ptr = (const char*)ksPtrOffset(s->ptr, start), .len = end - start};
+ks_str ks_str_from(const ks_str* s, size_t start, size_t end) {
+    KS_ASSERT(s, "s is NULL");
+    KS_ASSERT(end >= start && end <= s->len, "Invalid bounds");
+    return (ks_str){.ptr = (const char*)KS_PTROFF(s->ptr, start), .len = end - start};
 }
 
-const char* ksStrAsRaw(const ksStr* s) {
-    ksAssert(s, "s is NULL");
+const char* ks_str_as_raw(const ks_str* s) {
+    KS_ASSERT(s, "s is NULL");
     return s->ptr;
 }
 
-void ksStrTrim(ksStr* s) {
-    ksAssert(s, "s is NULL");
+void ks_str_trim(ks_str* s) {
+    KS_ASSERT(s, "s is NULL");
 
     while (s->len > 0 && isspace((unsigned char)s->ptr[0])) {
         ++s->ptr;
@@ -770,10 +771,10 @@ void ksStrTrim(ksStr* s) {
     }
 }
 
-int32_t ksStrCmp(const ksStr* s1, const ksStr* s2) {
-    ksAssert(s1 && s2, "s1 or s2 is NULL");
+int32_t ks_str_cmp(const ks_str* s1, const ks_str* s2) {
+    KS_ASSERT(s1 && s2, "s1 or s2 is NULL");
 
-    size_t minlen = ksMin(s1->len, s2->len);
+    size_t minlen = KS_MIN(s1->len, s2->len);
     int32_t cmp = strncmp(s1->ptr, s2->ptr, minlen);
 
     if (cmp == 0) {
@@ -791,8 +792,8 @@ int32_t ksStrCmp(const ksStr* s1, const ksStr* s2) {
     return cmp;
 }
 
-bool ksStrStartsWith(const ksStr* s, const char* prefix) {
-    ksAssert(s && prefix, "s or prefix is NULL");
+bool ks_str_starts_with(const ks_str* s, const char* prefix) {
+    KS_ASSERT(s && prefix, "s or prefix is NULL");
     size_t prelen = strlen(prefix);
 
     if (prelen > s->len) {
@@ -802,8 +803,8 @@ bool ksStrStartsWith(const ksStr* s, const char* prefix) {
     return strncmp(s->ptr, prefix, prelen) == 0;
 }
 
-bool ksStrEndsWith(const ksStr* s, const char* suffix) {
-    ksAssert(s && suffix, "s or suffix is NULL");
+bool ks_str_ends_with(const ks_str* s, const char* suffix) {
+    KS_ASSERT(s && suffix, "s or suffix is NULL");
     size_t suflen = strlen(suffix);
 
     if (suflen > s->len) {
@@ -813,10 +814,10 @@ bool ksStrEndsWith(const ksStr* s, const char* suffix) {
     return strncmp(s->ptr + (s->len - suflen), suffix, suflen) == 0;
 }
 
-static inline size_t ksStrLen(const ksStr* s) {
+static inline size_t ks_str_len(const ks_str* s) {
     return s ? s->len : 0;
 }
 
-static inline bool ksStrIsEmpty(const ksStr* s) {
-    return ksStrLen(s) == 0;
+static inline bool ks_str_is_empty(const ks_str* s) {
+    return ks_str_len(s) == 0;
 }

@@ -2,28 +2,28 @@
 
 #include <kitsune/core/def.h>
 
-ksEnum(Res, {KIT_OK = 0, KIT_ERR_GENERIC = -1, KIT_ERR_INVALID = -2, KIT_ERR_OOM = -3, KIT_ERR_NOT_FOUND = -4,
-             KIT_ERR_DUPLICATE = -5, KIT_ERR_EMPTY = -6, KIT_ERR_FULL = -7, KIT_ERR_BOUNDS = -8});
+KS_ENUM(res, {KS_OK = 0, KS_ERR_GENERIC = -1, KS_ERR_INVALID = -2, KS_ERR_OOM = -3, KS_ERR_NOT_FOUND = -4,
+              KS_ERR_DUPLICATE = -5, KS_ERR_EMPTY = -6, KS_ERR_FULL = -7, KS_ERR_BOUNDS = -8});
 
-static inline const char* kit_res_str(int err) {
-    switch (err) {
-        case KIT_OK:
+static inline const char* ks_res_str(int res) {
+    switch (res) {
+        case KS_OK:
             return "Success";
-        case KIT_ERR_GENERIC:
+        case KS_ERR_GENERIC:
             return "Generic error";
-        case KIT_ERR_INVALID:
+        case KS_ERR_INVALID:
             return "Invalid argument";
-        case KIT_ERR_OOM:
+        case KS_ERR_OOM:
             return "Out of memory";
-        case KIT_ERR_NOT_FOUND:
+        case KS_ERR_NOT_FOUND:
             return "Not found";
-        case KIT_ERR_DUPLICATE:
+        case KS_ERR_DUPLICATE:
             return "Duplicate entry";
-        case KIT_ERR_EMPTY:
+        case KS_ERR_EMPTY:
             return "Container empty";
-        case KIT_ERR_FULL:
+        case KS_ERR_FULL:
             return "Container full";
-        case KIT_ERR_BOUNDS:
+        case KS_ERR_BOUNDS:
             return "Index out of bounds";
         default:
             return "Unknown error";

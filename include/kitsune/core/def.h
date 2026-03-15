@@ -1,31 +1,33 @@
 #pragma once
 
-#define _ksConcat2(a, b) a##b
-#define ksConcat2(a, b) _ksConcat2(a, b)
-#define ksConcat3(a, b, c) ksConcat2(ksConcat2(a, b), c)
-#define ksConcat4(a, b, c, d) ksConcat2(ksConcat2(a, b), ksConcat2(c, d))
+#define _KS_CONCAT2(a, b) a##b
+#define KS_CONCAT2(a, b) _KS_CONCAT2(a, b)
+#define KS_CONCAT3(a, b, c) KS_CONCAT2(KS_CONCAT2(a, b), c)
+#define KS_CONCAT4(a, b, c, d) KS_CONCAT2(KS_CONCAT2(a, b), KS_CONCAT2(c, d))
+#define KS_CONCAT5(a, b, c, d, e) KS_CONCAT2(KS_CONCAT4(a, b, c, d), e)
 
-#define ksType(name) ksConcat2(ks, name)
-#define ksTemplatedType(name, T) ksConcat3(ksType(name), _, T)
+#define KS_TYPE(name) KS_CONCAT3(ks, _, name)
+#define KS_TEMPLATED_TYPE(name, T) KS_CONCAT3(KS_TYPE(name), _, T)
 
-#define ksStructDecl(name) typedef struct ksType(name) ksType(name)
-#define ksStructDef(name, ...) struct ksType(name) __VA_ARGS__
-#define ksStruct(name, ...) \
-    ksStructDecl(name);     \
-    ksStructDef(name, __VA_ARGS__)
-#define ksTemplatedStruct(name, T, ...) typedef struct ksTemplatedType(name, T) __VA_ARGS__ ksTemplatedType(name, T)
+#define KS_STRUCT_DECL(name) typedef struct KS_TYPE(name) KS_TYPE(name)
+#define KS_STRUCT_DEF(name, ...) struct KS_TYPE(name) __VA_ARGS__
+#define KS_STRUCT(name, ...) \
+    KS_STRUCT_DECL(name);    \
+    KS_STRUCT_DEF(name, __VA_ARGS__)
+#define KS_TEMPLATED_STRUCT(name, T, ...) \
+    typedef struct KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
 
-#define ksUnionDecl(name) typedef union ksType(name) ksType(name)
-#define ksUnionDef(name, ...) union ksType(name) __VA_ARGS__
-#define ksUnion(name, ...) \
-    ksUnionDecl(name);     \
-    ksUnionDef(name, __VA_ARGS__)
-#define ksTemplatedUnion(name, T, ...) typedef union ksTemplatedType(name, T) __VA_ARGS__ ksTemplatedType(name, T)
+#define KS_UNION_DECL(name) typedef union KS_TYPE(name) KS_TYPE(name)
+#define KS_UNION_DEF(name, ...) union KS_TYPE(name) __VA_ARGS__
+#define KS_UNION(name, ...) \
+    KS_UNION_DECL(name);    \
+    KS_UNION_DEF(name, __VA_ARGS__)
+#define KS_TEMPLATED_UNION(name, T, ...) typedef union KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
 
-#define ksTemplatedMethod(name, action, T) ksConcat4(ksType(name), action, _, T)
+#define KS_TEMPLATED_METHOD(name, action, T) KS_CONCAT5(KS_TYPE(name), _, action, _, T)
 
-#define ksEnum(name, ...) typedef enum ksType(name) __VA_ARGS__ ksType(name)
+#define KS_ENUM(name, ...) typedef enum KS_TYPE(name) __VA_ARGS__ KS_TYPE(name)
 
-#define ksAlias(oldT, newT) typedef oldT ksConcat2(ks, newT)
+#define KS_ALIAS(oldT, newT) typedef oldT KS_CONCAT2(ks, newT)
 
-#define ksUsing(T, usingT) typedef T usingT
+#define KS_USING(T, usingT) typedef T usingT
