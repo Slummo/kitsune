@@ -1,3 +1,5 @@
+#define KS_STRING_IMPLEMENTATION
+
 #include <kitsune/core/strings.h>
 #include <unity.h>
 #include <stdlib.h>
@@ -26,7 +28,7 @@ static void test_creation(void) {
     TEST_ASSERT_EQUAL_INT(0, ks_string_cmp(&s1, &s3));
 
     ks_str view = ks_str_new("hello view", 0, 5);
-    ks_string s4 = ks_string_from_view(&view);
+    ks_string s4 = ks_string_from_view(view);
     TEST_ASSERT_EQUAL_STRING("hello", ks_string_as_raw(&s4));
 
     ks_string_free(&s1);
@@ -52,7 +54,7 @@ static void test_append(void) {
     TEST_ASSERT_EQUAL_STRING("foobarbazqux", ks_string_as_raw(&dst));
 
     ks_str view = ks_str_new("-view-test", 0, 5);
-    ks_string_append_view(&dst, &view);
+    ks_string_append_view(&dst, view);
     TEST_ASSERT_EQUAL_STRING("foobarbazqux-view", ks_string_as_raw(&dst));
 
     ks_string_free(&dst);
@@ -185,11 +187,11 @@ static void test_splitjoin(void) {
 
     TEST_ASSERT_NOT_NULL(parts);
     TEST_ASSERT_EQUAL_UINT(5, parts[0].len);
-    TEST_ASSERT_EQUAL_MEMORY("apple", ks_str_as_raw(&parts[0]), 5);
+    TEST_ASSERT_EQUAL_MEMORY("apple", ks_str_as_raw(parts[0]), 5);
     TEST_ASSERT_EQUAL_UINT(6, parts[1].len);
-    TEST_ASSERT_EQUAL_MEMORY("banana", ks_str_as_raw(&parts[1]), 6);
+    TEST_ASSERT_EQUAL_MEMORY("banana", ks_str_as_raw(parts[1]), 6);
     TEST_ASSERT_EQUAL_UINT(6, parts[2].len);
-    TEST_ASSERT_EQUAL_MEMORY("orange", ks_str_as_raw(&parts[2]), 6);
+    TEST_ASSERT_EQUAL_MEMORY("orange", ks_str_as_raw(parts[2]), 6);
     TEST_ASSERT_NULL(parts[3].ptr);
 
     ks_string joined = ks_string_join(parts, " | ");
@@ -311,32 +313,32 @@ static void test_views(void) {
     const char* raw_text = "hello, world!";
 
     ks_str view1 = ks_str_new(raw_text, 7, 12);
-    TEST_ASSERT_EQUAL_UINT(5, ks_str_len(&view1));
-    TEST_ASSERT_FALSE(ks_str_is_empty(&view1));
-    TEST_ASSERT_EQUAL_MEMORY("world", ks_str_as_raw(&view1), 5);
+    TEST_ASSERT_EQUAL_UINT(5, ks_str_len(view1));
+    TEST_ASSERT_FALSE(ks_str_is_empty(view1));
+    TEST_ASSERT_EQUAL_MEMORY("world", ks_str_as_raw(view1), 5);
 
-    ks_str view2 = ks_str_from(&view1, 1, 4);
-    TEST_ASSERT_EQUAL_UINT(3, ks_str_len(&view2));
-    TEST_ASSERT_EQUAL_MEMORY("orl", ks_str_as_raw(&view2), 3);
+    ks_str view2 = ks_str_from(view1, 1, 4);
+    TEST_ASSERT_EQUAL_UINT(3, ks_str_len(view2));
+    TEST_ASSERT_EQUAL_MEMORY("orl", ks_str_as_raw(view2), 3);
 
     ks_str view3 = ks_str_new("world", 0, 5);
     ks_str view4 = ks_str_new("apple", 0, 5);
-    TEST_ASSERT_EQUAL_INT(0, ks_str_cmp(&view1, &view3));
-    TEST_ASSERT_GREATER_THAN_INT(0, ks_str_cmp(&view1, &view4));
+    TEST_ASSERT_EQUAL_INT(0, ks_str_cmp(view1, view3));
+    TEST_ASSERT_GREATER_THAN_INT(0, ks_str_cmp(view1, view4));
 
-    TEST_ASSERT_TRUE(ks_str_starts_with(&view1, "wor"));
-    TEST_ASSERT_TRUE(ks_str_ends_with(&view1, "rld"));
-    TEST_ASSERT_FALSE(ks_str_starts_with(&view1, "abc"));
+    TEST_ASSERT_TRUE(ks_str_starts_with(view1, "wor"));
+    TEST_ASSERT_TRUE(ks_str_ends_with(view1, "rld"));
+    TEST_ASSERT_FALSE(ks_str_starts_with(view1, "abc"));
 
     ks_str view_trim = ks_str_new("  test  ", 0, 8);
     ks_str_trim(&view_trim);
-    TEST_ASSERT_EQUAL_UINT(4, ks_str_len(&view_trim));
-    TEST_ASSERT_EQUAL_MEMORY("test", ks_str_as_raw(&view_trim), 4);
+    TEST_ASSERT_EQUAL_UINT(4, ks_str_len(view_trim));
+    TEST_ASSERT_EQUAL_MEMORY("test", ks_str_as_raw(view_trim), 4);
 
     ks_string s = ks_string_new("test view string");
     ks_str sv = ks_string_view(&s);
-    TEST_ASSERT_EQUAL_UINT(16, ks_str_len(&sv));
-    TEST_ASSERT_EQUAL_MEMORY("test view string", ks_str_as_raw(&sv), 16);
+    TEST_ASSERT_EQUAL_UINT(16, ks_str_len(sv));
+    TEST_ASSERT_EQUAL_MEMORY("test view string", ks_str_as_raw(sv), 16);
     ks_string_free(&s);
 }
 
