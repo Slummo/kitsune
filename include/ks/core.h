@@ -1,17 +1,359 @@
 #pragma once
 
-#include <kitsune/core/def.h>
-#include <kitsune/core/assert.h>
-#include <kitsune/core/utils.h>
 #include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 #include <stdarg.h>
 
+/* Declare and define types */
+#define _KS_CONCAT2(a, b) a##b
+#define KS_CONCAT2(a, b) _KS_CONCAT2(a, b)
+#define KS_CONCAT3(a, b, c) KS_CONCAT2(KS_CONCAT2(a, b), c)
+#define KS_CONCAT4(a, b, c, d) KS_CONCAT2(KS_CONCAT2(a, b), KS_CONCAT2(c, d))
+#define KS_CONCAT5(a, b, c, d, e) KS_CONCAT2(KS_CONCAT4(a, b, c, d), e)
+
+#define KS_TYPE(name) KS_CONCAT3(ks, _, name)
+#define KS_TEMPLATED_TYPE(name, T) KS_CONCAT3(KS_TYPE(name), _, T)
+
+#define KS_STRUCT_DECL(name) typedef struct KS_TYPE(name) KS_TYPE(name)
+#define KS_STRUCT_DEF(name, ...) struct KS_TYPE(name) __VA_ARGS__
+#define KS_STRUCT(name, ...) \
+    KS_STRUCT_DECL(name);    \
+    KS_STRUCT_DEF(name, __VA_ARGS__)
+#define KS_TEMPLATED_STRUCT(name, T, ...) \
+    typedef struct KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
+
+#define KS_UNION_DECL(name) typedef union KS_TYPE(name) KS_TYPE(name)
+#define KS_UNION_DEF(name, ...) union KS_TYPE(name) __VA_ARGS__
+#define KS_UNION(name, ...) \
+    KS_UNION_DECL(name);    \
+    KS_UNION_DEF(name, __VA_ARGS__)
+#define KS_TEMPLATED_UNION(name, T, ...) typedef union KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
+
+#define KS_TEMPLATED_METHOD(name, action, T) KS_CONCAT5(KS_TYPE(name), _, action, _, T)
+
+#define KS_ENUM(name, ...) typedef enum KS_TYPE(name) __VA_ARGS__ KS_TYPE(name)
+
+#define KS_ALIAS(oldT, newT) typedef oldT KS_CONCAT2(ks, newT)
+
+#define KS_USING(T, usingT) typedef T usingT
+
+/* Logging */
+
+#define KSERR 0
+#define KSWARN 1
+#define KSINFO 2
+#define KSDEBUG 3
+
+extern int ks_log_level;
+
+/**
+ * @brief Print a message to stdout
+ *
+ */
+#define KS_PRINT_OUT(fmt, ...) fprintf(stdout, fmt "\n", ##__VA_ARGS__)
+
+/**
+ * @brief Print a message and eventually errno to stderr
+ *
+ */
+#define KS_PRINT_ERR(fmt, ...)               \
+    do {                                     \
+        fprintf(stderr, fmt, ##__VA_ARGS__); \
+        if (errno) {                         \
+            perror(". ERR");                 \
+            errno = 0;                       \
+        } else {                             \
+            fprintf(stderr, "\n");           \
+        }                                    \
+    } while (0)
+
+static inline void ks_log_init(void) {
+    char* env = getenv("KSLOGLVL");
+    if (env) {
+        ks_log_level = strtol(env, NULL, 10);
+    }
+}
+
+#define ks_log(type, fmt, ...)                                                          \
+    do {                                                                                \
+        if (ks_log_level >= type) {                                                     \
+            switch (type) {                                                             \
+                case KSERR:                                                             \
+                    KS_PRINT_ERR("{-}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
+                    break;                                                              \
+                case KSWARN:                                                            \
+                    KS_PRINT_OUT("{~}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
+                    break;                                                              \
+                case KSINFO:                                                            \
+                    KS_PRINT_OUT("{+}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
+                    break;                                                              \
+                case KSDEBUG:                                                           \
+                    KS_PRINT_OUT("{*}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
+                    break;                                                              \
+                default:                                                                \
+                    break;                                                              \
+            }                                                                           \
+        }                                                                               \
+    } while (0)
+
+/* Return codes */
+KS_ENUM(code, {KS_OK = 0, KS_ERR_GENERIC = -1, KS_ERR_INVALID = -2, KS_ERR_OOM = -3, KS_ERR_NOT_FOUND = -4,
+               KS_ERR_DUPLICATE = -5, KS_ERR_EMPTY = -6, KS_ERR_FULL = -7, KS_ERR_BOUNDS = -8});
+
+static inline const char* ks_res_str(int res) {
+    switch (res) {
+        case KS_OK:
+            return "Success";
+        case KS_ERR_GENERIC:
+            return "Generic error";
+        case KS_ERR_INVALID:
+            return "Invalid argument";
+        case KS_ERR_OOM:
+            return "Out of memory";
+        case KS_ERR_NOT_FOUND:
+            return "Not found";
+        case KS_ERR_DUPLICATE:
+            return "Duplicate entry";
+        case KS_ERR_EMPTY:
+            return "Container empty";
+        case KS_ERR_FULL:
+            return "Container full";
+        case KS_ERR_BOUNDS:
+            return "Index out of bounds";
+        default:
+            return "Unknown error";
+    }
+}
+
+/* Assert */
+
+#define KS_PANIC(fmt, ...)                                                                                     \
+    do {                                                                                                       \
+        KS_PRINT_ERR("Program panicked at %s:%d in %s():\n\t" fmt, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+        abort();                                                                                               \
+    } while (0);
+
+#ifdef NDEBUG
+#define KS_ASSERT(condition, message) ((void)0)
+#else
+#define KS_ASSERT(condition, message)                                   \
+    do {                                                                \
+        if (!(condition)) {                                             \
+            KS_PANIC("Assertion failed (" #condition "): %s", message); \
+        }                                                               \
+    } while (0)
+#endif
+/* Utility macros */
+
+#define KS_UNUSED __attribute__((unused))
+#define KS_PACKED __attribute__((packed))
+#define KS_NODISCARD __attribute__((warn_unused_result))
+#define KS_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#define KS_ALIGNED(x) __attribute__(aligned((x)))
+#define KS_LIKELY(x) __builtin_expect(!!(x), 1)
+#define KS_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define KS_FALLTROUGH __attribute__((falltrough))
+#define KS_MAX(a, b)            \
+    ({                          \
+        __typeof__(a) _a = (a); \
+        __typeof__(b) _b = (b); \
+        _a > _b ? _a : _b;      \
+    })
+#define KS_MIN(a, b)            \
+    ({                          \
+        __typeof__(a) _a = (a); \
+        __typeof__(b) _b = (b); \
+        _a > _b ? _b : _a;      \
+    })
+#define KS_CLAMP(x, a, b)                   \
+    ({                                      \
+        __typeof__(a) _a = (a);             \
+        __typeof__(b) _b = (b);             \
+        __typeof__(x) _x = (x);             \
+        _x < _a ? _a : (_x > _b ? _b : _x); \
+    })
+#define KS_ABS(x)               \
+    ({                          \
+        __typeof__(x) _x = (x); \
+        _x < 0 ? -_x : _x;      \
+    })
+#define KS_SWAP(a, b)          \
+    do {                       \
+        __typeof__(a) tmp = a; \
+        (a) = (b);             \
+        (b) = tmp;             \
+    } while (0)
+#define KS_ISPOW2(x) ((x) != 0 && ((((x) - 1) & (x)) == 0))
+#define KS_ALIGN_DOWN(x, a) ((x) & ~((__typeof__(x))(a) - 1))
+#define KS_ALIGN_UP(x, a) KS_ALIGN_DOWN((x) + (a) - 1, (a))
+#define KS_NEXTPOW2(x) ((x <= 1) ? 1ULL : (KS_BIT(sizeof(x) * 8 - (size_t)KS_CLZ((x) - 1))))
+#define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (off))
+#define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((ptr1) - (ptr2)))
+#define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((ptr1) - (ptr2)))
+
+/* Bit manipulation */
+
+static inline int32_t KS_CTZ32(uint32_t x) {
+    if (x == 0) {
+        return 32;
+    }
+
+    return __builtin_ctz(x);
+}
+
+static inline int32_t KS_CTZ64(uint64_t x) {
+    if (x == 0) {
+        return 64;
+    }
+
+    return __builtin_ctzll(x);
+}
+
+static inline int32_t KS_CLZ32(uint32_t x) {
+    if (x == 0) {
+        return 32;
+    }
+
+    return __builtin_clz(x);
+}
+
+static inline int32_t KS_CLZ64(uint64_t x) {
+    if (x == 0) {
+        return 64;
+    }
+
+    return __builtin_clzll(x);
+}
+
+static inline int32_t KS_POPCOUNT32(uint32_t x) {
+    return __builtin_popcount(x);
+}
+
+static inline int32_t KS_POPCOUNT64(uint64_t x) {
+    return __builtin_popcountll(x);
+}
+
+static inline uint32_t KS_BSWAP32(uint32_t x) {
+    return __builtin_bswap32(x);
+}
+
+static inline uint64_t KS_BSWAP64(uint64_t x) {
+    return __builtin_bswap64(x);
+}
+
+#define KS_CTZ(x) _Generic((x), uint32_t: KS_CTZ32, int32_t: KS_CTZ32, uint64_t: KS_CTZ64, int64_t: KS_CTZ64)(x)
+#define KS_CLZ(x) _Generic((x), uint32_t: KS_CLZ32, int32_t: KS_CLZ32, uint64_t: KS_CLZ64, int64_t: KS_CLZ64)(x)
+
+#define KS_POPCOUNT(x) \
+    _Generic((x), uint32_t: KS_POPCOUNT32, int32_t: KS_POPCOUNT32, uint64_t: KS_POPCOUNT64, int64_t: KS_POPCOUNT64)(x)
+
+#define KS_BSWAP(x) _Generic((x), uint32_t: KS_BSWAP32, uint64_t: KS_BSWAP64)(x)
+
+#define KS_BIT(n) (1ULL << (n))
+#define KS_BIT_CHECK(x, n) (!!((x) & KS_BIT(n)))
+#define KS_BIT_SET(x, n) ((x) | KS_BIT(n))
+#define KS_BIT_CLEAR(x, n) ((x) & ~KS_BIT(n))
+#define KS_BIT_FLIP(x, n) ((x) ^ KS_BIT(n))
+
+#define KS_BIT_MASK(len) ((len) >= 64 ? ~0ULL : (KS_BIT(len) - 1))
+
+#define KS_BIT_FOREACH(i, mask) for (uint64_t _m = (mask); _m && ((i) = KS_CTZ(_m), 1); _m &= (_m - 1))
+
+/* Optional */
+
+#define _KS_OPT(T) KS_TEMPLATED_TYPE(opt, T)
+#define _KS_OPT_FN(action, T) KS_TEMPLATED_METHOD(opt, action, T)
+
+#define KS_OPTIONAL(T)                                                             \
+    KS_TEMPLATED_STRUCT(opt, T, {                                                  \
+        bool has_value;                                                            \
+        T value;                                                                   \
+    });                                                                            \
+                                                                                   \
+    KS_UNUSED static inline _KS_OPT(T) _KS_OPT_FN(some, T)(T value) {              \
+        return (_KS_OPT(T)){.has_value = true, .value = value};                    \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline _KS_OPT(T) _KS_OPT_FN(none, T)(void) {                 \
+        return (_KS_OPT(T)){.has_value = false};                                   \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline bool _KS_OPT_FN(is_some, T)(_KS_OPT(T) * self) {       \
+        KS_ASSERT(self, "self is NULL");                                           \
+        return self->has_value;                                                    \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline bool _KS_OPT_FN(is_none, T)(_KS_OPT(T) * self) {       \
+        KS_ASSERT(self, "self is NULL");                                           \
+        return !self->has_value;                                                   \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline T* _KS_OPT_FN(ptr, T)(_KS_OPT(T) * self) {             \
+        KS_ASSERT(self, "self is NULL");                                           \
+        return _KS_OPT_FN(is_some, T)(self) ? &self->value : NULL;                 \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline T _KS_OPT_FN(unwrap_or, T)(_KS_OPT(T) * self, T def) { \
+        KS_ASSERT(self, "self is NULL");                                           \
+        return _KS_OPT_FN(is_some, T)(self) ? self->value : def;                   \
+    }                                                                              \
+                                                                                   \
+    KS_UNUSED static inline T _KS_OPT_FN(unwrap, T)(_KS_OPT(T) * self) {           \
+        KS_ASSERT(self, "self is NULL");                                           \
+        KS_ASSERT(_KS_OPT_FN(is_some, T)(self), "self is NONE");                   \
+        return self->value;                                                        \
+    }
+
+/* Result */
+#define _KS_RES_T(ok_t, err_t) KS_CONCAT3(ok_t, _, err_t)
+#define _KS_RES(ok_t, err_t) KS_TEMPLATED_TYPE(res, _KS_RES_T(ok_t, err_t))
+#define _KS_RES_FN(action, ok_t, err_t) KS_TEMPLATED_METHOD(res, action, _KS_RES_T(ok_t, err_t))
+
+#define KS_RESULT(ok_t, err_t)                                                                    \
+    KS_TEMPLATED_STRUCT(res, _KS_RES_T(ok_t, err_t), {                                            \
+        bool is_ok;                                                                               \
+        union {                                                                                   \
+            ok_t ok;                                                                              \
+            err_t err;                                                                            \
+        };                                                                                        \
+    });                                                                                           \
+                                                                                                  \
+    KS_UNUSED static inline _KS_RES(ok_t, err_t) _KS_RES_FN(ok, ok_t, err_t)(ok_t value) {        \
+        return (_KS_RES(ok_t, err_t)){.is_ok = true, .ok = value};                                \
+    }                                                                                             \
+                                                                                                  \
+    KS_UNUSED static inline _KS_RES(ok_t, err_t) _KS_RES_FN(err, ok_t, err_t)(err_t value) {      \
+        return (_KS_RES(ok_t, err_t)){.is_ok = false, .err = value};                              \
+    }                                                                                             \
+                                                                                                  \
+    KS_UNUSED static inline bool _KS_RES_FN(is_ok, ok_t, err_t)(_KS_RES(ok_t, err_t) * self) {    \
+        KS_ASSERT(self, "self is NULL");                                                          \
+        return self->is_ok;                                                                       \
+    }                                                                                             \
+                                                                                                  \
+    KS_UNUSED static inline bool _KS_RES_FN(is_err, ok_t, err_t)(_KS_RES(ok_t, err_t) * self) {   \
+        KS_ASSERT(self, "self is NULL");                                                          \
+        return !self->is_ok;                                                                      \
+    }                                                                                             \
+                                                                                                  \
+    KS_UNUSED static inline ok_t _KS_RES_FN(get_ok, ok_t, err_t)(_KS_RES(ok_t, err_t) * self) {   \
+        KS_ASSERT(self, "self is NULL");                                                          \
+        KS_ASSERT(self->is_ok, "self is ERR");                                                    \
+        return self->ok;                                                                          \
+    }                                                                                             \
+                                                                                                  \
+    KS_UNUSED static inline err_t _KS_RES_FN(get_err, ok_t, err_t)(_KS_RES(ok_t, err_t) * self) { \
+        KS_ASSERT(self, "self is NULL");                                                          \
+        KS_ASSERT(!self->is_ok, "self is OK");                                                    \
+        return self->err;                                                                         \
+    }
+
+/* Strings */
 #define KS_SSO_CAP (sizeof(size_t) * 3 - 2)
 
 KS_STRUCT(string, {
@@ -91,7 +433,9 @@ bool ks_str_ends_with(ks_str s, const char* suffix);
 static inline bool ks_str_is_empty(ks_str s);
 static inline size_t ks_str_len(ks_str s);
 
-#ifdef KS_STRING_IMPLEMENTATION
+#ifdef KS_CORE_IMPL
+
+/* Strings */
 
 #define ks_string_foreach(it, s) \
     for (char *it = ks_string_as_raw((ks_string*)s), *_end = it + ks_string_len(s); it < _end; ++it)
@@ -639,7 +983,7 @@ bool ks_string_is_ascii(const ks_string* s) {
     }
 
     ks_string_foreach(c, s) {
-        if (!isascii(*c)) {
+        if (!__isascii(*c)) {
             return false;
         }
     }

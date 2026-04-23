@@ -1,4 +1,6 @@
-#include <kitsune/core/log.h>
+#define KS_CORE_IMPL
+
+#include <ks/core.h>
 
 int ks_log_level = KSINFO;
 

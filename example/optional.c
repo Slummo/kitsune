@@ -1,9 +1,10 @@
-#include <kitsune/core/log.h>
-#include <kitsune/core/optional.h>
-#include <kitsune/core/numbers.h>
+#define KS_CORE_IMPL
+
+#include <ks/core.h>
 
 int ks_log_level = KSINFO;
 
+KS_USING(int32_t, i32);
 KS_OPTIONAL(i32);
 
 int main(void) {

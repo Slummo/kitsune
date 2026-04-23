@@ -1,6 +1,6 @@
-#define KS_STRING_IMPLEMENTATION
+#define KS_CORE_IMPL
 
-#include <kitsune/core/strings.h>
+#include <ks/core.h>
 #include <unity.h>
 #include <stdlib.h>
 

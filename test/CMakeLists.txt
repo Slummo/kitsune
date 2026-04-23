@@ -1,5 +1,3 @@
-enable_testing()
-
 include(FetchContent)
 FetchContent_Declare(
     unity
@@ -8,17 +6,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(unity)
 
-kitsune_add_test(
-    NAME strings
-    SOURCES core/strings.c
-    DEPS Kitsune::Core
+set(TESTS 
+    strings
 )
 
-# LinkedList
-set(TEST_LIST_ROOT "data/list")
-kitsune_add_test(
-    NAME linked_list
-    SOURCES ${TEST_LIST_ROOT}/linked_list.c
-    DEPS Kitsune::LinkedList
-)
-
+foreach(T IN LISTS TESTS)
+    add_executable(test_${T} ${T}.c)
+    target_link_libraries(test_${T} PRIVATE kitsune unity)
+endforeach()

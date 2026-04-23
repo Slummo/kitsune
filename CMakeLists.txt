@@ -1,10 +1,5 @@
-cmake_minimum_required(VERSION 3.20)
-project(Kitsune VERSION 0.1.0 LANGUAGES C)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
-include(kitsune)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+cmake_minimum_required(VERSION 4.0)
+project(kitsune VERSION 1.0.0 LANGUAGES C)
 
 # Strip the project source directory from __FILE__ macros
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
@@ -17,10 +12,13 @@ add_compile_options(
     -Werror
     -Wvla
     -Wsign-conversion
+    # -Wpedantic
+    -std=c99
 
     # Debug flags
     $<$<CONFIG:Debug>:-g>
     $<$<CONFIG:Debug>:-O0>
+    $<$<CONFIG:Debug>:-fsanitize=address>
     $<$<CONFIG:Debug>:-DDEBUG>
 
     # Release flags
@@ -29,12 +27,16 @@ add_compile_options(
     $<$<CONFIG:Release>:-DNDEBUG>
 )
 
+add_link_options($<$<CONFIG:Debug>:-fsanitize=address>)
+
 # Default to debug build
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-add_subdirectory(src)
+add_library(kitsune INTERFACE)
+target_include_directories(kitsune INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(kitsune INTERFACE m)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")

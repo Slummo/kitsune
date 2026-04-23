@@ -1,20 +1,12 @@
-add_executable(hello_world 1-hello_world/main.c)
-target_link_libraries(hello_world PRIVATE
-    Kitsune::Core
+set(EXAMPLES 
+    hello 
+    optional 
+    result 
+    strings
+    algebra
 )
 
-add_executable(optional 2-optional/main.c)
-target_link_libraries(optional PRIVATE
-    Kitsune::Core
-)
-
-add_executable(result 3-result/main.c)
-target_link_libraries(result PRIVATE
-    Kitsune::Core
-)
-
-add_executable(string 4-string/main.c)
-target_link_libraries(string PRIVATE
-    Kitsune::Core
-)
-
+foreach(E IN LISTS EXAMPLES)
+    add_executable(example_${E} ${E}.c)
+    target_link_libraries(example_${E} PRIVATE kitsune)
+endforeach()

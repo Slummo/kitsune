@@ -1,9 +1,6 @@
-#define KS_STRING_IMPLEMENTATION
+#define KS_CORE_IMPL
 
-#include <kitsune/core/log.h>
-#include <kitsune/core/result.h>
-#include <kitsune/core/numbers.h>
-#include <kitsune/core/strings.h>
+#include <ks/core.h>
 
 int ks_log_level = KSINFO;
 

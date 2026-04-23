@@ -4,25 +4,27 @@ BUILD_RELEASE	:= build/release
 all: debug
 
 debug:
-	cmake --build $(BUILD_DEBUG)
+	@cmake --build $(BUILD_DEBUG)
 
 setup_debug:
-	cmake -S . -B $(BUILD_DEBUG) -DCMAKE_BUILD_TYPE=Debug
+	@mkdir build
+	@cmake -S . -B $(BUILD_DEBUG) -DCMAKE_BUILD_TYPE=Debug
 
 setup_release:
-	cmake -S . -B $(BUILD_RELEASE) -DCMAKE_BUILD_TYPE=Release
+	@mkdir build
+	@cmake -S . -B $(BUILD_RELEASE) -DCMAKE_BUILD_TYPE=Release
 
 release:
-	cmake --build $(BUILD_RELEASE)
+	@cmake --build $(BUILD_RELEASE)
 
-run_test:
-	$(BUILD_DEBUG)/test/test_$(NAME)
+run_test: debug
+	@$(BUILD_DEBUG)/test/test_$(NAME)
 
-run_example:
-	$(BUILD_DEBUG)/example/$(NAME)
+run_example: debug
+	@$(BUILD_DEBUG)/example/example_$(NAME)
 
 clean:
-	rm -rf ./build/*
+	rm -rf build
 
 help:
 	@echo "make:			run debug build"
