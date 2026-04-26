@@ -15,6 +15,7 @@
 #define KS_CONCAT3(a, b, c) KS_CONCAT2(KS_CONCAT2(a, b), c)
 #define KS_CONCAT4(a, b, c, d) KS_CONCAT2(KS_CONCAT2(a, b), KS_CONCAT2(c, d))
 #define KS_CONCAT5(a, b, c, d, e) KS_CONCAT2(KS_CONCAT4(a, b, c, d), e)
+#define KS_UNPACK(...) __VA_ARGS__
 
 #define KS_TYPE(name) KS_CONCAT3(ks, _, name)
 #define KS_TEMPLATED_TYPE(name, T) KS_CONCAT3(KS_TYPE(name), _, T)
@@ -158,6 +159,7 @@ static inline const char* ks_res_str(int res) {
 #define KS_LIKELY(x) __builtin_expect(!!(x), 1)
 #define KS_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define KS_FALLTROUGH __attribute__((falltrough))
+#define KS_SIMD_HINT _Pragma("GCC ivdep")
 #define KS_MAX(a, b)            \
     ({                          \
         __typeof__(a) _a = (a); \
