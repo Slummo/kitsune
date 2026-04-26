@@ -12,7 +12,6 @@ add_compile_options(
     -Werror
     -Wvla
     -Wsign-conversion
-    # -Wpedantic
     -std=c99
 
     # Debug flags
