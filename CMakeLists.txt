@@ -10,7 +10,6 @@ add_compile_options(
     -Wall
     -Wextra
     -Werror
-    -Wvla
     -Wsign-conversion
     -std=c99
 
@@ -18,6 +17,9 @@ add_compile_options(
     $<$<CONFIG:Debug>:-g>
     $<$<CONFIG:Debug>:-O0>
     $<$<CONFIG:Debug>:-fsanitize=address>
+    $<$<CONFIG:Debug>:-fsanitize=leak>
+    $<$<CONFIG:Debug>:-fsanitize=undefined>
+    $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
     $<$<CONFIG:Debug>:-DDEBUG>
 
     # Release flags
@@ -26,16 +28,23 @@ add_compile_options(
     $<$<CONFIG:Release>:-DNDEBUG>
 )
 
-add_link_options($<$<CONFIG:Debug>:-fsanitize=address>)
+add_link_options(
+    $<$<CONFIG:Debug>:-fsanitize=address>
+    $<$<CONFIG:Debug>:-fsanitize=leak>
+    $<$<CONFIG:Debug>:-fsanitize=undefined>
+)
 
 # Default to debug build
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
+
+find_package(OpenMP REQUIRED)
+
 add_library(kitsune INTERFACE)
 target_include_directories(kitsune INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(kitsune INTERFACE m)
+target_link_libraries(kitsune INTERFACE m OpenMP::OpenMP_C)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
