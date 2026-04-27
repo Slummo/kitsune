@@ -41,10 +41,14 @@ endif()
 
 
 find_package(OpenMP REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(glfw3 REQUIRED)
+
+add_subdirectory(extern)
 
 add_library(kitsune INTERFACE)
 target_include_directories(kitsune INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(kitsune INTERFACE m OpenMP::OpenMP_C)
+target_link_libraries(kitsune INTERFACE m OpenMP::OpenMP_C ks::glad OpenGL::GL glfw)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
