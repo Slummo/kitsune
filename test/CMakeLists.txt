@@ -12,5 +12,5 @@ set(TESTS
 
 foreach(T IN LISTS TESTS)
     add_executable(test_${T} ${T}.c)
-    target_link_libraries(test_${T} PRIVATE kitsune unity)
+    target_link_libraries(test_${T} PRIVATE ks::lib unity)
 endforeach()

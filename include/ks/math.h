@@ -302,6 +302,11 @@ static inline ks_string _ks_mat_tostr_internal(const char* type_name, const floa
         return v->data[i];                                                                            \
     }                                                                                                 \
                                                                                                       \
+    static inline float* KS_CONCAT2(type, _ptr)(type * v) {                                           \
+        KS_ASSERT(v, "Null arguments");                                                               \
+        return v->data;                                                                               \
+    }                                                                                                 \
+                                                                                                      \
     static inline void KS_CONCAT2(type, _set)(type * out, const type* v, int i, float num) {          \
         KS_ASSERT(out && v, "Null arguments");                                                        \
         KS_ASSERT(i < n, "Index out of bounds");                                                      \
@@ -542,6 +547,11 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
             res.data[i] = m->data[i * n + r];                                                \
         }                                                                                    \
         return res;                                                                          \
+    }                                                                                        \
+                                                                                             \
+    static inline float* KS_CONCAT2(type, _ptr)(type * m) {                                  \
+        KS_ASSERT(m, "Null arguments");                                                      \
+        return m->data;                                                                      \
     }                                                                                        \
                                                                                              \
     static inline void KS_CONCAT2(type, _set)(type * m, int c, int r, float num) {           \
