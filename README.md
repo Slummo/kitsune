@@ -1,6 +1,17 @@
-# Kitsune - C kit, with useful types, data structures, algorithms and more
+# Kitsune - C kit, with useful data structures, memory management objects, math procedures and more
 
-## Use
+## Overview
+
+Kitsune is an STB-style library and provides different modules:
+
+1. core.h: logging, utility macros of all types, bit manipulation and SSO Strings
+2. io.h: simple IO functions
+3. math.h: algebra, analysis
+4. mem.h: memory management objects like arenas, pools and smart pointers
+5. ds.h: data structures and algorithms
+6. render.h: raylib-like graphic engine
+
+## Usage
 
 ### Run tests/examples
 
@@ -13,71 +24,8 @@ make help
 1. Create a standard CMakeLists.txt;
 2. Be sure to either clone the repo manually or use FetchContent;
 3. Add a target;
-4. Link the libraries you want:
+4. Link the library:
 
 ```c
-target_link_libraries(target PRIVATE ks::linked_list)
+target_link_libraries(target PRIVATE ks::lib)
 ```
-
-## State
-
-- Mem: 0%
-    1. smart pointer: 0%
-
-        1.1 unique: 0%
-    2. arena: 0%
-    3. pool: 0%
-- Data: 0%
-    1. array: 0%
-
-        1.1 static: 0%
-
-        1.2 dynamic: 0%
-    2. list: 0%
-
-        2.1 linked list: 0%
-
-        2.2 doubly linked list: 0%
-
-        2.3 circular linked list: 0%
-
-        2.4 circular doubly linked list: 0%
-    3. tree: 0%
-
-        3.1 binary tree: 0%
-
-        3.3 k-ary tree: 0%
-
-        3.2 search tree: 0%
-
-        3.4 rb tree: 0%
-
-        3.5 heap: 0%
-    4. map: 0%
-
-        4.1 hash map: 0%
-
-        4.2 tree map: 0%
-    5. set: 0%
-
-        5.1 hash set: 0%
-
-        5.2 tree set: 0%
-    6. graph: 0%
-
-        6.2 sparse graph: 0%
-
-        6.1 dense graph: 0%
-    7. adt: 0%
-
-        7.1 ring: 0%
-
-        7.2 stack: 0%
-
-        7.3 queue: 0%
-
-        7.4 deque: 0%
-
-        7.5 priority queue: 0%
-- Math: 0%
-    1. algebra: 0%

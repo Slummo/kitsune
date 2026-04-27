@@ -46,9 +46,10 @@ find_package(glfw3 REQUIRED)
 
 add_subdirectory(extern)
 
-add_library(kitsune INTERFACE)
-target_include_directories(kitsune INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(kitsune INTERFACE m OpenMP::OpenMP_C ks::glad OpenGL::GL glfw)
+add_library(ks INTERFACE)
+target_include_directories(ks INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(ks INTERFACE m OpenMP::OpenMP_C ks::glad OpenGL::GL glfw)
+add_library(ks::lib ALIAS ks)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
