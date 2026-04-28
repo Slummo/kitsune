@@ -150,7 +150,7 @@ static inline const char* ks_res_str(int res) {
     } while (0)
 #endif
 
-#define KS_ASSERT_NONNULL(x) KS_ASSERT(x, KS_CONCAT2(#x, " is NULL"));
+#define KS_ASSERT_NONNULL_ARGS(x) KS_ASSERT(x, "Null arguments");
 
 /* Utility macros */
 

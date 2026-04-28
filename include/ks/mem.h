@@ -78,19 +78,19 @@ static void ks_arena_free(KS_UNUSED void* ptr, KS_UNUSED void* user_data) {
 }
 
 void ks_arena_init(ks_arena* arena, void* mem, size_t cap) {
-    KS_ASSERT_NONNULL(arena && mem);
+    KS_ASSERT_NONNULL_ARGS(arena && mem);
     arena->data = (uint8_t)mem;
     arena->cap = cap;
     arena->off = 0;
 }
 
 void ks_arena_reset(ks_arena* arena) {
-    KS_ASSERT_NONNULL(arena);
+    KS_ASSERT_NONNULL_ARGS(arena);
     arena->off = 0;
 }
 
 ks_allocator ks_arena_allocator(ks_arena* arena) {
-    KS_ASSERT_NONNULL(arena);
+    KS_ASSERT_NONNULL_ARGS(arena);
     return (ks_allocator){
         .alloc = ks_arena_alloc, .realloc = ks_arena_realloc, .free = ks_arena_free, .user_data = arena};
 }

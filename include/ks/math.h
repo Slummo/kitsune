@@ -49,6 +49,13 @@ KS_UNION(vec2, {
     float data[2];
 });
 
+#define KS_VEC2(x, y) \
+    (ks_vec2) {       \
+        {             \
+            x, y      \
+        }             \
+    }
+
 KS_UNION(vec3, {
     struct {
         float x;
@@ -57,6 +64,13 @@ KS_UNION(vec3, {
     };
     float data[3];
 });
+
+#define KS_VEC3(x, y, z) \
+    (ks_vec3) {          \
+        {                \
+            x, y, z      \
+        }                \
+    }
 
 KS_UNION(vec4, {
     struct {
@@ -67,6 +81,13 @@ KS_UNION(vec4, {
     };
     float data[4];
 });
+
+#define KS_VEC4(x, y, z, w) \
+    (ks_vec4) {             \
+        {                   \
+            x, y, z, w      \
+        }                   \
+    }
 
 KS_UNION(mat2, {
     float m[2][2];
