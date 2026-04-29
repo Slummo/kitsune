@@ -1,8 +1,9 @@
-#pragma once
+#ifndef KS_RENDER_H
+#define KS_RENDER_H
 
 #include <ks/core.h>
 #include <ks/math.h>
-#include <ks/io.h>
+#include <ks/ds.h>
 #include <signal.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -30,6 +31,8 @@ KS_STRUCT(col4, {
         r, g, b, a          \
     }
 
+/* Shader */
+
 KS_STRUCT(shader, { uint32_t id; });
 
 ks_shader ks_shader_create(const char* vert_filename, const char* frag_filename);
@@ -41,21 +44,27 @@ void ks_shader_set_mat3(ks_shader s, const char* name, float* data);
 void ks_shader_set_mat4(ks_shader s, const char* name, float* data);
 void ks_shader_destroy(ks_shader s);
 
+/* Buffer */
+
 KS_STRUCT(buffer, {
     uint32_t id;
     uint32_t type;
 });
 
 ks_buffer ks_buffer_create(uint32_t type, size_t size, const void* data, uint32_t usage);
-void ks_buffer_update(ks_buffer b, size_t size, const void* data);
+void ks_buffer_update(ks_buffer b, size_t off, size_t size, const void* data);
 void ks_buffer_bind(ks_buffer b);
 void ks_buffer_unbind(uint32_t type);
 void ks_buffer_destroy(ks_buffer b);
 
+/* Texture */
+
 // TODO
 KS_STRUCT(texture, { uint32_t id; });
 
-KS_STRUCT(vert_attr, {
+/* Vertex attribute and format */
+
+KS_STRUCT(vattr, {
     uint32_t loc;
     int32_t count;  // number of floats in data type
     uint32_t type;  // data type code
@@ -64,42 +73,68 @@ KS_STRUCT(vert_attr, {
     uint32_t divisor;  // 0 = per-vertex, 1 = per-instance
 });
 
-#define KS_MAX_VBOS 8
-#define KS_MAX_ATTR_PER_VBO 8
-
-KS_STRUCT(renderable, {
-    uint32_t vao;
-    ks_buffer vbos[KS_MAX_VBOS];
-    int32_t vbo_count;
-    ks_buffer ebo;
-    int32_t has_indices;
-    int32_t vert_count;
-    int32_t ind_count;
-    int32_t inst_count;
+#define KS_MAX_VATTRS_PER_VBO 8
+KS_STRUCT(vfmt, {
+    KS_SA_UNNAMED(ks_vattr, KS_MAX_VATTRS_PER_VBO) attrs;
+    uint32_t vsize;
 });
 
-void ks_renderable_init(ks_renderable* r);
-void ks_renderable_add_vbo(ks_renderable* r, ks_buffer b, const ks_vert_attr* attrs, int32_t attr_count);
-void ks_renderable_set_ebo(ks_renderable* r, ks_buffer b, int32_t ind_count);
-void ks_renderable_set_counts(ks_renderable* r, int32_t vert_count, int32_t ind_count);
-void ks_renderable_destroy(ks_renderable* r);
+extern const ks_vfmt KS_VFMT_POS2_COL3;
+extern const ks_vfmt KS_VFMT_INST_MAT3;
+extern const ks_vfmt KS_VFMT_INST_MAT4;
+
+/* Index format */
+KS_STRUCT(ifmt, {
+    uint32_t type;    // data type code
+    uint32_t ixsize;  // size of data type
+});
+
+extern const ks_ifmt KS_IFMT_U8;
+extern const ks_ifmt KS_IFMT_U16;
+extern const ks_ifmt KS_IFMT_U32;
+
+/* Mesh */
+
+#define KS_MAX_VBOS_PER_MESH 8
+KS_STRUCT(mesh, {
+    uint32_t vao;
+    KS_SA_UNNAMED(ks_buffer, KS_MAX_VBOS_PER_MESH) vbos;
+    ks_buffer ebo;
+    bool has_indices;
+    uint32_t ixtype;
+    uint32_t vcount;
+    uint32_t ixcount;
+    uint32_t iecount;
+    uint32_t next_loc;
+});
+
+ks_mesh ks_mesh_create(void);
+void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const ks_vfmt* vfmt);
+void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const ks_ifmt* ifmt);
+void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt);
+void ks_mesh_draw(ks_mesh* m, ks_shader s);
+void ks_mesh_destroy(ks_mesh* m);
+
+/* Batcher */
 
 KS_STRUCT(batcher, {
-    uint8_t* vertices;
+    void* vertices;
     uint32_t* indices;
-    uint32_t vert_count;
-    uint32_t ind_count;
+    uint32_t vcount;
+    uint32_t ixcount;
     uint32_t max_verts;
     uint32_t max_inds;
     uint32_t stride;
-    ks_renderable gpu_handle;
+    ks_mesh gpu_handle;
 });
 
-void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vert_attr* attributes,
+void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vattr* attributes,
                      uint32_t attr_count);
 void ks_batcher_next_vertex(void);
 void ks_batcher_push_index(uint32_t i);
 void ks_batcher_flush(void);
+
+/* Renderer */
 
 KS_STRUCT(renderer, {
     int32_t width, height;
@@ -109,21 +144,43 @@ KS_STRUCT(renderer, {
     ks_batcher batcher;
 });
 
-KS_UNUSED static ks_renderer g_renderer = {0};
+extern ks_renderer g_renderer;
 
-// TODO
 void ks_renderer_init(int32_t width, int32_t height, const char* title);
-bool ks_renderer_should_close(void);
-void ks_renderer_begin_drawing(void);
-void ks_renderer_draw(ks_renderable* r, ks_shader s);
-void ks_renderer_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
-void ks_renderer_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
-void ks_renderer_end_drawing(void);
+bool ks_win_should_close(void);
+double ks_gettime(void);
+void ks_begin_drawing(void);
+void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
+void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
+void ks_end_drawing(void);
 void ks_renderer_destroy(void);
 
-#ifdef KS_RENDER_IMPL
+#endif  // KS_RENDER_H
 
-/* shader */
+#if defined(KS_RENDER_IMPL) && !defined(KS_RENDER_IMPL_DONE)
+#define KS_RENDER_IMPL_DONE
+
+#ifndef KS_CORE_IMPL_DONE
+#define KS_CORE_IMPL
+#include <ks/core.h>
+#endif
+
+#ifndef KS_MATH_IMPL_DONE
+#define KS_MATH_IMPL
+#include <ks/math.h>
+#endif
+
+#ifndef KS_DS_IMPL_DONE
+#define KS_DS_IMPL
+#include <ks/ds.h>
+#endif
+
+#ifndef KS_IO_IMPL_DONE
+#define KS_IO_IMPL
+#include <ks/io.h>
+#endif
+
+/* Shader */
 
 static GLuint compile_shader(GLenum type, const char* source) {
     GLuint s = glCreateShader(type);
@@ -145,8 +202,8 @@ static GLuint compile_shader(GLenum type, const char* source) {
 ks_shader ks_shader_create(const char* vert_filename, const char* frag_filename) {
     ks_shader s = {0};
 
-    char* vert_src = file_content(vert_filename);
-    char* frag_src = file_content(frag_filename);
+    char* vert_src = ks_fread(vert_filename);
+    char* frag_src = ks_fread(frag_filename);
 
     if (!vert_src || !frag_src) {
         ks_log(KSERR, "Error while reading from shader sources");
@@ -208,25 +265,25 @@ void ks_shader_unbind(void) {
 
 void ks_shader_set_vec3(ks_shader s, const char* name, float* data) {
     GLint loc = glGetUniformLocation(s.id, name);
-    KS_ASSERT(loc != 0, "Uniform not found");
+    KS_ASSERT(loc != -1, "Uniform not found");
     glUniform3fv(loc, 1, data);
 }
 
 void ks_shader_set_vec4(ks_shader s, const char* name, float* data) {
     GLint loc = glGetUniformLocation(s.id, name);
-    KS_ASSERT(loc != 0, "Uniform not found");
+    KS_ASSERT(loc != -1, "Uniform not found");
     glUniform4fv(loc, 1, data);
 }
 
 void ks_shader_set_mat3(ks_shader s, const char* name, float* data) {
     GLint loc = glGetUniformLocation(s.id, name);
-    KS_ASSERT(loc != 0, "Uniform not found");
+    KS_ASSERT(loc != -1, "Uniform not found");
     glUniformMatrix3fv(loc, 1, GL_FALSE, data);
 }
 
 void ks_shader_set_mat4(ks_shader s, const char* name, float* data) {
     GLint loc = glGetUniformLocation(s.id, name);
-    KS_ASSERT(loc != 0, "Uniform not found");
+    KS_ASSERT(loc != -1, "Uniform not found");
     glUniformMatrix4fv(loc, 1, GL_FALSE, data);
 }
 
@@ -234,7 +291,7 @@ void ks_shader_destroy(ks_shader s) {
     glDeleteProgram(s.id);
 }
 
-/* buffer */
+/* Buffer */
 
 ks_buffer ks_buffer_create(uint32_t type, size_t size, const void* data, uint32_t usage) {
     ks_buffer b = {.id = 0, .type = type};
@@ -244,9 +301,9 @@ ks_buffer ks_buffer_create(uint32_t type, size_t size, const void* data, uint32_
     return b;
 }
 
-void ks_buffer_update(ks_buffer b, size_t size, const void* data) {
+void ks_buffer_update(ks_buffer b, size_t off, size_t size, const void* data) {
     ks_buffer_bind(b);
-    glBufferSubData(b.type, 0, (GLsizeiptr)size, data);
+    glBufferSubData(b.type, (GLintptr)off, (GLsizeiptr)size, data);
 }
 
 void ks_buffer_bind(ks_buffer b) {
@@ -261,67 +318,163 @@ void ks_buffer_destroy(ks_buffer b) {
     glDeleteBuffers(1, &b.id);
 }
 
-/* texture*/
+/* Texture*/
 
-/* renderable */
+/* Vertex format */
 
-void ks_renderable_init(ks_renderable* r) {
-    KS_ASSERT_NONNULL_ARGS(r);
-    memset(r, 0, sizeof(ks_renderable));
-    glGenVertexArrays(1, &r->vao);
-}
+// clang-format off
+const ks_vfmt KS_VFMT_POS2_COL3 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 2, GL_FLOAT, 0               , sizeof(ks_vec2) + sizeof(ks_col3), 0}, 
+            {1, 3, GL_FLOAT, sizeof(ks_vec2) , sizeof(ks_vec2) + sizeof(ks_col3), 0} 
+        },
+        .len = 2 
+    },
+    .vsize = sizeof(ks_vec2) + sizeof(ks_col3)
+};
 
-void ks_renderable_add_vbo(ks_renderable* r, ks_buffer b, const ks_vert_attr* attrs, int32_t attr_count) {
-    KS_ASSERT_NONNULL_ARGS(r && attrs);
-    if (r->vbo_count == KS_MAX_VBOS || attr_count >= KS_MAX_ATTR_PER_VBO) {
+const ks_vfmt KS_VFMT_INST_MAT3 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 3, GL_FLOAT, 0,                   sizeof(ks_mat3), 1},
+            {1, 3, GL_FLOAT, 1 * sizeof(ks_vec3), sizeof(ks_mat3), 1},
+            {2, 3, GL_FLOAT, 2 * sizeof(ks_vec3), sizeof(ks_mat3), 1},
+        },
+        .len = 3
+    },
+    .vsize = sizeof(ks_mat3)
+};
+
+const ks_vfmt KS_VFMT_INST_MAT4 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 4, GL_FLOAT, 0,                   sizeof(ks_mat4), 1},
+            {1, 4, GL_FLOAT, 1 * sizeof(ks_vec4), sizeof(ks_mat4), 1},
+            {2, 4, GL_FLOAT, 2 * sizeof(ks_vec4), sizeof(ks_mat4), 1},
+            {3, 4, GL_FLOAT, 3 * sizeof(ks_vec4), sizeof(ks_mat4), 1} 
+        },
+        .len = 4
+    },
+    .vsize = sizeof(ks_mat4)
+};
+
+/* Index format */
+                            // type, ixsize
+const ks_ifmt KS_IFMT_U8 = {GL_UNSIGNED_BYTE , sizeof(uint8_t)};
+const ks_ifmt KS_IFMT_U16 = {GL_UNSIGNED_SHORT, sizeof(uint16_t)};
+const ks_ifmt KS_IFMT_U32 = {GL_UNSIGNED_INT  , sizeof(uint32_t)};
+
+// clang-format on
+
+/* Mesh */
+
+static void _ks_mesh_add_vbo_internal(ks_mesh* m, ks_buffer b, const ks_vfmt* vfmt) {
+    KS_ASSERT_NONNULL_ARGS(m && vfmt);
+    if (ks_sa_isfull(&m->vbos)) {
         return;
     }
 
-    glBindVertexArray(r->vao);
+    glBindVertexArray(m->vao);
     ks_buffer_bind(b);
 
-    for (int32_t i = 0; i < attr_count; ++i) {
-        const ks_vert_attr* attr = &attrs[i];
-
-        glEnableVertexAttribArray(attr->loc);
-        glVertexAttribPointer(attr->loc, attr->count, attr->type, GL_FALSE, attr->stride,
+    ks_array_foreach(attr, &vfmt->attrs) {
+        uint32_t loc = m->next_loc + attr->loc;
+        glEnableVertexAttribArray(loc);
+        glVertexAttribPointer(loc, attr->count, attr->type, GL_FALSE, attr->stride,
                               (const void*)(uintptr_t)(attr->off));
         if (attr->divisor > 0) {
-            glVertexAttribDivisor(attr->loc, attr->divisor);
+            glVertexAttribDivisor(loc, attr->divisor);
         }
     }
 
-    r->vbos[r->vbo_count++] = b;
+    m->next_loc += vfmt->attrs.len;
+
+    ks_sa_push(&m->vbos, b);
     glBindVertexArray(0);
 }
 
-void ks_renderable_set_ebo(ks_renderable* r, ks_buffer b, int32_t ind_count) {
-    KS_ASSERT_NONNULL_ARGS(r);
-    glBindVertexArray(r->vao);
-    ks_buffer_bind(b);
+ks_mesh ks_mesh_create(void) {
+    ks_mesh m = {0};
 
-    r->ebo = b;
-    r->has_indices = 1;
-    r->ind_count = ind_count;
+    glGenVertexArrays(1, &m.vao);
+    m.ixtype = GL_UNSIGNED_INT;
+
+    return m;
+}
+
+void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const ks_vfmt* vfmt) {
+    KS_ASSERT_NONNULL_ARGS(m && verts && vfmt);
+    glBindVertexArray(m->vao);
+    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, vcount * vfmt->vsize, verts, GL_STATIC_DRAW);
+    _ks_mesh_add_vbo_internal(m, vbo, vfmt);
+
+    m->vcount = vcount;
+    m->iecount = 1;
+}
+
+void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const ks_ifmt* ifmt) {
+    KS_ASSERT_NONNULL_ARGS(m && inds && ifmt);
+    glBindVertexArray(m->vao);
+    ks_buffer ebo = ks_buffer_create(GL_ELEMENT_ARRAY_BUFFER, ixcount * ifmt->ixsize, inds, GL_STATIC_DRAW);
+    ks_buffer_bind(ebo);
+
+    m->ebo = ebo;
+    m->has_indices = true;
+    m->ixtype = ifmt->type;
+    m->ixcount = ixcount;
 
     glBindVertexArray(0);
 }
 
-void ks_renderable_set_counts(ks_renderable* r, int32_t vert_count, int32_t ind_count) {
-    KS_ASSERT_NONNULL_ARGS(r);
-    r->vert_count = vert_count;
-    r->ind_count = ind_count;
+void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt) {
+    KS_ASSERT_NONNULL_ARGS(m && insts && vfmt);
+    glBindVertexArray(m->vao);
+    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, iecount * vfmt->vsize, insts, GL_DYNAMIC_DRAW);
+    _ks_mesh_add_vbo_internal(m, vbo, vfmt);
+
+    m->iecount = iecount;
 }
 
-void ks_renderable_destroy(ks_renderable* r) {
-    KS_ASSERT_NONNULL_ARGS(r);
-    glDeleteVertexArrays(1, &r->vao);
+void ks_mesh_draw(ks_mesh* m, ks_shader s) {
+    KS_ASSERT_NONNULL_ARGS(m);
+
+    g_renderer.is_drawing = true;
+
+    ks_shader_bind(s);
+    glBindVertexArray(m->vao);
+
+    if (m->has_indices) {
+        if (m->iecount > 1) {
+            glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)m->ixcount, m->ixtype, NULL, (GLsizei)m->iecount);
+        } else {
+            glDrawElements(GL_TRIANGLES, (GLsizei)m->ixcount, m->ixtype, NULL);
+        }
+    } else {
+        if (m->iecount > 1) {
+            glDrawArraysInstanced(GL_TRIANGLES, 0, (GLsizei)m->vcount, (GLsizei)m->iecount);
+        } else {
+            glDrawArrays(GL_TRIANGLES, 0, (GLsizei)m->vcount);
+        }
+    }
+
+    glBindVertexArray(0);
+
+    g_renderer.is_drawing = false;
+}
+
+void ks_mesh_destroy(ks_mesh* m) {
+    KS_ASSERT_NONNULL_ARGS(m);
+    glDeleteVertexArrays(1, &m->vao);
     // Don't destroy buffers to allow sharing between renderables
 }
 
-/* batcher */
+/* Batcher */
 
-void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vert_attr* attrs,
+void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vattr* attrs,
                      uint32_t attr_count);
 void ks_batcher_next_vertex(void);
 void ks_batcher_push_index(uint32_t i);
@@ -330,7 +483,7 @@ void ks_batcher_flush(void) {
     return;
 }
 
-/* renderer */
+/* Renderer */
 
 static void GLAPIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, KS_UNUSED GLsizei length,
                                       const GLchar* message, KS_UNUSED const void* user_param) {
@@ -345,6 +498,8 @@ static void GLAPIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLe
 static void framebuffer_size_callback(KS_UNUSED GLFWwindow* window, int32_t width, int32_t height) {
     glViewport(0, 0, width, height);
 }
+
+ks_renderer g_renderer = {0};
 
 void ks_renderer_init(int32_t width, int32_t height, const char* title) {
     // Initialize GLFW
@@ -395,44 +550,28 @@ void ks_renderer_init(int32_t width, int32_t height, const char* title) {
     // TODO: init batcher
 }
 
-bool ks_renderer_should_close(void) {
+bool ks_win_should_close(void) {
     return glfwWindowShouldClose(g_renderer.win);
 }
 
-void ks_renderer_begin_drawing(void) {
+double ks_gettime(void) {
+    return glfwGetTime();
+}
+
+void ks_begin_drawing(void) {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    g_renderer.is_drawing = true;
 }
 
-void ks_renderer_draw(ks_renderable* r, ks_shader s) {
-    KS_ASSERT_NONNULL_ARGS(r);
-    ks_shader_bind(s);
-    glBindVertexArray(r->vao);
+void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
+void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
 
-    if (r->has_indices) {
-        if (r->inst_count > 1) {
-            glDrawElementsInstanced(GL_TRIANGLES, r->ind_count, GL_UNSIGNED_INT, NULL, r->inst_count);
-        } else {
-            glDrawElements(GL_TRIANGLES, r->ind_count, GL_UNSIGNED_INT, NULL);
-        }
-    } else {
-        if (r->inst_count > 1) {
-            glDrawArraysInstanced(GL_TRIANGLES, 0, r->vert_count, r->inst_count);
-        } else {
-            glDrawArrays(GL_TRIANGLES, 0, r->vert_count);
-        }
-    }
-
-    glBindVertexArray(0);
-}
-
-void ks_renderer_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
-void ks_renderer_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
-
-void ks_renderer_end_drawing(void) {
+void ks_end_drawing(void) {
     ks_batcher_flush();
     glfwSwapBuffers(g_renderer.win);
     glfwPollEvents();
+    g_renderer.is_drawing = false;
 }
 
 void ks_renderer_destroy(void) {
@@ -440,4 +579,4 @@ void ks_renderer_destroy(void) {
     glfwTerminate();
 }
 
-#endif
+#endif  // KS_RENDER_IMPL

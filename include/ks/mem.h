@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KS_MEM_H
+#define KS_MEM_H
 
 #include <ks/core.h>
 
@@ -31,7 +32,10 @@ void ks_arena_init(ks_arena* arena, void* mem, size_t cap);
 void ks_arena_reset(ks_arena* arena);
 ks_allocator ks_arena_allocator(ks_arena* arena);
 
-#ifdef KS_MEM_IMPL
+#endif  // KS_MEM_H
+
+#if defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
+#define KS_MEM_IMPL_DONE
 
 static void* std_alloc(size_t size, KS_UNUSED void* user_data) {
     return malloc(size);
@@ -95,4 +99,4 @@ ks_allocator ks_arena_allocator(ks_arena* arena) {
         .alloc = ks_arena_alloc, .realloc = ks_arena_realloc, .free = ks_arena_free, .user_data = arena};
 }
 
-#endif
+#endif  // KS_MEM_IMPL

@@ -1,14 +1,18 @@
-#pragma once
+#ifndef KS_IO_H
+#define KS_IO_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-char* file_content(const char* filename);
+char* ks_fread(const char* filename);
 
-#ifdef KS_IO_IMPL
+#endif  // KS_IO_H
 
-char* file_content(const char* filename) {
+#if defined(KS_IO_IMPL) && !defined(KS_IO_IMPL_DONE)
+#define KS_IO_IMPL_DONE
+
+char* ks_fread(const char* filename) {
     FILE* f = fopen(filename, "r");
     if (!f) {
         return NULL;
@@ -32,4 +36,4 @@ char* file_content(const char* filename) {
     return content;
 }
 
-#endif
+#endif  // KS_IO_IMPL

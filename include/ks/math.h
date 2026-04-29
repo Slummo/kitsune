@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KS_MATH_H
+#define KS_MATH_H
 
 #include <ks/core.h>
 #include <math.h>
@@ -19,6 +20,9 @@
 #define KS_2_SQRTPI 1.12837916709551257390  // 2/sqrt(pi)
 #define KS_SQRT2 1.41421356237309504880     // sqrt(2)
 #define KS_1_SQRT2 0.70710678118654752440   // 1/sqrt(2)
+
+#define KS_DEG2RAD (KS_PI / 180.0)
+#define KS_RAD2DEG (180.0 / KS_PI)
 
 int fft(size_t n, float complex samples[static n]);
 
@@ -383,235 +387,243 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
     v1->z = v1->x * v2->y - v1->y * v2->x;
 }
 
-#define KS_MAT_FUNCTIONS(type, vtype, n)                                                     \
-    static inline void KS_CONCAT2(type, _zeroinit)(type * m) {                               \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        memset(m->data, 0, sizeof(type));                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline type KS_CONCAT2(type, _zeronew)(void) {                                    \
-        type m;                                                                              \
-        KS_CONCAT2(type, _zeroinit)(&m);                                                     \
-        return m;                                                                            \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _idinit)(type * m) {                                 \
-        KS_CONCAT2(type, _zeroinit)(m);                                                      \
-        KS_SIMD_HINT for (int i = 0; i < n; ++i) {                                           \
-            m->data[i * n + i] = 1.0f;                                                       \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline type KS_CONCAT2(type, _idnew)(void) {                                      \
-        type m;                                                                              \
-        KS_CONCAT2(type, _idinit)(&m);                                                       \
-        return m;                                                                            \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _fill)(type * m, float num) {                        \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m->data[i] = num;                                                                \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _add)(type * out, const type* m1, const type* m2) {  \
-        KS_ASSERT(out && m1 && m2, "Null arguments");                                        \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            out->data[i] = m1->data[i] + m2->data[i];                                        \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _addi)(type * m1, const type* m2) {                  \
-        KS_ASSERT(m1 && m2, "Null arguments");                                               \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m1->data[i] += m2->data[i];                                                      \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _neg)(type * out, const type* m) {                   \
-        KS_ASSERT(out && m, "Null arguments");                                               \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            out->data[i] = -m->data[i];                                                      \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _negi)(type * m) {                                   \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m->data[i] = -m->data[i];                                                        \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _sub)(type * out, const type* m1, const type* m2) {  \
-        KS_ASSERT(out && m1 && m2, "Null arguments");                                        \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            out->data[i] = m1->data[i] - m2->data[i];                                        \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _subi)(type * m1, const type* m2) {                  \
-        KS_ASSERT(m1 && m2, "Null arguments");                                               \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m1->data[i] -= m2->data[i];                                                      \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _smul)(type * out, const type* m, float num) {       \
-        KS_ASSERT(out && m, "Null arguments");                                               \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            out->data[i] = m->data[i] * num;                                                 \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _smuli)(type * m, float num) {                       \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m->data[i] *= num;                                                               \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _sdiv)(type * out, const type* m, float num) {       \
-        KS_ASSERT(out && m, "Null arguments");                                               \
-        KS_ASSERT(num != 0.0f, "Zero division");                                             \
-        float inv = 1.0f / num;                                                              \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            out->data[i] = m->data[i] * inv;                                                 \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _sdivi)(type * m, float num) {                       \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_ASSERT(num != 0.0f, "Zero division");                                             \
-        float inv = 1.0f / num;                                                              \
-        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                       \
-            m->data[i] *= inv;                                                               \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _trans)(type * out, const type* m) {                 \
-        KS_ASSERT(out && m, "Null arguments");                                               \
-        for (int c = 0; c < n; ++c) {                                                        \
-            for (int r = 0; r < n; ++r) {                                                    \
-                out->data[c * n + r] = m->data[r * n + c];                                   \
-            }                                                                                \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _transi)(type * m) {                                 \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        for (int c = 0; c < n; ++c) {                                                        \
-            for (int r = 0; r < n; ++r) {                                                    \
-                m->data[c * n + r] = m->data[r * n + c];                                     \
-            }                                                                                \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _mul)(type * out, const type* m1, const type* m2) {  \
-        KS_ASSERT(out && m1 && m2, "Null arguments");                                        \
-        for (int c = 0; c < n; ++c) {                                                        \
-            for (int r = 0; r < n; ++r) {                                                    \
-                float sum = 0.0f;                                                            \
-                for (int k = 0; k < n; ++k) {                                                \
-                    sum += m1->data[k * n + r] * m2->data[c * n + k];                        \
-                }                                                                            \
-                                                                                             \
-                out->data[c * n + r] = sum;                                                  \
-            }                                                                                \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _muli)(type * m1, const type* m2) {                  \
-        type tmp;                                                                            \
-        KS_CONCAT2(type, _mul)(&tmp, m1, m2);                                                \
-        *m1 = tmp;                                                                           \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _mulv)(vtype * out, const type* m, const vtype* v) { \
-        KS_ASSERT(out && m && v, "Null arguments");                                          \
-        for (int r = 0; r < n; ++r) {                                                        \
-            float sum = 0.0f;                                                                \
-            for (int c = 0; c < n; ++c) {                                                    \
-                sum += m->data[c * n + r] * v->data[c];                                      \
-            }                                                                                \
-            out->data[r] = sum;                                                              \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _mulvi)(const type* m, vtype* v) {                   \
-        vtype tmp;                                                                           \
-        KS_CONCAT2(type, _mulv)(&tmp, m, v);                                                 \
-        *v = tmp;                                                                            \
-    }                                                                                        \
-                                                                                             \
-    static inline float KS_CONCAT2(type, _get)(const type* m, int c, int r) {                \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_ASSERT(c < n && r < n, "Index out of bounds");                                    \
-        return m->data[c * n + r];                                                           \
-    }                                                                                        \
-                                                                                             \
-    static inline vtype KS_CONCAT2(type, _getc)(const type* m, int c) {                      \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_ASSERT(c < n, "Index out of bounds");                                             \
-        vtype res;                                                                           \
-        for (int i = 0; i < n; ++i) {                                                        \
-            res.data[i] = m->data[c * n + i];                                                \
-        }                                                                                    \
-        return res;                                                                          \
-    }                                                                                        \
-                                                                                             \
-    static inline vtype KS_CONCAT2(type, _getr)(const type* m, int r) {                      \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_ASSERT(r < n, "Index out of bounds");                                             \
-        vtype res;                                                                           \
-        for (int i = 0; i < n; ++i) {                                                        \
-            res.data[i] = m->data[i * n + r];                                                \
-        }                                                                                    \
-        return res;                                                                          \
-    }                                                                                        \
-                                                                                             \
-    static inline float* KS_CONCAT2(type, _ptr)(type * m) {                                  \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        return m->data;                                                                      \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _set)(type * m, int c, int r, float num) {           \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        KS_ASSERT(c < n && r < n, "Index out of bounds");                                    \
-        m->data[c * n + r] = num;                                                            \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _setc)(type * m, int c, const vtype* v) {            \
-        KS_ASSERT(m && v, "Null arguments");                                                 \
-        KS_ASSERT(c < n, "Column index out of bounds");                                      \
-        KS_SIMD_HINT for (int r = 0; r < n; ++r) {                                           \
-            m->data[c * n + r] = v->data[r];                                                 \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _setr)(type * m, int r, const vtype* v) {            \
-        KS_ASSERT(m && v, "Null arguments");                                                 \
-        KS_ASSERT(r < n, "Row index out of bounds");                                         \
-        KS_SIMD_HINT for (int c = 0; c < n; ++c) {                                           \
-            m->data[c * n + r] = v->data[c];                                                 \
-        }                                                                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline ks_string KS_CONCAT2(type, _tostr)(const type* m) {                        \
-        KS_ASSERT(m, "Null arguments");                                                      \
-        return _ks_mat_tostr_internal(#type, m->data, n);                                    \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _print)(const type* m, FILE* stream) {               \
-        KS_ASSERT(m && stream, "Null arguments");                                            \
-        ks_string s = KS_CONCAT2(type, _tostr)(m);                                           \
-        fprintf(stream, "%s", ks_string_as_raw(&s));                                         \
-        ks_string_free(&s);                                                                  \
-    }                                                                                        \
-                                                                                             \
-    static inline void KS_CONCAT2(type, _println)(const type* m, FILE* stream) {             \
-        KS_CONCAT2(type, _print)(m, stream);                                                 \
-        fprintf(stream, "\n");                                                               \
+#define KS_MAT_FUNCTIONS(type, vtype, n)                                                       \
+    static inline void KS_CONCAT2(type, _zeroinit)(type * m) {                                 \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        memset(m->data, 0, sizeof(type));                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline type KS_CONCAT2(type, _zeronew)(void) {                                      \
+        type m;                                                                                \
+        KS_CONCAT2(type, _zeroinit)(&m);                                                       \
+        return m;                                                                              \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _idinit)(type * m) {                                   \
+        KS_CONCAT2(type, _zeroinit)(m);                                                        \
+        KS_SIMD_HINT for (int i = 0; i < n; ++i) {                                             \
+            m->data[i * n + i] = 1.0f;                                                         \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline type KS_CONCAT2(type, _idnew)(void) {                                        \
+        type m;                                                                                \
+        KS_CONCAT2(type, _idinit)(&m);                                                         \
+        return m;                                                                              \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _fill)(type * m, float num) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m->data[i] = num;                                                                  \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _add)(type * out, const type* m1, const type* m2) {    \
+        KS_ASSERT(out && m1 && m2, "Null arguments");                                          \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            out->data[i] = m1->data[i] + m2->data[i];                                          \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _addi)(type * m1, const type* m2) {                    \
+        KS_ASSERT(m1 && m2, "Null arguments");                                                 \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m1->data[i] += m2->data[i];                                                        \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _neg)(type * out, const type* m) {                     \
+        KS_ASSERT(out && m, "Null arguments");                                                 \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            out->data[i] = -m->data[i];                                                        \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _negi)(type * m) {                                     \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m->data[i] = -m->data[i];                                                          \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _sub)(type * out, const type* m1, const type* m2) {    \
+        KS_ASSERT(out && m1 && m2, "Null arguments");                                          \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            out->data[i] = m1->data[i] - m2->data[i];                                          \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _subi)(type * m1, const type* m2) {                    \
+        KS_ASSERT(m1 && m2, "Null arguments");                                                 \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m1->data[i] -= m2->data[i];                                                        \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _smul)(type * out, const type* m, float num) {         \
+        KS_ASSERT(out && m, "Null arguments");                                                 \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            out->data[i] = m->data[i] * num;                                                   \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _smuli)(type * m, float num) {                         \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m->data[i] *= num;                                                                 \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _sdiv)(type * out, const type* m, float num) {         \
+        KS_ASSERT(out && m, "Null arguments");                                                 \
+        KS_ASSERT(num != 0.0f, "Zero division");                                               \
+        float inv = 1.0f / num;                                                                \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            out->data[i] = m->data[i] * inv;                                                   \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _sdivi)(type * m, float num) {                         \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_ASSERT(num != 0.0f, "Zero division");                                               \
+        float inv = 1.0f / num;                                                                \
+        KS_SIMD_HINT for (int i = 0; i < n * n; ++i) {                                         \
+            m->data[i] *= inv;                                                                 \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _trans)(type * out, const type* m) {                   \
+        KS_ASSERT(out && m, "Null arguments");                                                 \
+        for (int c = 0; c < n; ++c) {                                                          \
+            for (int r = 0; r < n; ++r) {                                                      \
+                out->data[c * n + r] = m->data[r * n + c];                                     \
+            }                                                                                  \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _transi)(type * m) {                                   \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int c = 0; c < n; ++c) {                                                          \
+            for (int r = 0; r < n; ++r) {                                                      \
+                m->data[c * n + r] = m->data[r * n + c];                                       \
+            }                                                                                  \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _mul)(type * out, const type* m1, const type* m2) {    \
+        KS_ASSERT(out && m1 && m2, "Null arguments");                                          \
+        for (int c = 0; c < n; ++c) {                                                          \
+            for (int r = 0; r < n; ++r) {                                                      \
+                float sum = 0.0f;                                                              \
+                for (int k = 0; k < n; ++k) {                                                  \
+                    sum += m1->data[k * n + r] * m2->data[c * n + k];                          \
+                }                                                                              \
+                                                                                               \
+                out->data[c * n + r] = sum;                                                    \
+            }                                                                                  \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _muli)(type * m1, const type* m2) {                    \
+        type tmp;                                                                              \
+        KS_CONCAT2(type, _mul)(&tmp, m1, m2);                                                  \
+        *m1 = tmp;                                                                             \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _mulv)(vtype * out, const type* m, const vtype* v) {   \
+        KS_ASSERT(out && m && v, "Null arguments");                                            \
+        for (int r = 0; r < n; ++r) {                                                          \
+            float sum = 0.0f;                                                                  \
+            for (int c = 0; c < n; ++c) {                                                      \
+                sum += m->data[c * n + r] * v->data[c];                                        \
+            }                                                                                  \
+            out->data[r] = sum;                                                                \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _mulvi)(const type* m, vtype* v) {                     \
+        vtype tmp;                                                                             \
+        KS_CONCAT2(type, _mulv)(&tmp, m, v);                                                   \
+        *v = tmp;                                                                              \
+    }                                                                                          \
+                                                                                               \
+    static inline type KS_CONCAT2(type, _model)(const type* t, const type* r, const type* s) { \
+        KS_ASSERT_NONNULL_ARGS(t && r && s);                                                   \
+        type m;                                                                                \
+        KS_CONCAT2(type, _mul)(&m, t, r);                                                      \
+        KS_CONCAT2(type, _muli)(&m, s);                                                        \
+        return m;                                                                              \
+    }                                                                                          \
+                                                                                               \
+    static inline float KS_CONCAT2(type, _get)(const type* m, int c, int r) {                  \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_ASSERT(c < n && r < n, "Index out of bounds");                                      \
+        return m->data[c * n + r];                                                             \
+    }                                                                                          \
+                                                                                               \
+    static inline vtype KS_CONCAT2(type, _getc)(const type* m, int c) {                        \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_ASSERT(c < n, "Index out of bounds");                                               \
+        vtype res;                                                                             \
+        for (int i = 0; i < n; ++i) {                                                          \
+            res.data[i] = m->data[c * n + i];                                                  \
+        }                                                                                      \
+        return res;                                                                            \
+    }                                                                                          \
+                                                                                               \
+    static inline vtype KS_CONCAT2(type, _getr)(const type* m, int r) {                        \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_ASSERT(r < n, "Index out of bounds");                                               \
+        vtype res;                                                                             \
+        for (int i = 0; i < n; ++i) {                                                          \
+            res.data[i] = m->data[i * n + r];                                                  \
+        }                                                                                      \
+        return res;                                                                            \
+    }                                                                                          \
+                                                                                               \
+    static inline float* KS_CONCAT2(type, _ptr)(type * m) {                                    \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        return m->data;                                                                        \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _set)(type * m, int c, int r, float num) {             \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        KS_ASSERT(c < n && r < n, "Index out of bounds");                                      \
+        m->data[c * n + r] = num;                                                              \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _setc)(type * m, int c, const vtype* v) {              \
+        KS_ASSERT(m && v, "Null arguments");                                                   \
+        KS_ASSERT(c < n, "Column index out of bounds");                                        \
+        KS_SIMD_HINT for (int r = 0; r < n; ++r) {                                             \
+            m->data[c * n + r] = v->data[r];                                                   \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _setr)(type * m, int r, const vtype* v) {              \
+        KS_ASSERT(m && v, "Null arguments");                                                   \
+        KS_ASSERT(r < n, "Row index out of bounds");                                           \
+        KS_SIMD_HINT for (int c = 0; c < n; ++c) {                                             \
+            m->data[c * n + r] = v->data[c];                                                   \
+        }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline ks_string KS_CONCAT2(type, _tostr)(const type* m) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        return _ks_mat_tostr_internal(#type, m->data, n);                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _print)(const type* m, FILE* stream) {                 \
+        KS_ASSERT(m && stream, "Null arguments");                                              \
+        ks_string s = KS_CONCAT2(type, _tostr)(m);                                             \
+        fprintf(stream, "%s", ks_string_as_raw(&s));                                           \
+        ks_string_free(&s);                                                                    \
+    }                                                                                          \
+                                                                                               \
+    static inline void KS_CONCAT2(type, _println)(const type* m, FILE* stream) {               \
+        KS_CONCAT2(type, _print)(m, stream);                                                   \
+        fprintf(stream, "\n");                                                                 \
     }
 
 KS_MAT_FUNCTIONS(ks_mat2, ks_vec2, 2);
@@ -646,15 +658,6 @@ static inline void ks_mat2_invi(ks_mat2* m) {
     *m = tmp;
 }
 
-static inline void ks_mat2_scale(ks_mat2* m, const ks_vec2* v) {
-    KS_ASSERT(m && v, "Null arguments");
-    float* d = m->data;
-    d[0] *= v->x;
-    d[1] *= v->x;
-    d[2] *= v->y;
-    d[3] *= v->y;
-}
-
 static inline void ks_mat2_rotate(ks_mat2* m, float angle) {
     KS_ASSERT(m, "Null arguments");
     float c = cosf(angle), s = sinf(angle);
@@ -665,6 +668,15 @@ static inline void ks_mat2_rotate(ks_mat2* m, float angle) {
     d[2] = -s;
     d[3] = c;
     ks_mat2_muli(m, &R);
+}
+
+static inline void ks_mat2_scale(ks_mat2* m, const ks_vec2* v) {
+    KS_ASSERT(m && v, "Null arguments");
+    float* d = m->data;
+    d[0] *= v->x;
+    d[1] *= v->x;
+    d[2] *= v->y;
+    d[3] *= v->y;
 }
 
 /* mat3 */
@@ -705,18 +717,6 @@ static inline void ks_mat3_translate(ks_mat3* m, const ks_vec2* v) {
     float* d = m->data;
     d[6] += d[0] * v->x + d[3] * v->y;
     d[7] += d[1] * v->x + d[4] * v->y;
-    d[8] += d[2] * v->x + d[5] * v->y;
-}
-
-static inline void ks_mat3_scale(ks_mat3* m, const ks_vec2* v) {
-    KS_ASSERT(m && v, "Null arguments");
-    float* d = m->data;
-    d[0] *= v->x;
-    d[1] *= v->x;
-    d[2] *= v->x;
-    d[3] *= v->y;
-    d[4] *= v->y;
-    d[5] *= v->y;
 }
 
 static inline void ks_mat3_rotate(ks_mat3* m, float angle) {
@@ -729,6 +729,13 @@ static inline void ks_mat3_rotate(ks_mat3* m, float angle) {
     d[3] = -s;
     d[4] = c;
     ks_mat3_muli(m, &R);
+}
+
+static inline void ks_mat3_scale(ks_mat3* m, const ks_vec2* v) {
+    KS_ASSERT(m && v, "Null arguments");
+    float* d = m->data;
+    d[0] *= v->x;
+    d[3] *= v->y;
 }
 
 static inline void ks_mat3_lookat(ks_mat3* out, const ks_vec2* eye, const ks_vec2* target) {
@@ -828,23 +835,6 @@ static inline void ks_mat4_translate(ks_mat4* m, const ks_vec3* v) {
     d[15] += d[3] * v->x + d[7] * v->y + d[11] * v->z;
 }
 
-static inline void ks_mat4_scale(ks_mat4* m, const ks_vec3* v) {
-    KS_ASSERT(m && v, "Null arguments");
-    float* d = m->data;
-    d[0] *= v->x;
-    d[1] *= v->x;
-    d[2] *= v->x;
-    d[3] *= v->x;
-    d[4] *= v->y;
-    d[5] *= v->y;
-    d[6] *= v->y;
-    d[7] *= v->y;
-    d[8] *= v->z;
-    d[9] *= v->z;
-    d[10] *= v->z;
-    d[11] *= v->z;
-}
-
 // Rodrigues formula
 static inline void ks_mat4_rotate(ks_mat4* m, float angle, const ks_vec3* axis) {
     KS_ASSERT(m && axis, "Null arguments");
@@ -864,6 +854,23 @@ static inline void ks_mat4_rotate(ks_mat4* m, float angle, const ks_vec3* axis) 
     d[10] = c + z * z * t;
 
     ks_mat4_muli(m, &R);
+}
+
+static inline void ks_mat4_scale(ks_mat4* m, const ks_vec3* v) {
+    KS_ASSERT(m && v, "Null arguments");
+    float* d = m->data;
+    d[0] *= v->x;
+    d[1] *= v->x;
+    d[2] *= v->x;
+    d[3] *= v->x;
+    d[4] *= v->y;
+    d[5] *= v->y;
+    d[6] *= v->y;
+    d[7] *= v->y;
+    d[8] *= v->z;
+    d[9] *= v->z;
+    d[10] *= v->z;
+    d[11] *= v->z;
 }
 
 static inline void ks_mat4_lookat(ks_mat4* out, const ks_vec3* eye, const ks_vec3* center, const ks_vec3* up) {
@@ -920,7 +927,10 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     d[14] = -(farz + nearz) / (farz - nearz);
 }
 
-#ifdef KS_MATH_IMPL
+#endif  // KS_MATH_H
+
+#if defined(KS_MATH_IMPL) && !defined(KS_MATH_IMPL_DONE)
+#define KS_MATH_IMPL_DONE
 
 int fft(size_t n, float complex samples[static n]) {
     if (!KS_ISPOW2(n)) {
@@ -960,4 +970,4 @@ int fft(size_t n, float complex samples[static n]) {
     return 0;
 }
 
-#endif
+#endif  // KS_MATH_IMPL

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KS_CORE_H
+#define KS_CORE_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -163,38 +164,39 @@ static inline const char* ks_res_str(int res) {
 #define KS_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define KS_FALLTROUGH __attribute__((falltrough))
 #define KS_SIMD_HINT _Pragma("GCC ivdep")
-#define KS_MAX(a, b)            \
-    ({                          \
-        __typeof__(a) _a = (a); \
-        __typeof__(b) _b = (b); \
-        _a > _b ? _a : _b;      \
+#define KS_TYPEOF __typeof__
+#define KS_MAX(a, b)           \
+    ({                         \
+        KS_TYPEOF(a) _a = (a); \
+        KS_TYPEOF(b) _b = (b); \
+        _a > _b ? _a : _b;     \
     })
-#define KS_MIN(a, b)            \
-    ({                          \
-        __typeof__(a) _a = (a); \
-        __typeof__(b) _b = (b); \
-        _a > _b ? _b : _a;      \
+#define KS_MIN(a, b)           \
+    ({                         \
+        KS_TYPEOF(a) _a = (a); \
+        KS_TYPEOF(b) _b = (b); \
+        _a > _b ? _b : _a;     \
     })
 #define KS_CLAMP(x, a, b)                   \
     ({                                      \
-        __typeof__(a) _a = (a);             \
-        __typeof__(b) _b = (b);             \
-        __typeof__(x) _x = (x);             \
+        KS_TYPEOF(a) _a = (a);              \
+        KS_TYPEOF(b) _b = (b);              \
+        KS_TYPEOF(x) _x = (x);              \
         _x < _a ? _a : (_x > _b ? _b : _x); \
     })
-#define KS_ABS(x)               \
-    ({                          \
-        __typeof__(x) _x = (x); \
-        _x < 0 ? -_x : _x;      \
+#define KS_ABS(x)              \
+    ({                         \
+        KS_TYPEOF(x) _x = (x); \
+        _x < 0 ? -_x : _x;     \
     })
-#define KS_SWAP(a, b)          \
-    do {                       \
-        __typeof__(a) tmp = a; \
-        (a) = (b);             \
-        (b) = tmp;             \
+#define KS_SWAP(a, b)         \
+    do {                      \
+        KS_TYPEOF(a) tmp = a; \
+        (a) = (b);            \
+        (b) = tmp;            \
     } while (0)
 #define KS_ISPOW2(x) ((x) != 0 && ((((x) - 1) & (x)) == 0))
-#define KS_ALIGN_DOWN(x, a) ((x) & ~((__typeof__(x))(a) - 1))
+#define KS_ALIGN_DOWN(x, a) ((x) & ~((KS_TYPEOF(x))(a) - 1))
 #define KS_ALIGN_UP(x, a) KS_ALIGN_DOWN((x) + (a) - 1, (a))
 #define KS_NEXTPOW2(x) ((x <= 1) ? 1ULL : (KS_BIT(sizeof(x) * 8 - (size_t)KS_CLZ((x) - 1))))
 #define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (off))
@@ -411,22 +413,49 @@ void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b);
 void ks_string_replace_raw(ks_string* s, const char* a, const char* b);
 void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb);
 ks_string ks_string_format(const char* fmt, ...);
-static inline char* ks_string_as_raw(ks_string* s);
-static inline ks_str ks_string_view(const ks_string* s);
-static inline bool ks_string_is_empty(const ks_string* s);
-static inline bool ks_string_is_short(const ks_string* s);
 bool ks_string_is_ascii(const ks_string* s);
 bool ks_string_is_upper(const ks_string* s);
 bool ks_string_is_lower(const ks_string* s);
 bool ks_string_is_alpha(const ks_string* s);
 bool ks_string_is_num(const ks_string* s);
 bool ks_string_is_alnum(const ks_string* s);
-static inline size_t ks_string_cap(const ks_string* s);
-static inline size_t ks_string_len(const ks_string* s);
 int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2);
 void ks_string_shrink(ks_string* s);
 void ks_string_clear(ks_string* s);
 void ks_string_free(ks_string* s);
+
+static inline bool ks_string_is_short(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    return s->s.meta & 1;
+}
+
+static inline size_t ks_string_len(const ks_string* s) {
+    if (!s) {
+        return 0;
+    }
+
+    return ks_string_is_short(s) ? s->s.meta >> 1 : s->l.len;
+}
+
+static inline char* ks_string_as_raw(ks_string* s) {
+    if (!s) {
+        return NULL;
+    }
+
+    return ks_string_is_short(s) ? s->s.data : s->l.data;
+}
+
+static inline bool ks_string_is_empty(const ks_string* s) {
+    return ks_string_len(s) == 0;
+}
+
+static inline size_t ks_string_cap(const ks_string* s) {
+    if (!s) {
+        return 0;
+    }
+
+    return ks_string_is_short(s) ? KS_SSO_CAP : s->l.cap;
+}
 
 ks_str ks_str_new(const char* s, size_t start, size_t end);
 ks_str ks_str_from(ks_str s, size_t start, size_t end);
@@ -435,10 +464,24 @@ void ks_str_trim(ks_str* s);
 int32_t ks_str_cmp(ks_str s1, ks_str s2);
 bool ks_str_starts_with(ks_str s, const char* prefix);
 bool ks_str_ends_with(ks_str s, const char* suffix);
-static inline bool ks_str_is_empty(ks_str s);
-static inline size_t ks_str_len(ks_str s);
 
-#ifdef KS_CORE_IMPL
+static inline ks_str ks_string_view(const ks_string* s) {
+    KS_ASSERT(s, "s is NULL");
+    return ks_str_new(ks_string_as_raw((ks_string*)s), 0, ks_string_len(s));
+}
+
+static inline size_t ks_str_len(ks_str s) {
+    return s.len;
+}
+
+static inline bool ks_str_is_empty(ks_str s) {
+    return ks_str_len(s) == 0;
+}
+
+#endif  // KS_CORE_H
+
+#if defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+#define KS_CORE_IMPL_DONE
 
 /* Strings */
 
@@ -959,28 +1002,6 @@ ks_string ks_string_format(const char* fmt, ...) {
     return result;
 }
 
-static inline char* ks_string_as_raw(ks_string* s) {
-    if (!s) {
-        return NULL;
-    }
-
-    return ks_string_is_short(s) ? s->s.data : s->l.data;
-}
-
-static inline ks_str ks_string_view(const ks_string* s) {
-    KS_ASSERT(s, "s is NULL");
-    return ks_str_new(ks_string_as_raw((ks_string*)s), 0, ks_string_len(s));
-}
-
-static inline bool ks_string_is_empty(const ks_string* s) {
-    return ks_string_len(s) == 0;
-}
-
-static inline bool ks_string_is_short(const ks_string* s) {
-    KS_ASSERT(s, "s is NULL");
-    return s->s.meta & 1;
-}
-
 bool ks_string_is_ascii(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
@@ -1069,22 +1090,6 @@ bool ks_string_is_alnum(const ks_string* s) {
     }
 
     return true;
-}
-
-static inline size_t ks_string_cap(const ks_string* s) {
-    if (!s) {
-        return 0;
-    }
-
-    return ks_string_is_short(s) ? KS_SSO_CAP : s->l.cap;
-}
-
-static inline size_t ks_string_len(const ks_string* s) {
-    if (!s) {
-        return 0;
-    }
-
-    return ks_string_is_short(s) ? s->s.meta >> 1 : s->l.len;
 }
 
 int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2) {
@@ -1187,12 +1192,4 @@ bool ks_str_ends_with(ks_str s, const char* suffix) {
     return strncmp(s.ptr + (s.len - suflen), suffix, suflen) == 0;
 }
 
-static inline size_t ks_str_len(ks_str s) {
-    return s.len;
-}
-
-static inline bool ks_str_is_empty(ks_str s) {
-    return ks_str_len(s) == 0;
-}
-
-#endif
+#endif  // KS_CORE_IMPL

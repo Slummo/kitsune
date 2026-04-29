@@ -4,7 +4,7 @@ set(EXAMPLES
     result 
     strings
     algebra
-    triangle
+    render
 )
 
 foreach(E IN LISTS EXAMPLES)
