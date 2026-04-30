@@ -38,6 +38,9 @@ KS_STRUCT(shader, { uint32_t id; });
 ks_shader ks_shader_create(const char* vert_filename, const char* frag_filename);
 void ks_shader_bind(ks_shader s);
 void ks_shader_unbind(void);
+void ks_shader_set_int(ks_shader s, const char* name, int* data);
+void ks_shader_set_float(ks_shader s, const char* name, float* data);
+void ks_shader_set_vec2(ks_shader s, const char* name, float* data);
 void ks_shader_set_vec3(ks_shader s, const char* name, float* data);
 void ks_shader_set_vec4(ks_shader s, const char* name, float* data);
 void ks_shader_set_mat3(ks_shader s, const char* name, float* data);
@@ -79,7 +82,13 @@ KS_STRUCT(vfmt, {
     uint32_t vsize;
 });
 
+extern const ks_vfmt KS_VFMT_POS2;
+extern const ks_vfmt KS_VFMT_POS3;
 extern const ks_vfmt KS_VFMT_POS2_COL3;
+extern const ks_vfmt KS_VFMT_POS3_COL3;
+extern const ks_vfmt KS_VFMT_INST_FLOAT;
+extern const ks_vfmt KS_VFMT_INST_VEC2;
+extern const ks_vfmt KS_VFMT_INST_VEC3;
 extern const ks_vfmt KS_VFMT_INST_MAT3;
 extern const ks_vfmt KS_VFMT_INST_MAT4;
 
@@ -101,6 +110,8 @@ KS_STRUCT(mesh, {
     KS_SA_UNNAMED(ks_buffer, KS_MAX_VBOS_PER_MESH) vbos;
     ks_buffer ebo;
     bool has_indices;
+    ks_buffer inst_vbo;
+    bool has_instances;
     uint32_t ixtype;
     uint32_t vcount;
     uint32_t ixcount;
@@ -112,6 +123,7 @@ ks_mesh ks_mesh_create(void);
 void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const ks_vfmt* vfmt);
 void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const ks_ifmt* ifmt);
 void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt);
+void ks_mesh_update_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt);
 void ks_mesh_draw(ks_mesh* m, ks_shader s);
 void ks_mesh_destroy(ks_mesh* m);
 
@@ -263,6 +275,24 @@ void ks_shader_unbind(void) {
     glUseProgram(0);
 }
 
+void ks_shader_set_int(ks_shader s, const char* name, int* data) {
+    GLint loc = glGetUniformLocation(s.id, name);
+    KS_ASSERT(loc != -1, "Uniform not found");
+    glUniform1iv(loc, 1, data);
+}
+
+void ks_shader_set_float(ks_shader s, const char* name, float* data) {
+    GLint loc = glGetUniformLocation(s.id, name);
+    KS_ASSERT(loc != -1, "Uniform not found");
+    glUniform1fv(loc, 1, data);
+}
+
+void ks_shader_set_vec2(ks_shader s, const char* name, float* data) {
+    GLint loc = glGetUniformLocation(s.id, name);
+    KS_ASSERT(loc != -1, "Uniform not found");
+    glUniform2fv(loc, 1, data);
+}
+
 void ks_shader_set_vec3(ks_shader s, const char* name, float* data) {
     GLint loc = glGetUniformLocation(s.id, name);
     KS_ASSERT(loc != -1, "Uniform not found");
@@ -323,16 +353,83 @@ void ks_buffer_destroy(ks_buffer b) {
 /* Vertex format */
 
 // clang-format off
+const ks_vfmt KS_VFMT_POS2 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 2, GL_FLOAT, 0, sizeof(ks_vec2), 0},
+        },
+        .len = 1
+    },
+    .vsize = sizeof(ks_vec2)
+};
+
+const ks_vfmt KS_VFMT_POS3 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 3, GL_FLOAT, 0, sizeof(ks_vec3), 0},
+        },
+        .len = 1
+    },
+    .vsize = sizeof(ks_vec3)
+};
+
 const ks_vfmt KS_VFMT_POS2_COL3 = {
     .attrs = {
         .data = {
             // loc, count, type, offset, stride, divisor
-            {0, 2, GL_FLOAT, 0               , sizeof(ks_vec2) + sizeof(ks_col3), 0}, 
-            {1, 3, GL_FLOAT, sizeof(ks_vec2) , sizeof(ks_vec2) + sizeof(ks_col3), 0} 
+            {0, 2, GL_FLOAT, 0               , sizeof(ks_vec2) + sizeof(ks_col3), 0},
+            {1, 3, GL_FLOAT, sizeof(ks_vec2) , sizeof(ks_vec2) + sizeof(ks_col3), 0}
         },
-        .len = 2 
+        .len = 2
     },
     .vsize = sizeof(ks_vec2) + sizeof(ks_col3)
+};
+
+const ks_vfmt KS_VFMT_POS3_COL3 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 3, GL_FLOAT, 0               , sizeof(ks_vec3) + sizeof(ks_col3), 0},
+            {1, 3, GL_FLOAT, sizeof(ks_vec3) , sizeof(ks_vec3) + sizeof(ks_col3), 0}
+        },
+        .len = 2
+    },
+    .vsize = sizeof(ks_vec3) + sizeof(ks_col3)
+};
+
+const ks_vfmt KS_VFMT_INST_FLOAT = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 1, GL_FLOAT, 0, sizeof(float), 1}
+        },
+        .len = 1
+    },
+    .vsize = sizeof(float)
+};
+
+const ks_vfmt KS_VFMT_INST_VEC2 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 2, GL_FLOAT, 0, sizeof(ks_vec2), 1}
+        },
+        .len = 1
+    },
+    .vsize = sizeof(ks_vec2)
+};
+
+const ks_vfmt KS_VFMT_INST_VEC3 = {
+    .attrs = {
+        .data = {
+            // loc, count, type, offset, stride, divisor
+            {0, 3, GL_FLOAT, 0, sizeof(ks_vec3), 1}
+        },
+        .len = 1
+    },
+    .vsize = sizeof(ks_vec3)
 };
 
 const ks_vfmt KS_VFMT_INST_MAT3 = {
@@ -341,7 +438,7 @@ const ks_vfmt KS_VFMT_INST_MAT3 = {
             // loc, count, type, offset, stride, divisor
             {0, 3, GL_FLOAT, 0,                   sizeof(ks_mat3), 1},
             {1, 3, GL_FLOAT, 1 * sizeof(ks_vec3), sizeof(ks_mat3), 1},
-            {2, 3, GL_FLOAT, 2 * sizeof(ks_vec3), sizeof(ks_mat3), 1},
+            {2, 3, GL_FLOAT, 2 * sizeof(ks_vec3), sizeof(ks_mat3), 1}
         },
         .len = 3
     },
@@ -372,7 +469,7 @@ const ks_ifmt KS_IFMT_U32 = {GL_UNSIGNED_INT  , sizeof(uint32_t)};
 
 /* Mesh */
 
-static void _ks_mesh_add_vbo_internal(ks_mesh* m, ks_buffer b, const ks_vfmt* vfmt) {
+static void _ks_mesh_init_vbo_internal(ks_mesh* m, ks_buffer b, const ks_vfmt* vfmt) {
     KS_ASSERT_NONNULL_ARGS(m && vfmt);
     if (ks_sa_isfull(&m->vbos)) {
         return;
@@ -393,7 +490,6 @@ static void _ks_mesh_add_vbo_internal(ks_mesh* m, ks_buffer b, const ks_vfmt* vf
 
     m->next_loc += vfmt->attrs.len;
 
-    ks_sa_push(&m->vbos, b);
     glBindVertexArray(0);
 }
 
@@ -410,7 +506,8 @@ void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const
     KS_ASSERT_NONNULL_ARGS(m && verts && vfmt);
     glBindVertexArray(m->vao);
     ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, vcount * vfmt->vsize, verts, GL_STATIC_DRAW);
-    _ks_mesh_add_vbo_internal(m, vbo, vfmt);
+    _ks_mesh_init_vbo_internal(m, vbo, vfmt);
+    ks_sa_push(&m->vbos, vbo);
 
     m->vcount = vcount;
     m->iecount = 1;
@@ -434,9 +531,19 @@ void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, con
     KS_ASSERT_NONNULL_ARGS(m && insts && vfmt);
     glBindVertexArray(m->vao);
     ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, iecount * vfmt->vsize, insts, GL_DYNAMIC_DRAW);
-    _ks_mesh_add_vbo_internal(m, vbo, vfmt);
+    _ks_mesh_init_vbo_internal(m, vbo, vfmt);
+    ks_sa_push(&m->vbos, vbo);
 
+    m->inst_vbo = vbo;
+    m->has_instances = true;
     m->iecount = iecount;
+}
+
+void ks_mesh_update_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt) {
+    KS_ASSERT_NONNULL_ARGS(m && insts && vfmt);
+    KS_ASSERT(m->has_instances, "No instance buffer initialized for this mesh");
+    glBindVertexArray(m->vao);
+    ks_buffer_update(m->inst_vbo, 0, iecount * vfmt->vsize, insts);
 }
 
 void ks_mesh_draw(ks_mesh* m, ks_shader s) {

@@ -24,8 +24,6 @@
 #define KS_DEG2RAD (KS_PI / 180.0)
 #define KS_RAD2DEG (180.0 / KS_PI)
 
-int fft(size_t n, float complex samples[static n]);
-
 static inline size_t log2ld(size_t n) {
     size_t i = 0;
     for (i = 0; n; ++i) {
@@ -33,6 +31,8 @@ static inline size_t log2ld(size_t n) {
     }
     return i - 1;
 }
+
+/* FFT */
 
 static inline size_t bit_reverse(size_t n, size_t m) {
     size_t r = 0;
@@ -44,6 +44,10 @@ static inline size_t bit_reverse(size_t n, size_t m) {
     }
     return r;
 }
+
+int fft(size_t n, float complex samples[static n]);
+
+/* Vectors and matrices */
 
 KS_UNION(vec2, {
     struct {
@@ -934,22 +938,20 @@ KS_STRUCT(sf2, {
     float cellsize;
     float* data;
 });
+
 KS_STRUCT(vf2, {
     int32_t width, height;
     float cellsize;
     ks_vec2* data;
 });
 
-KS_STRUCT(sf3, {
-    int32_t width, height, depth;
-    float cellsize;
-    float* data;
-});
-KS_STRUCT(vf3, {
-    int32_t width, height, depth;
-    float cellsize;
-    ks_vec3* data;
-});
+ks_sf2 ks_sf2_create(int32_t width, int32_t height, float cellsize);
+void ks_sf2_sample(ks_sf2* f, float (*sample)(float x, float y));
+void ks_sf2_destroy(ks_sf2* f);
+
+ks_vf2 ks_vf2_create(int32_t width, int32_t height, float cellsize);
+void ks_vf2_sample(ks_vf2* f, ks_vec2 (*sample)(float x, float y));
+void ks_vf2_destroy(ks_vf2* f);
 
 static inline int32_t _ks_f2_idx_internal(int32_t x, int32_t y, int32_t w) {
     return y * w + x;
@@ -1032,6 +1034,26 @@ static inline float ks_sf2_lap(const ks_sf2* f, int32_t x, int32_t y) {
 
     return (left + right + up + down - 4.0f * center) / hsq;
 }
+
+KS_STRUCT(sf3, {
+    int32_t width, height, depth;
+    float cellsize;
+    float* data;
+});
+
+KS_STRUCT(vf3, {
+    int32_t width, height, depth;
+    float cellsize;
+    ks_vec3* data;
+});
+
+ks_sf3 ks_sf3_create(int32_t width, int32_t height, int32_t depth, float cellsize);
+void ks_sf3_sample(ks_sf3* f, float (*sample)(float x, float y, float z));
+void ks_sf3_destroy(ks_sf3* f);
+
+ks_vf3 ks_vf3_create(int32_t width, int32_t height, int32_t depth, float cellsize);
+void ks_vf3_sample(ks_vf3* f, ks_vec3 (*sample)(float x, float y, float z));
+void ks_vf3_destroy(ks_vf3* f);
 
 static inline ks_vec3 ks_sf3_grad(const ks_sf3* f, int32_t x, int32_t y, int32_t z) {
     int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
@@ -1176,6 +1198,132 @@ int fft(size_t n, float complex samples[static n]) {
     }
 
     return 0;
+}
+
+ks_sf2 ks_sf2_create(int32_t width, int32_t height, float cellsize) {
+    float* data = malloc(sizeof(float) * (size_t)(width * height));
+    KS_ASSERT(data, "OOM");
+
+    ks_sf2 f = {0};
+    f.width = width;
+    f.height = height;
+    f.cellsize = cellsize;
+    f.data = data;
+
+    return f;
+}
+
+void ks_sf2_sample(ks_sf2* f, float (*sample)(float x, float y)) {
+    KS_ASSERT_NONNULL_ARGS(f && sample);
+
+    for (int32_t x = 0; x < f->width; ++x) {
+        for (int32_t y = 0; y < f->height; ++y) {
+            int32_t idx = _ks_f2_idx_internal(x, y, f->width);
+            f->data[idx] = sample(x, y);
+        }
+    }
+}
+
+void ks_sf2_destroy(ks_sf2* f) {
+    KS_ASSERT_NONNULL_ARGS(f);
+    free(f->data);
+    memset(f, 0, sizeof(ks_sf2));
+}
+
+ks_vf2 ks_vf2_create(int32_t width, int32_t height, float cellsize) {
+    ks_vec2* data = malloc(sizeof(ks_vec2) * (size_t)(width * height));
+    KS_ASSERT(data, "OOM");
+
+    ks_vf2 f = {0};
+    f.width = width;
+    f.height = height;
+    f.cellsize = cellsize;
+    f.data = data;
+
+    return f;
+}
+
+void ks_vf2_sample(ks_vf2* f, ks_vec2 (*sample)(float x, float y)) {
+    KS_ASSERT_NONNULL_ARGS(sample);
+
+    for (int32_t x = 0; x < f->width; ++x) {
+        for (int32_t y = 0; y < f->height; ++y) {
+            int32_t idx = _ks_f2_idx_internal(x, y, f->width);
+            f->data[idx] = sample(x, y);
+        }
+    }
+}
+
+void ks_vf2_destroy(ks_vf2* f) {
+    KS_ASSERT_NONNULL_ARGS(f);
+    free(f->data);
+    memset(f, 0, sizeof(ks_vf2));
+}
+
+ks_sf3 ks_sf3_create(int32_t width, int32_t height, int32_t depth, float cellsize) {
+    float* data = malloc(sizeof(float) * (size_t)(width * height * depth));
+    KS_ASSERT(data, "OOM");
+
+    ks_sf3 f = {0};
+    f.width = width;
+    f.height = height;
+    f.depth = depth;
+    f.cellsize = cellsize;
+    f.data = data;
+
+    return f;
+}
+
+void ks_sf3_sample(ks_sf3* f, float (*sample)(float x, float y, float z)) {
+    KS_ASSERT_NONNULL_ARGS(sample);
+
+    for (int32_t x = 0; x < f->width; ++x) {
+        for (int32_t y = 0; y < f->height; ++y) {
+            for (int32_t z = 0; z < f->depth; ++z) {
+                int32_t idx = _ks_f3_idx_internal(x, y, z, f->width, f->height);
+                f->data[idx] = sample(x, y, z);
+            }
+        }
+    }
+}
+
+void ks_sf3_destroy(ks_sf3* f) {
+    KS_ASSERT_NONNULL_ARGS(f);
+    free(f->data);
+    memset(f, 0, sizeof(ks_sf3));
+}
+
+ks_vf3 ks_vf3_create(int32_t width, int32_t height, int32_t depth, float cellsize) {
+    ks_vec3* data = malloc(sizeof(ks_vec3) * (size_t)(width * height * depth));
+    KS_ASSERT(data, "OOM");
+
+    ks_vf3 f = {0};
+    f.width = width;
+    f.height = height;
+    f.depth = depth;
+    f.cellsize = cellsize;
+    f.data = data;
+
+    return f;
+}
+
+void ks_vf3_sample(ks_vf3* f, ks_vec3 (*sample)(float x, float y, float z)) {
+    KS_ASSERT_NONNULL_ARGS(sample);
+
+    for (int32_t x = 0; x < f->width; ++x) {
+        for (int32_t y = 0; y < f->height; ++y) {
+            for (int32_t z = 0; z < f->depth; ++z) {
+                int32_t idx = _ks_f3_idx_internal(x, y, z, f->width, f->height);
+                f->data[idx] = sample(x, y, z);
+            }
+        }
+    }
+}
+
+void ks_vf3_destroy(ks_vf3* f) {
+    KS_ASSERT_NONNULL_ARGS(f);
+    free(f->data);
+    memset(f, 0, sizeof(ks_vf3));
 }
 
 #endif  // KS_MATH_IMPL

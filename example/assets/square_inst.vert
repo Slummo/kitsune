@@ -7,7 +7,8 @@ layout(location = 2) in mat3 iModel;
 out vec3 vCol;
 
 void main() {
-    vCol = aCol;
     vec3 final = iModel * vec3(aPos, 1.0);
+
+    vCol = aCol;
     gl_Position = vec4(final.xy, 0.0, 1.0);
 }

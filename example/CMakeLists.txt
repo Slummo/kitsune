@@ -5,6 +5,8 @@ set(EXAMPLES
     strings
     algebra
     render
+    scalar
+    vector
 )
 
 foreach(E IN LISTS EXAMPLES)
