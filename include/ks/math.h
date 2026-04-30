@@ -927,6 +927,214 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     d[14] = -(farz + nearz) / (farz - nearz);
 }
 
+/* Scalar and vector fields */
+
+KS_STRUCT(sf2, {
+    int32_t width, height;
+    float cellsize;
+    float* data;
+});
+KS_STRUCT(vf2, {
+    int32_t width, height;
+    float cellsize;
+    ks_vec2* data;
+});
+
+KS_STRUCT(sf3, {
+    int32_t width, height, depth;
+    float cellsize;
+    float* data;
+});
+KS_STRUCT(vf3, {
+    int32_t width, height, depth;
+    float cellsize;
+    ks_vec3* data;
+});
+
+static inline int32_t _ks_f2_idx_internal(int32_t x, int32_t y, int32_t w) {
+    return y * w + x;
+}
+
+static inline int32_t _ks_f3_idx_internal(int32_t x, int32_t y, int32_t z, int32_t w, int32_t h) {
+    return z * w * h + y * w + x;
+}
+
+static inline ks_vec2 ks_sf2_grad(const ks_sf2* f, int32_t x, int32_t y) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
+    int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
+    int32_t yi = _ks_f2_idx_internal(x, y1, f->width);
+    int32_t yj = _ks_f2_idx_internal(x, y0, f->width);
+
+    float dx = (f->data[xi] - f->data[xj]) / h2;
+    float dy = (f->data[yi] - f->data[yj]) / h2;
+
+    return KS_VEC2(dx, dy);
+}
+
+static inline float ks_vf2_div(const ks_vf2* f, int32_t x, int32_t y) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
+    int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
+    int32_t yi = _ks_f2_idx_internal(x, y1, f->width);
+    int32_t yj = _ks_f2_idx_internal(x, y0, f->width);
+
+    float dfx_dx = (f->data[xi].x - f->data[xj].x) / h2;
+    float dfy_dy = (f->data[yi].y - f->data[yj].y) / h2;
+    return dfx_dx + dfy_dy;
+}
+
+static inline float ks_vf2_curl(const ks_vf2* f, int32_t x, int32_t y) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
+    int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
+    int32_t yi = _ks_f2_idx_internal(x, y1, f->width);
+    int32_t yj = _ks_f2_idx_internal(x, y0, f->width);
+
+    float dfy_dx = (f->data[xi].y - f->data[xj].y) / h2;
+    float dfx_dy = (f->data[yi].x - f->data[yj].x) / h2;
+    return dfy_dx - dfx_dy;
+}
+
+static inline float ks_sf2_lap(const ks_sf2* f, int32_t x, int32_t y) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    float hsq = f->cellsize * f->cellsize;
+
+    int32_t ci = _ks_f2_idx_internal(x, y, f->width);
+    int32_t li = _ks_f2_idx_internal(x0, y, f->width);
+    int32_t ri = _ks_f2_idx_internal(x1, y, f->width);
+    int32_t di = _ks_f2_idx_internal(x, y0, f->width);
+    int32_t ui = _ks_f2_idx_internal(x, y1, f->width);
+
+    float center = f->data[ci];
+    float left = f->data[li];
+    float right = f->data[ri];
+    float down = f->data[di];
+    float up = f->data[ui];
+
+    return (left + right + up + down - 4.0f * center) / hsq;
+}
+
+static inline ks_vec3 ks_sf3_grad(const ks_sf3* f, int32_t x, int32_t y, int32_t z) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    int32_t z0 = KS_CLAMP(z - 1, 0, f->depth);
+    int32_t z1 = KS_CLAMP(z + 1, 0, f->depth);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
+    int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
+    int32_t yi = _ks_f3_idx_internal(x, y1, z, f->width, f->height);
+    int32_t yj = _ks_f3_idx_internal(x, y0, z, f->width, f->height);
+    int32_t zi = _ks_f3_idx_internal(x, y, z1, f->width, f->height);
+    int32_t zj = _ks_f3_idx_internal(x, y, z0, f->width, f->height);
+
+    float dx = (f->data[xi] - f->data[xj]) / h2;
+    float dy = (f->data[yi] - f->data[yj]) / h2;
+    float dz = (f->data[zi] - f->data[zj]) / h2;
+
+    return KS_VEC3(dx, dy, dz);
+}
+
+static inline float ks_vf3_div(const ks_vf3* f, int32_t x, int32_t y, int32_t z) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    int32_t z0 = KS_CLAMP(z - 1, 0, f->depth);
+    int32_t z1 = KS_CLAMP(z + 1, 0, f->depth);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
+    int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
+    int32_t yi = _ks_f3_idx_internal(x, y1, z, f->width, f->height);
+    int32_t yj = _ks_f3_idx_internal(x, y0, z, f->width, f->height);
+    int32_t zi = _ks_f3_idx_internal(x, y, z1, f->width, f->height);
+    int32_t zj = _ks_f3_idx_internal(x, y, z0, f->width, f->height);
+
+    float dfx_dx = (f->data[xi].x - f->data[xj].x) / h2;
+    float dfy_dy = (f->data[yi].y - f->data[yj].y) / h2;
+    float dfz_dz = (f->data[zi].z - f->data[zj].z) / h2;
+
+    return dfx_dx + dfy_dy + dfz_dz;
+}
+
+static inline ks_vec3 ks_vf3_curl(const ks_vf3* f, int32_t x, int32_t y, int32_t z) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    int32_t z0 = KS_CLAMP(z - 1, 0, f->depth);
+    int32_t z1 = KS_CLAMP(z + 1, 0, f->depth);
+    float h2 = 2.0f * f->cellsize;
+
+    int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
+    int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
+    int32_t yi = _ks_f3_idx_internal(x, y1, z, f->width, f->height);
+    int32_t yj = _ks_f3_idx_internal(x, y0, z, f->width, f->height);
+    int32_t zi = _ks_f3_idx_internal(x, y, z1, f->width, f->height);
+    int32_t zj = _ks_f3_idx_internal(x, y, z0, f->width, f->height);
+
+    float dfz_dy = (f->data[yi].z - f->data[yj].z) / h2;
+    float dfy_dz = (f->data[zi].y - f->data[zj].y) / h2;
+
+    float dfx_dz = (f->data[zi].x - f->data[zj].x) / h2;
+    float dfz_dx = (f->data[xi].z - f->data[xj].z) / h2;
+
+    float dfy_dx = (f->data[xi].y - f->data[xj].y) / h2;
+    float dfx_dy = (f->data[yi].x - f->data[yj].x) / h2;
+
+    return KS_VEC3(dfz_dy - dfy_dz, dfx_dz - dfz_dx, dfy_dx - dfx_dy);
+}
+
+static inline float ks_sf3_lap(const ks_sf3* f, int32_t x, int32_t y, int32_t z) {
+    int32_t x0 = KS_CLAMP(x - 1, 0, f->width);
+    int32_t x1 = KS_CLAMP(x + 1, 0, f->width);
+    int32_t y0 = KS_CLAMP(y - 1, 0, f->height);
+    int32_t y1 = KS_CLAMP(y + 1, 0, f->height);
+    int32_t z0 = KS_CLAMP(z - 1, 0, f->depth);
+    int32_t z1 = KS_CLAMP(z + 1, 0, f->depth);
+    float hsq = f->cellsize * f->cellsize;
+
+    int32_t ci = _ks_f3_idx_internal(x, y, z, f->width, f->height);
+    int32_t li = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
+    int32_t ri = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
+    int32_t di = _ks_f3_idx_internal(x, y0, z, f->width, f->height);
+    int32_t ui = _ks_f3_idx_internal(x, y1, z, f->width, f->height);
+    int32_t bi = _ks_f3_idx_internal(x, y, z0, f->width, f->height);
+    int32_t fi = _ks_f3_idx_internal(x, y, z1, f->width, f->height);
+
+    float center = f->data[ci];
+    float left = f->data[li];
+    float right = f->data[ri];
+    float down = f->data[di];
+    float up = f->data[ui];
+    float back = f->data[bi];
+    float front = f->data[fi];
+
+    return (left + right + up + down + back + front - 6.0f * center) / hsq;
+}
+
 #endif  // KS_MATH_H
 
 #if defined(KS_MATH_IMPL) && !defined(KS_MATH_IMPL_DONE)
