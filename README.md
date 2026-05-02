@@ -30,6 +30,17 @@ make help
 target_link_libraries(target PRIVATE ks::lib)
 ```
 
+## Credits & Licenses
+
+Kitsune uses the following libraries:
+
+* [GLAD](https://github.com/Dav1dde/glad)
+* [OpenGL](https://www.opengl.org/)
+* [GLFW](https://www.glfw.org/)
+* [OpenMP](https://www.openmp.org/)
+
+Full third-party license text can be found in [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+
 ## Legal notes
 
-Copyright (c) 2026 Marchisio Luca
+Copyright (c) 2026 Luca Marchisio. See [LICENSE](./LICENSE) for details
