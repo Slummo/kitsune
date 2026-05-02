@@ -150,7 +150,7 @@ void ks_batcher_flush(void);
 
 KS_FUNC(void, win_resize, int32_t width, int32_t height);
 
-KS_STRUCT(renderer, {
+KS_STRUCT(render_ctx, {
     int32_t width, height;
     ks_shader shader;
     bool is_drawing;
@@ -160,13 +160,21 @@ KS_STRUCT(renderer, {
     uint32_t primitive;
 });
 
-extern ks_renderer g_renderer;
+KS_STRUCT(time_ctx, {
+    double current;
+    double previous;
+    double dt;
+});
 
-void ks_renderer_init(int32_t width, int32_t height, const char* title);
+extern ks_render_ctx g_render;
+extern ks_time_ctx g_time;
+
+void ks_render_init(int32_t width, int32_t height, const char* title);
 bool ks_win_should_close(void);
 void ks_win_resize_cb(win_resize cb);
 ks_vec2 ks_win_size(void);
-double ks_gettime(void);
+double ks_time(void);
+double ks_delta_time(void);
 void ks_primitive(uint32_t type);
 void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h);
 void ks_drawbox_reset(void);
@@ -177,7 +185,7 @@ void ks_begin_drawing(void);
 void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
 void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
 void ks_end_drawing(void);
-void ks_renderer_destroy(void);
+void ks_render_terminate(void);
 
 #endif  // KS_RENDER_H
 
@@ -562,28 +570,28 @@ void ks_mesh_update_instances(ks_mesh* m, int32_t iecount, const void* insts, co
 void ks_mesh_draw(ks_mesh* m, ks_shader s) {
     KS_ASSERT_NONNULL_ARGS(m);
 
-    g_renderer.is_drawing = true;
+    g_render.is_drawing = true;
 
     ks_shader_bind(s);
     glBindVertexArray(m->vao);
 
     if (m->has_indices) {
         if (m->iecount > 1) {
-            glDrawElementsInstanced(g_renderer.primitive, m->ixcount, m->ixtype, NULL, m->iecount);
+            glDrawElementsInstanced(g_render.primitive, m->ixcount, m->ixtype, NULL, m->iecount);
         } else {
-            glDrawElements(g_renderer.primitive, m->ixcount, m->ixtype, NULL);
+            glDrawElements(g_render.primitive, m->ixcount, m->ixtype, NULL);
         }
     } else {
         if (m->iecount > 1) {
-            glDrawArraysInstanced(g_renderer.primitive, 0, m->vcount, m->iecount);
+            glDrawArraysInstanced(g_render.primitive, 0, m->vcount, m->iecount);
         } else {
-            glDrawArrays(g_renderer.primitive, 0, m->vcount);
+            glDrawArrays(g_render.primitive, 0, m->vcount);
         }
     }
 
     glBindVertexArray(0);
 
-    g_renderer.is_drawing = false;
+    g_render.is_drawing = false;
 }
 
 void ks_mesh_destroy(ks_mesh* m) {
@@ -617,16 +625,17 @@ static void GLAPIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLe
 static void framebuffer_size_callback(KS_UNUSED GLFWwindow* window, int32_t width, int32_t height) {
     glViewport(0, 0, width, height);
     glScissor(0, 0, width, height);
-    g_renderer.width = width;
-    g_renderer.height = height;
-    if (g_renderer.resize_cb) {
-        g_renderer.resize_cb(width, height);
+    g_render.width = width;
+    g_render.height = height;
+    if (g_render.resize_cb) {
+        g_render.resize_cb(width, height);
     }
 }
 
-ks_renderer g_renderer = {0};
+ks_render_ctx g_render = {0};
+ks_time_ctx g_time = {0};
 
-void ks_renderer_init(int32_t width, int32_t height, const char* title) {
+void ks_render_init(int32_t width, int32_t height, const char* title) {
     // Initialize GLFW
     if (!glfwInit()) {
         ks_log(KSERR, "Error with glfwInit");
@@ -671,32 +680,40 @@ void ks_renderer_init(int32_t width, int32_t height, const char* title) {
     glScissor(0, 0, width, height);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    g_renderer.width = width;
-    g_renderer.height = height;
-    g_renderer.is_drawing = false;
-    g_renderer.win = window;
-    g_renderer.primitive = GL_TRIANGLES;
+    g_render.width = width;
+    g_render.height = height;
+    g_render.is_drawing = false;
+    g_render.win = window;
+    g_render.primitive = GL_TRIANGLES;
     // TODO: init batcher
+
+    g_time.current = glfwGetTime();
+    g_time.previous = glfwGetTime();
+    g_time.dt = 0.0;
 }
 
 bool ks_win_should_close(void) {
-    return glfwWindowShouldClose(g_renderer.win);
+    return glfwWindowShouldClose(g_render.win);
 }
 
 void ks_win_resize_cb(win_resize cb) {
-    g_renderer.resize_cb = cb;
+    g_render.resize_cb = cb;
 }
 
 ks_vec2 ks_win_size(void) {
-    return KS_VEC2(g_renderer.width, g_renderer.height);
+    return KS_VEC2(g_render.width, g_render.height);
 }
 
-double ks_gettime(void) {
-    return glfwGetTime();
+double ks_time(void) {
+    return g_time.current;
+}
+
+double ks_delta_time(void) {
+    return g_time.dt;
 }
 
 void ks_primitive(uint32_t type) {
-    g_renderer.primitive = type;
+    g_render.primitive = type;
 }
 
 void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -705,7 +722,7 @@ void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h) {
 }
 
 void ks_drawbox_reset(void) {
-    ks_drawbox(0, 0, g_renderer.width, g_renderer.height);
+    ks_drawbox(0, 0, g_render.width, g_render.height);
 }
 
 void ks_background(ks_col4 col) {
@@ -722,7 +739,10 @@ void ks_line_width(float width) {
 
 void ks_begin_drawing(void) {
     glClear(GL_DEPTH_BUFFER_BIT);
-    g_renderer.is_drawing = true;
+    g_render.is_drawing = true;
+    g_time.previous = g_time.current;
+    g_time.current = glfwGetTime();
+    g_time.dt = KS_CLAMP(g_time.current - g_time.previous, 0.0, 0.1);
 }
 
 void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
@@ -730,13 +750,13 @@ void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
 
 void ks_end_drawing(void) {
     ks_batcher_flush();
-    glfwSwapBuffers(g_renderer.win);
+    glfwSwapBuffers(g_render.win);
     glfwPollEvents();
-    g_renderer.is_drawing = false;
+    g_render.is_drawing = false;
 }
 
-void ks_renderer_destroy(void) {
-    glfwDestroyWindow(g_renderer.win);
+void ks_render_terminate(void) {
+    glfwDestroyWindow(g_render.win);
     glfwTerminate();
 }
 

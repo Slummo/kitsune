@@ -8,7 +8,7 @@ int ks_log_level = KSINFO;
 
 int main(void) {
     ks_log(KSINFO, "Render");
-    ks_renderer_init(960, 540, "Render");
+    ks_render_init(960, 540, "Render");
 
     // clang-format off
     const float tverts[] = {
@@ -45,7 +45,7 @@ int main(void) {
             t = ks_mat3_idnew();
             r = ks_mat3_idnew();
             s = ks_mat3_idnew();
-            double time = ks_gettime();
+            double time = ks_time();
             float xoff = sinf(time + i);
             float scale = 0.2f + cosf(time) * 0.1f;
             ks_mat3_translate(&t, &KS_VEC2(xoff, 0.0f));
@@ -62,7 +62,7 @@ int main(void) {
     }
 
     ks_mesh_destroy(&tmesh);
-    ks_renderer_destroy();
+    ks_render_terminate();
 
     return EXIT_SUCCESS;
 }

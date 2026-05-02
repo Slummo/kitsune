@@ -43,14 +43,14 @@ static void lap(ks_field_ctx* ctx, void* out) {
 }
 
 int main(void) {
-    ks_renderer_init(KS_WIN_WIDTH, KS_WIN_HEIGHT, "Fields");
+    ks_render_init(KS_WIN_WIDTH, KS_WIN_HEIGHT, "Fields");
 
     const ks_field_cb scalar_sample = wave;
     const ks_field_cb grad_sample = gradient;
     const ks_field_cb div_sample = divergence;
     const ks_field_cb lap_sample = lap;
 
-    float time = ks_gettime();
+    float time = ks_time();
 
     ks_field scalar_field = ks_field_create(50, 50, 1, sizeof(float), KS_GRID_CELLSIZE);
     ks_field_sample(&scalar_field, NULL, time, scalar_sample);
@@ -127,7 +127,7 @@ int main(void) {
     const int32_t fh = KS_WIN_HEIGHT / 2;
 
     while (!ks_win_should_close()) {
-        time = ks_gettime();
+        time = ks_time();
 
         ks_field_sample(&scalar_field, NULL, time, scalar_sample);
         ks_mesh_update_instances(&rect, scalar_field.width * scalar_field.height, scalar_field.data,
@@ -168,7 +168,7 @@ int main(void) {
     ks_field_destroy(&lap_field);
     ks_field_destroy(&div_field);
     ks_field_destroy(&grad_field);
-    ks_renderer_destroy();
+    ks_render_terminate();
 
     return EXIT_SUCCESS;
 }
