@@ -40,11 +40,11 @@ if (IS_KS)
         $<$<CONFIG:Debug>:-fsanitize=leak>
         $<$<CONFIG:Debug>:-fsanitize=undefined>
     )
-endif()
 
-# Default to debug build
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+    # Default to debug build
+    if(NOT CMAKE_BUILD_TYPE)
+      set(CMAKE_BUILD_TYPE Debug)
+    endif()
 endif()
 
 find_package(OpenMP REQUIRED)
