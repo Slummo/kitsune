@@ -148,22 +148,29 @@ void ks_batcher_flush(void);
 
 /* Renderer */
 
+KS_FUNC(void, win_resize, int32_t width, int32_t height);
+
 KS_STRUCT(renderer, {
     int32_t width, height;
     ks_shader shader;
     bool is_drawing;
     GLFWwindow* win;
     ks_batcher batcher;
+    win_resize resize_cb;
 });
 
 extern ks_renderer g_renderer;
 
 void ks_renderer_init(int32_t width, int32_t height, const char* title);
 bool ks_win_should_close(void);
+void ks_win_resize_cb(win_resize cb);
+ks_vec2 ks_win_size(void);
 double ks_gettime(void);
 void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h);
 void ks_drawbox_reset(void);
 void ks_background(ks_col4 col);
+void ks_wiremode(bool state);
+void ks_line_width(float width);
 void ks_begin_drawing(void);
 void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
 void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
@@ -607,6 +614,10 @@ static void GLAPIENTRY debug_callback(GLenum source, GLenum type, GLuint id, GLe
 
 static void framebuffer_size_callback(KS_UNUSED GLFWwindow* window, int32_t width, int32_t height) {
     glViewport(0, 0, width, height);
+    glScissor(0, 0, width, height);
+    g_renderer.width = width;
+    g_renderer.height = height;
+    g_renderer.resize_cb(width, height);
 }
 
 ks_renderer g_renderer = {0};
@@ -667,6 +678,14 @@ bool ks_win_should_close(void) {
     return glfwWindowShouldClose(g_renderer.win);
 }
 
+void ks_win_resize_cb(win_resize cb) {
+    g_renderer.resize_cb = cb;
+}
+
+ks_vec2 ks_win_size(void) {
+    return KS_VEC2(g_renderer.width, g_renderer.height);
+}
+
 double ks_gettime(void) {
     return glfwGetTime();
 }
@@ -683,6 +702,13 @@ void ks_drawbox_reset(void) {
 void ks_background(ks_col4 col) {
     glClearColor(col.r, col.g, col.b, col.a);
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void ks_wiremode(bool state) {
+    glPolygonMode(GL_FRONT_AND_BACK, state ? GL_LINE : GL_FILL);
+}
+void ks_line_width(float width) {
+    glLineWidth(width);
 }
 
 void ks_begin_drawing(void) {
