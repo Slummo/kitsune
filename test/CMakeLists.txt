@@ -12,5 +12,8 @@ set(TESTS
 
 foreach(T IN LISTS TESTS)
     add_executable(test_${T} ${T}.c)
+    target_compile_options(test_${T} PRIVATE
+        -Wno-unused
+    )
     target_link_libraries(test_${T} PRIVATE ks::lib unity)
 endforeach()

@@ -113,17 +113,17 @@ KS_STRUCT(mesh, {
     ks_buffer inst_vbo;
     bool has_instances;
     uint32_t ixtype;
-    uint32_t vcount;
-    uint32_t ixcount;
-    uint32_t iecount;
+    int32_t vcount;
+    int32_t ixcount;
+    int32_t iecount;
     uint32_t next_loc;
 });
 
 ks_mesh ks_mesh_create(void);
-void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const ks_vfmt* vfmt);
-void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const ks_ifmt* ifmt);
-void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt);
-void ks_mesh_update_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt);
+void ks_mesh_load_vertices(ks_mesh* m, int32_t vcount, const void* verts, const ks_vfmt* vfmt);
+void ks_mesh_load_indices(ks_mesh* m, int32_t ixcount, const void* inds, const ks_ifmt* ifmt);
+void ks_mesh_load_instances(ks_mesh* m, int32_t iecount, const void* insts, const ks_vfmt* vfmt);
+void ks_mesh_update_instances(ks_mesh* m, int32_t iecount, const void* insts, const ks_vfmt* vfmt);
 void ks_mesh_draw(ks_mesh* m, ks_shader s);
 void ks_mesh_destroy(ks_mesh* m);
 
@@ -131,17 +131,17 @@ void ks_mesh_destroy(ks_mesh* m);
 
 KS_STRUCT(batcher, {
     void* vertices;
-    uint32_t* indices;
-    uint32_t vcount;
-    uint32_t ixcount;
-    uint32_t max_verts;
-    uint32_t max_inds;
-    uint32_t stride;
+    void* indices;
+    int32_t vcount;
+    int32_t ixcount;
+    int32_t max_verts;
+    int32_t max_inds;
+    int32_t stride;
     ks_mesh gpu_handle;
 });
 
-void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vattr* attributes,
-                     uint32_t attr_count);
+void ks_batcher_init(int32_t max_verts, int32_t max_inds, int32_t stride, const ks_vattr* attributes,
+                     int32_t attr_count);
 void ks_batcher_next_vertex(void);
 void ks_batcher_push_index(uint32_t i);
 void ks_batcher_flush(void);
@@ -161,6 +161,9 @@ extern ks_renderer g_renderer;
 void ks_renderer_init(int32_t width, int32_t height, const char* title);
 bool ks_win_should_close(void);
 double ks_gettime(void);
+void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h);
+void ks_drawbox_reset(void);
+void ks_background(ks_col4 col);
 void ks_begin_drawing(void);
 void ks_draw_line(ks_vec3 p1, ks_vec3 p2, float size, ks_col4 c);
 void ks_draw_rect(ks_vec3 left, ks_vec3 dim, float line_size, ks_col4 c);
@@ -502,10 +505,10 @@ ks_mesh ks_mesh_create(void) {
     return m;
 }
 
-void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const ks_vfmt* vfmt) {
+void ks_mesh_load_vertices(ks_mesh* m, int32_t vcount, const void* verts, const ks_vfmt* vfmt) {
     KS_ASSERT_NONNULL_ARGS(m && verts && vfmt);
     glBindVertexArray(m->vao);
-    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, vcount * vfmt->vsize, verts, GL_STATIC_DRAW);
+    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, (size_t)vcount * vfmt->vsize, verts, GL_STATIC_DRAW);
     _ks_mesh_init_vbo_internal(m, vbo, vfmt);
     ks_sa_push(&m->vbos, vbo);
 
@@ -513,10 +516,10 @@ void ks_mesh_load_vertices(ks_mesh* m, uint32_t vcount, const void* verts, const
     m->iecount = 1;
 }
 
-void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const ks_ifmt* ifmt) {
+void ks_mesh_load_indices(ks_mesh* m, int32_t ixcount, const void* inds, const ks_ifmt* ifmt) {
     KS_ASSERT_NONNULL_ARGS(m && inds && ifmt);
     glBindVertexArray(m->vao);
-    ks_buffer ebo = ks_buffer_create(GL_ELEMENT_ARRAY_BUFFER, ixcount * ifmt->ixsize, inds, GL_STATIC_DRAW);
+    ks_buffer ebo = ks_buffer_create(GL_ELEMENT_ARRAY_BUFFER, (size_t)ixcount * ifmt->ixsize, inds, GL_STATIC_DRAW);
     ks_buffer_bind(ebo);
 
     m->ebo = ebo;
@@ -527,10 +530,10 @@ void ks_mesh_load_indices(ks_mesh* m, uint32_t ixcount, const void* inds, const 
     glBindVertexArray(0);
 }
 
-void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt) {
+void ks_mesh_load_instances(ks_mesh* m, int32_t iecount, const void* insts, const ks_vfmt* vfmt) {
     KS_ASSERT_NONNULL_ARGS(m && insts && vfmt);
     glBindVertexArray(m->vao);
-    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, iecount * vfmt->vsize, insts, GL_DYNAMIC_DRAW);
+    ks_buffer vbo = ks_buffer_create(GL_ARRAY_BUFFER, (size_t)iecount * vfmt->vsize, insts, GL_DYNAMIC_DRAW);
     _ks_mesh_init_vbo_internal(m, vbo, vfmt);
     ks_sa_push(&m->vbos, vbo);
 
@@ -539,11 +542,12 @@ void ks_mesh_load_instances(ks_mesh* m, uint32_t iecount, const void* insts, con
     m->iecount = iecount;
 }
 
-void ks_mesh_update_instances(ks_mesh* m, uint32_t iecount, const void* insts, const ks_vfmt* vfmt) {
+void ks_mesh_update_instances(ks_mesh* m, int32_t iecount, const void* insts, const ks_vfmt* vfmt) {
     KS_ASSERT_NONNULL_ARGS(m && insts && vfmt);
     KS_ASSERT(m->has_instances, "No instance buffer initialized for this mesh");
     glBindVertexArray(m->vao);
-    ks_buffer_update(m->inst_vbo, 0, iecount * vfmt->vsize, insts);
+    ks_buffer_update(m->inst_vbo, 0, (size_t)iecount * vfmt->vsize, insts);
+    glBindVertexArray(0);
 }
 
 void ks_mesh_draw(ks_mesh* m, ks_shader s) {
@@ -556,15 +560,15 @@ void ks_mesh_draw(ks_mesh* m, ks_shader s) {
 
     if (m->has_indices) {
         if (m->iecount > 1) {
-            glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)m->ixcount, m->ixtype, NULL, (GLsizei)m->iecount);
+            glDrawElementsInstanced(GL_TRIANGLES, m->ixcount, m->ixtype, NULL, m->iecount);
         } else {
-            glDrawElements(GL_TRIANGLES, (GLsizei)m->ixcount, m->ixtype, NULL);
+            glDrawElements(GL_TRIANGLES, m->ixcount, m->ixtype, NULL);
         }
     } else {
         if (m->iecount > 1) {
-            glDrawArraysInstanced(GL_TRIANGLES, 0, (GLsizei)m->vcount, (GLsizei)m->iecount);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, m->vcount, m->iecount);
         } else {
-            glDrawArrays(GL_TRIANGLES, 0, (GLsizei)m->vcount);
+            glDrawArrays(GL_TRIANGLES, 0, m->vcount);
         }
     }
 
@@ -581,8 +585,7 @@ void ks_mesh_destroy(ks_mesh* m) {
 
 /* Batcher */
 
-void ks_batcher_init(uint32_t max_verts, uint32_t max_inds, uint32_t stride, const ks_vattr* attrs,
-                     uint32_t attr_count);
+void ks_batcher_init(int32_t max_verts, int32_t max_inds, int32_t stride, const ks_vattr* attrs, int32_t attr_count);
 void ks_batcher_next_vertex(void);
 void ks_batcher_push_index(uint32_t i);
 
@@ -647,7 +650,10 @@ void ks_renderer_init(int32_t width, int32_t height, const char* title) {
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
     }
 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_SCISSOR_TEST);
     glViewport(0, 0, width, height);
+    glScissor(0, 0, width, height);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     g_renderer.width = width;
@@ -665,9 +671,22 @@ double ks_gettime(void) {
     return glfwGetTime();
 }
 
+void ks_drawbox(int32_t x, int32_t y, int32_t w, int32_t h) {
+    glViewport(x, y, w, h);
+    glScissor(x, y, w, h);
+}
+
+void ks_drawbox_reset(void) {
+    ks_drawbox(0, 0, g_renderer.width, g_renderer.height);
+}
+
+void ks_background(ks_col4 col) {
+    glClearColor(col.r, col.g, col.b, col.a);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
 void ks_begin_drawing(void) {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
     g_renderer.is_drawing = true;
 }
 

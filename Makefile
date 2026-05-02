@@ -3,9 +3,6 @@ BUILD_RELEASE	:= build/release
 
 all: debug
 
-debug:
-	@cmake --build $(BUILD_DEBUG)
-
 setup_debug:
 	@mkdir build
 	@cmake -S . -B $(BUILD_DEBUG) -DCMAKE_BUILD_TYPE=Debug
@@ -13,6 +10,9 @@ setup_debug:
 setup_release:
 	@mkdir build
 	@cmake -S . -B $(BUILD_RELEASE) -DCMAKE_BUILD_TYPE=Release
+
+debug:
+	@cmake --build $(BUILD_DEBUG)
 
 release:
 	@cmake --build $(BUILD_RELEASE)

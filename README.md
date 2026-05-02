@@ -29,3 +29,7 @@ make help
 ```c
 target_link_libraries(target PRIVATE ks::lib)
 ```
+
+## Legal notes
+
+Copyright (c) 2026 Marchisio Luca

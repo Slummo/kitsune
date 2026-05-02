@@ -40,6 +40,8 @@
 
 #define KS_ENUM(name, ...) typedef enum KS_TYPE(name) __VA_ARGS__ KS_TYPE(name)
 
+#define KS_FUNC(T, name, ...) typedef T (*name)(__VA_ARGS__)
+
 #define KS_ALIAS(oldT, newT) typedef oldT KS_CONCAT2(ks, newT)
 
 #define KS_USING(T, usingT) typedef T usingT
@@ -199,9 +201,9 @@ static inline const char* ks_res_str(int res) {
 #define KS_ALIGN_DOWN(x, a) ((x) & ~((KS_TYPEOF(x))(a) - 1))
 #define KS_ALIGN_UP(x, a) KS_ALIGN_DOWN((x) + (a) - 1, (a))
 #define KS_NEXTPOW2(x) ((x <= 1) ? 1ULL : (KS_BIT(sizeof(x) * 8 - (size_t)KS_CLZ((x) - 1))))
-#define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (off))
-#define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((ptr1) - (ptr2)))
-#define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((ptr1) - (ptr2)))
+#define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (size_t)(off))
+#define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((intptr_t)(ptr1) - (intptr_t)(ptr2)))
+#define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((uintptr_t)(ptr1) - (uintptr_t)(ptr2)))
 
 /* Bit manipulation */
 
