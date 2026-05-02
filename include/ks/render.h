@@ -569,15 +569,15 @@ void ks_mesh_draw(ks_mesh* m, ks_shader s) {
 
     if (m->has_indices) {
         if (m->iecount > 1) {
-            glDrawElementsInstanced(GL_TRIANGLES, m->ixcount, m->ixtype, NULL, m->iecount);
+            glDrawElementsInstanced(g_renderer.primitive, m->ixcount, m->ixtype, NULL, m->iecount);
         } else {
-            glDrawElements(GL_TRIANGLES, m->ixcount, m->ixtype, NULL);
+            glDrawElements(g_renderer.primitive, m->ixcount, m->ixtype, NULL);
         }
     } else {
         if (m->iecount > 1) {
-            glDrawArraysInstanced(GL_TRIANGLES, 0, m->vcount, m->iecount);
+            glDrawArraysInstanced(g_renderer.primitive, 0, m->vcount, m->iecount);
         } else {
-            glDrawArrays(GL_TRIANGLES, 0, m->vcount);
+            glDrawArrays(g_renderer.primitive, 0, m->vcount);
         }
     }
 
