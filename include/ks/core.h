@@ -46,6 +46,35 @@
 
 #define KS_USING(T, usingT) typedef T usingT
 
+/* Multiple platforms */
+#if defined(_WIN32) || defined(_WIN64)
+#define KS_PLATFORM_WINDOWS 1
+#define KS_PLATFORM_MACOS 0
+#define KS_PLATFORM_LINUX 0
+#elif defined(__APPLE__) && defined(__MACH__)
+#define KS_PLATFORM_WINDOWS 0
+#define KS_PLATFORM_MACOS 1
+#define KS_PLATFORM_LINUX 0
+#elif defined(__linux__)
+#define KS_PLATFORM_WINDOWS 0
+#define KS_PLATFORM_MACOS 0
+#define KS_PLATFORM_LINUX 1
+#else
+#error "Unsupported operating system"
+#endif
+
+#if KS_PLATFORM_WINDOWS
+#if defined(KS_EXPORT_SHARED)
+#define KS_API __declspec(dllexport)
+#elif defined(KS_IMPORT_SHARED)
+#define KS_API __declspec(dllimport)
+#else
+#define KS_API
+#endif
+#else
+#define KS_API
+#endif
+
 /* Logging */
 
 #define KSERR 0
@@ -484,6 +513,8 @@ static inline bool ks_str_is_empty(ks_str s) {
 
 #if defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
 #define KS_CORE_IMPL_DONE
+
+int ks_log_level = KSINFO;
 
 /* Strings */
 

@@ -4,7 +4,6 @@ set(EXAMPLES
     result 
     strings
     algebra
-    render
 )
 
 foreach(E IN LISTS EXAMPLES)

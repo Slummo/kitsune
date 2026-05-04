@@ -4,8 +4,6 @@
 #include <ks/core.h>
 #include <ks/math.h>
 
-int ks_log_level = KSINFO;
-
 int main(void) {
     ks_vec3 v1 = ks_vec3_new(1.0f, 0.0f, 0.0f);
     ks_vec3 v2 = ks_vec3_new(0.0f, 1.0f, 0.0f);

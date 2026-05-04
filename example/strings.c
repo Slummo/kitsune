@@ -2,8 +2,6 @@
 
 #include <ks/core.h>
 
-int ks_log_level = KSINFO;
-
 int main(void) {
     ks_log(KSINFO, "Hello from example 4!");
 
