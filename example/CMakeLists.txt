@@ -5,7 +5,6 @@ set(EXAMPLES
     strings
     algebra
     render
-    fields
 )
 
 foreach(E IN LISTS EXAMPLES)
