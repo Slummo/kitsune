@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-/* Declare and define types */
+/* Concatenation */
 #define _KS_CONCAT2(a, b) a##b
 #define KS_CONCAT2(a, b) _KS_CONCAT2(a, b)
 #define KS_CONCAT3(a, b, c) KS_CONCAT2(KS_CONCAT2(a, b), c)
@@ -18,32 +18,61 @@
 #define KS_CONCAT5(a, b, c, d, e) KS_CONCAT2(KS_CONCAT4(a, b, c, d), e)
 #define KS_UNPACK(...) __VA_ARGS__
 
-#define KS_TYPE(name) KS_CONCAT3(ks, _, name)
-#define KS_TEMPLATED_TYPE(name, T) KS_CONCAT3(KS_TYPE(name), _, T)
+/* Namespaces */
 
-#define KS_STRUCT_DECL(name) typedef struct KS_TYPE(name) KS_TYPE(name)
-#define KS_STRUCT_DEF(name, ...) struct KS_TYPE(name) __VA_ARGS__
-#define KS_STRUCT(name, ...) \
-    KS_STRUCT_DECL(name);    \
-    KS_STRUCT_DEF(name, __VA_ARGS__)
-#define KS_TEMPLATED_STRUCT(name, T, ...) \
-    typedef struct KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
+// Templates
+#define NS_TYPE(ns, name) KS_CONCAT3(ns, _, name)
+#define NS_TEMPLATED_TYPE(ns, name, T) KS_CONCAT3(NS_TYPE(ns, name), _, T)
 
-#define KS_UNION_DECL(name) typedef union KS_TYPE(name) KS_TYPE(name)
-#define KS_UNION_DEF(name, ...) union KS_TYPE(name) __VA_ARGS__
-#define KS_UNION(name, ...) \
-    KS_UNION_DECL(name);    \
-    KS_UNION_DEF(name, __VA_ARGS__)
-#define KS_TEMPLATED_UNION(name, T, ...) typedef union KS_TEMPLATED_TYPE(name, T) __VA_ARGS__ KS_TEMPLATED_TYPE(name, T)
+// Structs
+#define NS_STRUCT_DECL(ns, name) typedef struct NS_TYPE(ns, name) NS_TYPE(ns, name)
+#define NS_STRUCT_DEF(ns, name, ...) struct NS_TYPE(ns, name) __VA_ARGS__
+#define NS_STRUCT(ns, name, ...) \
+    NS_STRUCT_DECL(ns, name);    \
+    NS_STRUCT_DEF(ns, name, __VA_ARGS__)
+#define NS_TEMPLATED_STRUCT(ns, name, T, ...) \
+    typedef struct NS_TEMPLATED_TYPE(ns, name, T) __VA_ARGS__ NS_TEMPLATED_TYPE(ns, name, T)
 
-#define KS_TEMPLATED_METHOD(name, action, T) KS_CONCAT5(KS_TYPE(name), _, action, _, T)
+// Unions
+#define NS_UNION_DECL(ns, name) typedef union NS_TYPE(ns, name) NS_TYPE(ns, name)
+#define NS_UNION_DEF(ns, name, ...) union NS_TYPE(ns, name) __VA_ARGS__
+#define NS_UNION(ns, name, ...) \
+    NS_UNION_DECL(ns, name);    \
+    NS_UNION_DEF(ns, name, __VA_ARGS__)
+#define NS_TEMPLATED_UNION(ns, name, T, ...) \
+    typedef union NS_TEMPLATED_TYPE(ns, name, T) __VA_ARGS__ NS_TEMPLATED_TYPE(ns, name, T)
 
-#define KS_ENUM(name, ...) typedef enum KS_TYPE(name) __VA_ARGS__ KS_TYPE(name)
+// Methods and Enums
+#define NS_TEMPLATED_METHOD(ns, name, action, T) KS_CONCAT5(NS_TYPE(ns, name), _, action, _, T)
 
-#define KS_FUNC(T, name, ...) typedef T (*name)(__VA_ARGS__)
+#define NS_ENUM(ns, name, ...) typedef enum NS_TYPE(ns, name) __VA_ARGS__ NS_TYPE(ns, name)
 
-#define KS_ALIAS(oldT, newT) typedef oldT KS_CONCAT2(ks, newT)
+// Functions
+#define NS_FUNC(T, ns, name, ...) typedef T (*KS_CONCAT3(ns, _, name))(__VA_ARGS__)
 
+/* kitsune namespace */
+
+#define KS_TYPE(name)                           NS_TYPE(ks, name)
+#define KS_TEMPLATED_TYPE(name, T)              NS_TEMPLATED_TYPE(ks, name, T)
+
+#define KS_STRUCT_DECL(name)                    NS_STRUCT_DECL(ks, name)
+#define KS_STRUCT_DEF(name, ...)                NS_STRUCT_DEF(ks, name, __VA_ARGS__)
+#define KS_STRUCT(name, ...)                    NS_STRUCT(ks, name, __VA_ARGS__)
+#define KS_TEMPLATED_STRUCT(name, T, ...)       NS_TEMPLATED_STRUCT(ks, name, T, __VA_ARGS__)
+
+#define KS_UNION_DECL(name)                     NS_UNION_DECL(ks, name)
+#define KS_UNION_DEF(name, ...)                 NS_UNION_DEF(ks, name, __VA_ARGS__)
+#define KS_UNION(name, ...)                     NS_UNION(ks, name, __VA_ARGS__)
+#define KS_TEMPLATED_UNION(name, T, ...)        NS_TEMPLATED_UNION(ks, name, T, __VA_ARGS__)
+
+#define KS_TEMPLATED_METHOD(name, action, T)    NS_TEMPLATED_METHOD(ks, name, action, T)
+
+#define KS_ENUM(name, ...)                      NS_ENUM(ks, name, __VA_ARGS__)
+
+#define KS_FUNC(T, name, ...)                   NS_FUNC(T,ks, name, __VA_ARGS__)
+
+/* Alias and using */
+#define KS_ALIAS(oldT, newT) typedef oldT newT
 #define KS_USING(T, usingT) typedef T usingT
 
 /* Multiple platforms */
@@ -82,7 +111,7 @@
 #define KSINFO 2
 #define KSDEBUG 3
 
-extern int ks_log_level;
+KS_API extern int ks_log_level;
 
 /**
  * @brief Print a message to stdout
@@ -348,6 +377,7 @@ static inline uint64_t KS_BSWAP64(uint64_t x) {
     }
 
 /* Result */
+
 #define _KS_RES_T(ok_t, err_t) KS_CONCAT3(ok_t, _, err_t)
 #define _KS_RES(ok_t, err_t) KS_TEMPLATED_TYPE(res, _KS_RES_T(ok_t, err_t))
 #define _KS_RES_FN(action, ok_t, err_t) KS_TEMPLATED_METHOD(res, action, _KS_RES_T(ok_t, err_t))
@@ -413,47 +443,47 @@ KS_STRUCT(str, {
     size_t len;
 });
 
-ks_string ks_string_new(const char* s);
-ks_string ks_string_new2(const char* s, size_t len);
-ks_string ks_string_from(const ks_string* s);
-ks_string ks_string_from_view(ks_str view);
-ks_string ks_string_empty(size_t cap);
-void ks_string_reserve(ks_string* s, size_t newcap);
-void ks_string_upper(ks_string* s);
-void ks_string_lower(ks_string* s);
-int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base);
-void ks_string_append(ks_string* dst, const ks_string* src);
-void ks_string_append_view(ks_string* dst, ks_str src);
-void ks_string_append_raw(ks_string* dst, const char* src);
-void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen);
-ks_string ks_string_concat(const ks_string* s1, const ks_string* s2);
-ks_string ks_string_concat_raw(const char* s1, const char* s2);
-ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2);
-void ks_string_push(ks_string* dst, char c);
-void ks_string_cut(ks_string* s, size_t n);
-char ks_string_pop(ks_string* s);
-void ks_string_trim_left(ks_string* s);
-void ks_string_trim_right(ks_string* s);
-void ks_string_trim(ks_string* s);
-ks_str* ks_string_split(const ks_string* s, const char* separator);
-ks_string ks_string_join(const ks_str* parts, const char* separator);
-char* ks_string_find(const ks_string* s, const ks_string* needle);
-char* ks_string_find_raw(const ks_string* s, const char* needle);
-char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len);
-void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b);
-void ks_string_replace_raw(ks_string* s, const char* a, const char* b);
-void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb);
-ks_string ks_string_format(const char* fmt, ...);
-bool ks_string_is_ascii(const ks_string* s);
-bool ks_string_is_upper(const ks_string* s);
-bool ks_string_is_lower(const ks_string* s);
-bool ks_string_is_alpha(const ks_string* s);
-bool ks_string_is_num(const ks_string* s);
-bool ks_string_is_alnum(const ks_string* s);
-int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2);
-void ks_string_shrink(ks_string* s);
-void ks_string_clear(ks_string* s);
-void ks_string_free(ks_string* s);
+KS_API ks_string ks_string_new(const char* s);
+KS_API ks_string ks_string_new2(const char* s, size_t len);
+KS_API ks_string ks_string_from(const ks_string* s);
+KS_API ks_string ks_string_from_view(ks_str view);
+KS_API ks_string ks_string_empty(size_t cap);
+KS_API void ks_string_reserve(ks_string* s, size_t newcap);
+KS_API void ks_string_upper(ks_string* s);
+KS_API void ks_string_lower(ks_string* s);
+KS_API int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base);
+KS_API void ks_string_append(ks_string* dst, const ks_string* src);
+KS_API void ks_string_append_view(ks_string* dst, ks_str src);
+KS_API void ks_string_append_raw(ks_string* dst, const char* src);
+KS_API void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen);
+KS_API ks_string ks_string_concat(const ks_string* s1, const ks_string* s2);
+KS_API ks_string ks_string_concat_raw(const char* s1, const char* s2);
+KS_API ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2);
+KS_API void ks_string_push(ks_string* dst, char c);
+KS_API void ks_string_cut(ks_string* s, size_t n);
+KS_API char ks_string_pop(ks_string* s);
+KS_API void ks_string_trim_left(ks_string* s);
+KS_API void ks_string_trim_right(ks_string* s);
+KS_API void ks_string_trim(ks_string* s);
+KS_API ks_str* ks_string_split(const ks_string* s, const char* separator);
+KS_API ks_string ks_string_join(const ks_str* parts, const char* separator);
+KS_API char* ks_string_find(const ks_string* s, const ks_string* needle);
+KS_API char* ks_string_find_raw(const ks_string* s, const char* needle);
+KS_API char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len);
+KS_API void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b);
+KS_API void ks_string_replace_raw(ks_string* s, const char* a, const char* b);
+KS_API void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb);
+KS_API ks_string ks_string_format(const char* fmt, ...);
+KS_API bool ks_string_is_ascii(const ks_string* s);
+KS_API bool ks_string_is_upper(const ks_string* s);
+KS_API bool ks_string_is_lower(const ks_string* s);
+KS_API bool ks_string_is_alpha(const ks_string* s);
+KS_API bool ks_string_is_num(const ks_string* s);
+KS_API bool ks_string_is_alnum(const ks_string* s);
+KS_API int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2);
+KS_API void ks_string_shrink(ks_string* s);
+KS_API void ks_string_clear(ks_string* s);
+KS_API void ks_string_free(ks_string* s);
 
 static inline bool ks_string_is_short(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
@@ -488,13 +518,13 @@ static inline size_t ks_string_cap(const ks_string* s) {
     return ks_string_is_short(s) ? KS_SSO_CAP : s->l.cap;
 }
 
-ks_str ks_str_new(const char* s, size_t start, size_t end);
-ks_str ks_str_from(ks_str s, size_t start, size_t end);
-const char* ks_str_as_raw(ks_str s);
-void ks_str_trim(ks_str* s);
-int32_t ks_str_cmp(ks_str s1, ks_str s2);
-bool ks_str_starts_with(ks_str s, const char* prefix);
-bool ks_str_ends_with(ks_str s, const char* suffix);
+KS_API ks_str ks_str_new(const char* s, size_t start, size_t end);
+KS_API ks_str ks_str_from(ks_str s, size_t start, size_t end);
+KS_API const char* ks_str_as_raw(ks_str s);
+KS_API void ks_str_trim(ks_str* s);
+KS_API int32_t ks_str_cmp(ks_str s1, ks_str s2);
+KS_API bool ks_str_starts_with(ks_str s, const char* prefix);
+KS_API bool ks_str_ends_with(ks_str s, const char* suffix);
 
 static inline ks_str ks_string_view(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
@@ -514,7 +544,7 @@ static inline bool ks_str_is_empty(ks_str s) {
 #if defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
 #define KS_CORE_IMPL_DONE
 
-int ks_log_level = KSINFO;
+KS_API int ks_log_level = KSINFO;
 
 /* Strings */
 
@@ -583,11 +613,11 @@ static inline void _ks_skip_white_spaces(const char** str_ptr) {
     *str_ptr = str;
 }
 
-ks_string ks_string_new(const char* s) {
+KS_API ks_string ks_string_new(const char* s) {
     return ks_string_new2(s, strlen(s));
 }
 
-ks_string ks_string_new2(const char* s, size_t len) {
+KS_API ks_string ks_string_new2(const char* s, size_t len) {
     KS_ASSERT(s, "s is NULL");
 
     ks_string string = {0};
@@ -609,7 +639,7 @@ ks_string ks_string_new2(const char* s, size_t len) {
     return string;
 }
 
-ks_string ks_string_from(const ks_string* s) {
+KS_API ks_string ks_string_from(const ks_string* s) {
     if (!s) {
         return ks_string_empty(0);
     }
@@ -619,11 +649,11 @@ ks_string ks_string_from(const ks_string* s) {
     return ks_string_new2(str, len);
 }
 
-ks_string ks_string_from_view(ks_str view) {
+KS_API ks_string ks_string_from_view(ks_str view) {
     return ks_string_new2(view.ptr, view.len);
 }
 
-ks_string ks_string_empty(size_t cap) {
+KS_API ks_string ks_string_empty(size_t cap) {
     ks_string s = {0};
     s.s.data[0] = '\0';
     s.s.meta = 0 << 1 | 1;
@@ -634,7 +664,7 @@ ks_string ks_string_empty(size_t cap) {
     return s;
 }
 
-void ks_string_reserve(ks_string* s, size_t newcap) {
+KS_API void ks_string_reserve(ks_string* s, size_t newcap) {
     KS_ASSERT(s, "s is NULL");
 
     size_t oldcap = ks_string_cap(s);
@@ -645,21 +675,21 @@ void ks_string_reserve(ks_string* s, size_t newcap) {
     _ks_string_resize(s, newcap);
 }
 
-void ks_string_upper(ks_string* s) {
+KS_API void ks_string_upper(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     ks_string_foreach(c, s) {
         *c = toupper(*c);
     }
 }
 
-void ks_string_lower(ks_string* s) {
+KS_API void ks_string_lower(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     ks_string_foreach(c, s) {
         *c = tolower(*c);
     }
 }
 
-int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base) {
+KS_API int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base) {
     KS_ASSERT(s && out, "NULL parameters");
 
     const char* str = ks_string_as_raw((ks_string*)s);
@@ -689,11 +719,11 @@ int32_t ks_string_to_int64(const ks_string* s, int64_t* out, int32_t base) {
     return 0;
 }
 
-void ks_string_append(ks_string* dst, const ks_string* src) {
+KS_API void ks_string_append(ks_string* dst, const ks_string* src) {
     ks_string_append_raw2(dst, ks_string_as_raw((ks_string*)src), ks_string_len(src));
 }
 
-void ks_string_append_view(ks_string* dst, ks_str src) {
+KS_API void ks_string_append_view(ks_string* dst, ks_str src) {
     KS_ASSERT(dst, "dst is NULL");
     if (src.len == 0 || !src.ptr) {
         return;
@@ -702,11 +732,11 @@ void ks_string_append_view(ks_string* dst, ks_str src) {
     ks_string_append_raw2(dst, src.ptr, src.len);
 }
 
-void ks_string_append_raw(ks_string* dst, const char* src) {
+KS_API void ks_string_append_raw(ks_string* dst, const char* src) {
     ks_string_append_raw2(dst, src, strlen(src));
 }
 
-void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen) {
+KS_API void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen) {
     KS_ASSERT(dst && src, "dst or src is NULL");
 
     if (srclen == 0) {
@@ -736,28 +766,28 @@ void ks_string_append_raw2(ks_string* dst, const char* src, size_t srclen) {
     _ks_string_set_len(dst, newlen);
 }
 
-ks_string ks_string_concat(const ks_string* s1, const ks_string* s2) {
+KS_API ks_string ks_string_concat(const ks_string* s1, const ks_string* s2) {
     return ks_string_concat_raw2(ks_string_as_raw((ks_string*)s1), ks_string_len(s1), ks_string_as_raw((ks_string*)s2),
                                  ks_string_len(s2));
 }
 
-ks_string ks_string_concat_raw(const char* s1, const char* s2) {
+KS_API ks_string ks_string_concat_raw(const char* s1, const char* s2) {
     return ks_string_concat_raw2(s1, strlen(s1), s2, strlen(s2));
 }
 
-ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2) {
+KS_API ks_string ks_string_concat_raw2(const char* s1, size_t len1, const char* s2, size_t len2) {
     ks_string str = ks_string_new2(s1, len1);
     ks_string_append_raw2(&str, s2, len2);
     return str;
 }
 
-void ks_string_push(ks_string* dst, char c) {
+KS_API void ks_string_push(ks_string* dst, char c) {
     KS_ASSERT(dst, "dst is NULL");
 
     ks_string_append_raw2(dst, &c, 1);
 }
 
-void ks_string_cut(ks_string* s, size_t n) {
+KS_API void ks_string_cut(ks_string* s, size_t n) {
     KS_ASSERT(s, "s is NULL");
     if (n == 0) {
         return;
@@ -778,7 +808,7 @@ void ks_string_cut(ks_string* s, size_t n) {
     }
 }
 
-char ks_string_pop(ks_string* s) {
+KS_API char ks_string_pop(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
 
     size_t len = ks_string_len(s);
@@ -794,7 +824,7 @@ char ks_string_pop(ks_string* s) {
     return last;
 }
 
-void ks_string_trim_left(ks_string* s) {
+KS_API void ks_string_trim_left(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     size_t len = ks_string_len(s);
     if (len == 0) {
@@ -816,7 +846,7 @@ void ks_string_trim_left(ks_string* s) {
     }
 }
 
-void ks_string_trim_right(ks_string* s) {
+KS_API void ks_string_trim_right(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     size_t len = ks_string_len(s);
     if (len == 0) {
@@ -836,7 +866,7 @@ void ks_string_trim_right(ks_string* s) {
     }
 }
 
-void ks_string_trim(ks_string* s) {
+KS_API void ks_string_trim(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     size_t len = ks_string_len(s);
     if (len == 0) {
@@ -868,7 +898,7 @@ void ks_string_trim(ks_string* s) {
     _ks_string_set_len(s, newlen);
 }
 
-ks_str* ks_string_split(const ks_string* s, const char* separator) {
+KS_API ks_str* ks_string_split(const ks_string* s, const char* separator) {
     KS_ASSERT(s && separator, "s or separator is NULL");
 
     size_t seplen = strlen(separator);
@@ -909,7 +939,7 @@ ks_str* ks_string_split(const ks_string* s, const char* separator) {
     return result;
 }
 
-ks_string ks_string_join(const ks_str* parts, const char* separator) {
+KS_API ks_string ks_string_join(const ks_str* parts, const char* separator) {
     if (!parts) {
         return ks_string_empty(0);
     }
@@ -942,15 +972,15 @@ ks_string ks_string_join(const ks_str* parts, const char* separator) {
     return result;
 }
 
-char* ks_string_find(const ks_string* s, const ks_string* needle) {
+KS_API char* ks_string_find(const ks_string* s, const ks_string* needle) {
     return ks_string_find_raw2(s, ks_string_as_raw((ks_string*)needle), ks_string_len(needle));
 }
 
-char* ks_string_find_raw(const ks_string* s, const char* needle) {
+KS_API char* ks_string_find_raw(const ks_string* s, const char* needle) {
     return ks_string_find_raw2(s, needle, strlen(needle));
 }
 
-char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len) {
+KS_API char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len) {
     char* s1 = ks_string_as_raw((ks_string*)s);
     const char* p = s1;
 
@@ -967,16 +997,16 @@ char* ks_string_find_raw2(const ks_string* s, const char* needle, size_t len) {
     return NULL;
 }
 
-void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b) {
+KS_API void ks_string_replace(ks_string* s, const ks_string* a, const ks_string* b) {
     ks_string_replace_raw2(s, ks_string_as_raw((ks_string*)a), ks_string_len(a), ks_string_as_raw((ks_string*)b),
                            ks_string_len(b));
 }
 
-void ks_string_replace_raw(ks_string* s, const char* a, const char* b) {
+KS_API void ks_string_replace_raw(ks_string* s, const char* a, const char* b) {
     ks_string_replace_raw2(s, a, strlen(a), b, strlen(b));
 }
 
-void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb) {
+KS_API void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char* b, size_t lenb) {
     KS_ASSERT(s && a && b, "Some parameters are NULL");
 
     char* pos = ks_string_find_raw2(s, a, lena);
@@ -1008,7 +1038,7 @@ void ks_string_replace_raw2(ks_string* s, const char* a, size_t lena, const char
     *s = tmp;
 }
 
-ks_string ks_string_format(const char* fmt, ...) {
+KS_API ks_string ks_string_format(const char* fmt, ...) {
     KS_ASSERT(fmt, "fmt is NULL");
 
     va_list args;
@@ -1035,7 +1065,7 @@ ks_string ks_string_format(const char* fmt, ...) {
     return result;
 }
 
-bool ks_string_is_ascii(const ks_string* s) {
+KS_API bool ks_string_is_ascii(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1050,7 +1080,7 @@ bool ks_string_is_ascii(const ks_string* s) {
     return true;
 }
 
-bool ks_string_is_upper(const ks_string* s) {
+KS_API bool ks_string_is_upper(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1065,7 +1095,7 @@ bool ks_string_is_upper(const ks_string* s) {
     return true;
 }
 
-bool ks_string_is_lower(const ks_string* s) {
+KS_API bool ks_string_is_lower(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1080,7 +1110,7 @@ bool ks_string_is_lower(const ks_string* s) {
     return true;
 }
 
-bool ks_string_is_alpha(const ks_string* s) {
+KS_API bool ks_string_is_alpha(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1095,7 +1125,7 @@ bool ks_string_is_alpha(const ks_string* s) {
     return true;
 }
 
-bool ks_string_is_num(const ks_string* s) {
+KS_API bool ks_string_is_num(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1110,7 +1140,7 @@ bool ks_string_is_num(const ks_string* s) {
     return true;
 }
 
-bool ks_string_is_alnum(const ks_string* s) {
+KS_API bool ks_string_is_alnum(const ks_string* s) {
     KS_ASSERT(s, "s is NULL");
     if (ks_string_is_empty(s)) {
         return false;
@@ -1125,19 +1155,19 @@ bool ks_string_is_alnum(const ks_string* s) {
     return true;
 }
 
-int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2) {
+KS_API int32_t ks_string_cmp(const ks_string* s1, const ks_string* s2) {
     KS_ASSERT(s1 && s2, "s1 or s2 is NULL");
     return strcmp(ks_string_as_raw((ks_string*)s1), ks_string_as_raw((ks_string*)s2));
 }
 
-void ks_string_shrink(ks_string* s) {
+KS_API void ks_string_shrink(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
 
     size_t len = ks_string_len(s);
     _ks_string_resize(s, len);
 }
 
-void ks_string_clear(ks_string* s) {
+KS_API void ks_string_clear(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
 
     char* raw = ks_string_as_raw(s);
@@ -1145,7 +1175,7 @@ void ks_string_clear(ks_string* s) {
     _ks_string_set_len(s, 0);
 }
 
-void ks_string_free(ks_string* s) {
+KS_API void ks_string_free(ks_string* s) {
     KS_ASSERT(s, "s is NULL");
 
     if (!ks_string_is_short(s)) {
@@ -1156,22 +1186,22 @@ void ks_string_free(ks_string* s) {
     s->s.meta = 1;
 }
 
-ks_str ks_str_new(const char* s, size_t start, size_t end) {
+KS_API ks_str ks_str_new(const char* s, size_t start, size_t end) {
     KS_ASSERT(s, "s is NULL");
     KS_ASSERT(end >= start, "end greater or equal to start");
     return (ks_str){.ptr = (const char*)KS_PTROFF(s, start), .len = end - start};
 }
 
-ks_str ks_str_from(ks_str s, size_t start, size_t end) {
+KS_API ks_str ks_str_from(ks_str s, size_t start, size_t end) {
     KS_ASSERT(end >= start && end <= s.len, "Invalid bounds");
     return (ks_str){.ptr = (const char*)KS_PTROFF(s.ptr, start), .len = end - start};
 }
 
-const char* ks_str_as_raw(ks_str s) {
+KS_API const char* ks_str_as_raw(ks_str s) {
     return s.ptr;
 }
 
-void ks_str_trim(ks_str* s) {
+KS_API void ks_str_trim(ks_str* s) {
     KS_ASSERT(s, "s is NULL");
 
     while (s->len > 0 && isspace((unsigned char)s->ptr[0])) {
@@ -1184,7 +1214,7 @@ void ks_str_trim(ks_str* s) {
     }
 }
 
-int32_t ks_str_cmp(ks_str s1, ks_str s2) {
+KS_API int32_t ks_str_cmp(ks_str s1, ks_str s2) {
     size_t minlen = KS_MIN(s1.len, s2.len);
     int32_t cmp = strncmp(s1.ptr, s2.ptr, minlen);
 
@@ -1203,7 +1233,7 @@ int32_t ks_str_cmp(ks_str s1, ks_str s2) {
     return cmp;
 }
 
-bool ks_str_starts_with(ks_str s, const char* prefix) {
+KS_API bool ks_str_starts_with(ks_str s, const char* prefix) {
     KS_ASSERT(prefix, "prefix is NULL");
     size_t prelen = strlen(prefix);
 
@@ -1214,7 +1244,7 @@ bool ks_str_starts_with(ks_str s, const char* prefix) {
     return strncmp(s.ptr, prefix, prelen) == 0;
 }
 
-bool ks_str_ends_with(ks_str s, const char* suffix) {
+KS_API bool ks_str_ends_with(ks_str s, const char* suffix) {
     KS_ASSERT(suffix, "suffix is NULL");
     size_t suflen = strlen(suffix);
 

@@ -45,7 +45,7 @@ static inline size_t bit_reverse(size_t n, size_t m) {
     return r;
 }
 
-int fft(size_t n, float complex samples[static n]);
+KS_API int fft(size_t n, float complex samples[static n]);
 
 /* Vectors and matrices */
 
@@ -946,11 +946,11 @@ KS_STRUCT(field_ctx, {
     const ks_field* src;
 });
 
-KS_FUNC(void, ks_field_cb, ks_field_ctx* ctx, void* out);
+KS_FUNC(void, field_cb, ks_field_ctx* ctx, void* out);
 
-ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, float cellsize);
-void ks_field_sample(ks_field* dst, const ks_field* src, float t, ks_field_cb cb);
-void ks_field_destroy(ks_field* field);
+KS_API ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, float cellsize);
+KS_API void ks_field_sample(ks_field* dst, const ks_field* src, float t, ks_field_cb cb);
+KS_API void ks_field_destroy(ks_field* field);
 
 static inline int32_t _ks_f2_idx_internal(int32_t x, int32_t y, int32_t w) {
     return y * w + x;
@@ -1157,7 +1157,7 @@ static inline float ks_sf3_lap(const ks_field* f, int32_t x, int32_t y, int32_t 
 #if defined(KS_MATH_IMPL) && !defined(KS_MATH_IMPL_DONE)
 #define KS_MATH_IMPL_DONE
 
-int fft(size_t n, float complex samples[static n]) {
+KS_API int fft(size_t n, float complex samples[static n]) {
     if (!KS_ISPOW2(n)) {
         return 1;
     }
@@ -1195,14 +1195,14 @@ int fft(size_t n, float complex samples[static n]) {
     return 0;
 }
 
-ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, float cellsize) {
+KS_API ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, float cellsize) {
     void* data = malloc(typesize * (size_t)(w * h));
     KS_ASSERT(data, "OOM");
 
     return (ks_field){w, h, d, typesize, cellsize, data};
 }
 
-void ks_field_sample(ks_field* dst, const ks_field* src, float t, ks_field_cb cb) {
+KS_API void ks_field_sample(ks_field* dst, const ks_field* src, float t, ks_field_cb cb) {
     KS_ASSERT_NONNULL_ARGS(dst && cb);
 
     ks_field_ctx ctx = {0};
@@ -1225,7 +1225,7 @@ void ks_field_sample(ks_field* dst, const ks_field* src, float t, ks_field_cb cb
     }
 }
 
-void ks_field_destroy(ks_field* f) {
+KS_API void ks_field_destroy(ks_field* f) {
     KS_ASSERT_NONNULL_ARGS(f);
     free(f->data);
     memset(f, 0, sizeof(ks_field));

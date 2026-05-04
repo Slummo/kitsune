@@ -20,7 +20,7 @@ KS_STRUCT(allocator, {
     void* user_data;
 });
 
-extern const ks_allocator std_allocator;
+KS_API extern const ks_allocator std_allocator;
 
 KS_STRUCT(arena, {
     uint8_t* data;
@@ -28,9 +28,9 @@ KS_STRUCT(arena, {
     size_t off;
 });
 
-void ks_arena_init(ks_arena* arena, void* mem, size_t cap);
-void ks_arena_reset(ks_arena* arena);
-ks_allocator ks_arena_allocator(ks_arena* arena);
+KS_API void ks_arena_init(ks_arena* arena, void* mem, size_t cap);
+KS_API void ks_arena_reset(ks_arena* arena);
+KS_API ks_allocator ks_arena_allocator(ks_arena* arena);
 
 #endif  // KS_MEM_H
 
@@ -49,7 +49,10 @@ static void std_free(void* ptr, KS_UNUSED void* user_data) {
     free(ptr);
 }
 
-const ks_alloctor std_allocator = {.alloc = std_alloc, .realloc = std_realloc, .free = std_free, .user_data = NULL};
+KS_API const ks_alloctor std_allocator = {.alloc = std_alloc,
+                                          .realloc = std_realloc,
+                                          .free = std_free,
+                                          .user_data = NULL};
 
 static void* ks_arena_alloc(size_t size, void* user_data) {
     ks_arena* arena = user_data;
@@ -81,19 +84,19 @@ static void* ks_arena_realloc(void* ptr, size_t oldsize, size_t newsize, void* u
 static void ks_arena_free(KS_UNUSED void* ptr, KS_UNUSED void* user_data) {
 }
 
-void ks_arena_init(ks_arena* arena, void* mem, size_t cap) {
+KS_API void ks_arena_init(ks_arena* arena, void* mem, size_t cap) {
     KS_ASSERT_NONNULL_ARGS(arena && mem);
     arena->data = (uint8_t)mem;
     arena->cap = cap;
     arena->off = 0;
 }
 
-void ks_arena_reset(ks_arena* arena) {
+KS_API void ks_arena_reset(ks_arena* arena) {
     KS_ASSERT_NONNULL_ARGS(arena);
     arena->off = 0;
 }
 
-ks_allocator ks_arena_allocator(ks_arena* arena) {
+KS_API ks_allocator ks_arena_allocator(ks_arena* arena) {
     KS_ASSERT_NONNULL_ARGS(arena);
     return (ks_allocator){
         .alloc = ks_arena_alloc, .realloc = ks_arena_realloc, .free = ks_arena_free, .user_data = arena};

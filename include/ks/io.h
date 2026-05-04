@@ -1,18 +1,20 @@
 #ifndef KS_IO_H
 #define KS_IO_H
 
+#include <ks/core.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-char* ks_fread(const char* filename);
+KS_API char* ks_fread(const char* filename);
 
 #endif  // KS_IO_H
 
 #if defined(KS_IO_IMPL) && !defined(KS_IO_IMPL_DONE)
 #define KS_IO_IMPL_DONE
 
-char* ks_fread(const char* filename) {
+KS_API char* ks_fread(const char* filename) {
     FILE* f = fopen(filename, "r");
     if (!f) {
         return NULL;

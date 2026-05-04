@@ -18,14 +18,14 @@ KS_API double ks_time_get(void);
 KS_API double ks_time_dt(void);
 KS_API double ks_time_fixed_dt(void);
 
-extern ks_time g_time;
+KS_API extern ks_time g_time;
 
 #endif  // KS_TIME_H
 
 #if defined(KS_TIME_IMPL) && !defined(KS_TIME_IMPL_DONE)
 #define KS_TIME_IMPL_DONE
 
-ks_time g_time = {0};
+KS_API ks_time g_time = {0};
 
 #if KS_PLATFORM_WINDOWS
 
