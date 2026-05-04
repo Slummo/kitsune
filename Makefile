@@ -1,39 +1,58 @@
 BUILD_DEBUG		:= build/debug
-BUILD_RELEASE	:= build/release
+
+CMAKE_ARGS		:=
+
+CORES			?= $(shell nproc 2>/dev/null || echo 4)
+
+.PHONY: all debug runt rune update clean clean-full help
 
 all: debug
 
-setup_debug:
-	@mkdir build
-	@cmake -S . -B $(BUILD_DEBUG) -DCMAKE_BUILD_TYPE=Debug
+$(BUILD_DEBUG)/CMakeCache.txt: CMakeLists.txt
+	@echo "Configuring Debug build..."
+	@mkdir -p $(BUILD_DEBUG)
+	@cmake -S . -B $(BUILD_DEBUG) -DCMAKE_BUILD_TYPE=Debug $(CMAKE_ARGS)
 
-setup_release:
-	@mkdir build
-	@cmake -S . -B $(BUILD_RELEASE) -DCMAKE_BUILD_TYPE=Release
+debug: $(BUILD_DEBUG)/CMakeCache.txt
+	@echo "Building Debug..."
+	@cmake --build $(BUILD_DEBUG) -j $(CORES)
 
-debug:
-	@cmake --build $(BUILD_DEBUG)
+runt: debug
+	@if [ -z "$(NAME)" ]; then echo "Specify NAME"; exit 1; fi
+	@echo "Running Test '$(NAME)'..."
+	@./$(BUILD_DEBUG)/test/test_$(NAME)
 
-release:
-	@cmake --build $(BUILD_RELEASE)
+rune: debug
+	@if [ -z "$(NAME)" ]; then echo "Specify NAME"; exit 1; fi
+	@echo "Running Example '$(NAME)'..."
+	@./$(BUILD_DEBUG)/example/example_$(NAME)
 
-run_test: debug
-	@$(BUILD_DEBUG)/test/test_$(NAME)
-
-run_example: debug
-	@$(BUILD_DEBUG)/example/example_$(NAME)
+update:
+	@echo "Updating dependencies..."
+	@touch CMakeLists.txt
+	@$(MAKE) debug
 
 clean:
-	rm -rf build
+	@if [ -n "$(NAME)" ]; then \
+		echo "Cleaning target '$(NAME)'..."; \
+		rm -rf $(BUILD_DEBUG)/test/CMakeFiles/test_$(NAME).dir; \
+		rm -rf $(BUILD_DEBUG)/example/CMakeFiles/example_$(NAME).dir; \
+		rm -f $(BUILD_DEBUG)/test/test_$(NAME) $(BUILD_DEBUG)/example/example_$(NAME); \
+	else \
+		echo "Cleaning local files..."; \
+		rm -rf $(BUILD_DEBUG)/test $(BUILD_DEBUG)/example; \
+	fi
+
+clean-full:
+	@echo "Cleaning build..."
+	@rm -rf build
 
 help:
-	@echo "make:			run debug build"
-	@echo "make setup_debug:	setup debug build"
-	@echo "make debug:		run debug build"
-	@echo "make setup_release:	setup release build"
-	@echo "make release:		run debug build"
-	@echo "make run_test:		run test specified in NAME (debug only)"
-	@echo "make run_example:	run example specified in NAME (debug only)"
-	@echo "make clean:		remove build files"
-
-.PHONY: all setup_debug debug setup_release release run_test run_example clean help
+	@echo "Usage:"
+	@echo "  make                        - Build debug version"
+	@echo "  make debug                  - Build debug version"
+	@echo "  make runt NAME=x            - Build and run test_x (debug)"
+	@echo "  make rune NAME=x            - Build and run example_x (debug)"
+	@echo "  make update                 - Re-fetch/update dependencies"
+	@echo "  make clean [NAME=x]         - Remove local object files"
+	@echo "  make clean-full             - Remove all build files"
