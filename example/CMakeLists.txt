@@ -4,6 +4,7 @@ set(EXAMPLES
     result 
     strings
     algebra
+    analysis
 )
 
 foreach(E IN LISTS EXAMPLES)
