@@ -50,7 +50,7 @@
 // Functions
 #define NS_FUNC(T, ns, name, ...) typedef T (*KS_CONCAT3(ns, _, name))(__VA_ARGS__)
 
-/* kitsune namespace */
+/* Kitsune namespace */
 
 #define KS_TYPE(name)                           NS_TYPE(ks, name)
 #define KS_TEMPLATED_TYPE(name, T)              NS_TEMPLATED_TYPE(ks, name, T)
@@ -69,7 +69,7 @@
 
 #define KS_ENUM(name, ...)                      NS_ENUM(ks, name, __VA_ARGS__)
 
-#define KS_FUNC(T, name, ...)                   NS_FUNC(T,ks, name, __VA_ARGS__)
+#define KS_FUNC(T, name, ...)                   NS_FUNC(T, ks, name, __VA_ARGS__)
 
 /* Alias and using */
 #define KS_ALIAS(oldT, newT) typedef oldT newT

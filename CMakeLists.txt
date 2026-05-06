@@ -52,7 +52,7 @@ find_package(OpenMP REQUIRED)
 add_library(ks INTERFACE)
 target_include_directories(ks INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(ks INTERFACE m OpenMP::OpenMP_C)
-add_library(ks::lib ALIAS ks)
+add_library(kitsune::lib ALIAS ks)
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (IS_SELF AND CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
