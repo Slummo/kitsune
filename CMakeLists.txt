@@ -1,59 +1,45 @@
 cmake_minimum_required(VERSION 4.0)
 project(kitsune VERSION 1.0.0 LANGUAGES C)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
+
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(IS_SELF TRUE)
 else()
     set(IS_SELF FALSE)
 endif()
 
-if (IS_SELF)
-    # Strip the project source directory from __FILE__ macros
-    if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-      add_compile_options(-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
-    endif()
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
-    add_compile_options(
-        -Wall
-        -Wextra
-        -Werror
-        -Wsign-conversion
-        -std=c11
-
-        # Debug flags
-        $<$<CONFIG:Debug>:-g>
-        $<$<CONFIG:Debug>:-O0>
-        $<$<CONFIG:Debug>:-fsanitize=address>
-        $<$<CONFIG:Debug>:-fsanitize=leak>
-        $<$<CONFIG:Debug>:-fsanitize=undefined>
-        $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-        $<$<CONFIG:Debug>:-DDEBUG>
-
-        # Release flags
-        $<$<CONFIG:Release>:-O3>
-        $<$<CONFIG:Release>:-march=native>
-        $<$<CONFIG:Release>:-DNDEBUG>
-    )
-
-    add_link_options(
-        $<$<CONFIG:Debug>:-fsanitize=address>
-        $<$<CONFIG:Debug>:-fsanitize=leak>
-        $<$<CONFIG:Debug>:-fsanitize=undefined>
-    )
-
-    # Default to debug build
-    if(NOT CMAKE_BUILD_TYPE)
-      set(CMAKE_BUILD_TYPE Debug)
-    endif()
+if(IS_SELF)
+    set_default_build_type()
+    set_output_directories()
 endif()
 
-find_package(OpenMP REQUIRED)
+# Library
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+add_library(${PROJECT_NAME}::lib ALIAS ${PROJECT_NAME})
+target_compile_features(${PROJECT_NAME} INTERFACE c_std_11)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
 
-add_library(ks INTERFACE)
-target_include_directories(ks INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(ks INTERFACE m OpenMP::OpenMP_C)
-add_library(kitsune::lib ALIAS ks)
+if (IS_SELF)
+    apply_compile_options(${PROJECT_NAME})
+endif()
 
+# Dependencies
+find_package(OpenMP)
+target_link_libraries(${PROJECT_NAME} INTERFACE m OpenMP::OpenMP_C)
+
+# Tests & Examples
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 if (IS_SELF AND CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
     message(STATUS "Building tests...")
