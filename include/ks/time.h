@@ -3,6 +3,8 @@
 
 #include <ks/core.h>
 
+#include <time.h>
+
 KS_STRUCT(time, {
     double current;
     double previous;
@@ -45,8 +47,6 @@ static double ks_os_time(void) {
 }
 
 #else
-
-#include <time.h>
 
 static double ks_os_time(void) {
     struct timespec ts;
