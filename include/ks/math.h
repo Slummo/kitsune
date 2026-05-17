@@ -2,7 +2,6 @@
 #define KS_MATH_H
 
 #include <ks/core.h>
-#include <math.h>
 #include <complex.h>
 #include <omp.h>
 
@@ -123,41 +122,38 @@ KS_UNION(mat4, {
     };
 });
 
-static inline ks_string _ks_vec_tostr_internal(const char* type_name, const float* data, int32_t n) {
-    ks_string s = ks_string_format("%s(", type_name);
+#define KS_VEC2_FMT "Vec2(%.3f, %.3f)"
+#define KS_VEC2_ARGS(v) (v).data[0], (v).data[1]
 
-    for (int32_t i = 0; i < n; ++i) {
-        ks_string num = ks_string_format("%f", data[i]);
-        ks_string_append(&s, &num);
-        ks_string_free(&num);
+#define KS_VEC3_FMT "Vec3(%.3f, %.3f, %.3f)"
+#define KS_VEC3_ARGS(v) (v).data[0], (v).data[1], (v).data[2]
 
-        // Add a comma unless it's the last element
-        if (i < n - 1) {
-            ks_string_append_raw(&s, ", ");
-        }
-    }
+#define KS_VEC4_FMT "Vec4(%.3f, %.3f, %.3f, %.3f)"
+#define KS_VEC4_ARGS(v) (v).data[0], (v).data[1], (v).data[2], (v).data[3]
 
-    ks_string_append_raw(&s, ")");
-    return s;
-}
+#define KS_MAT2_FMT      \
+    "Mat2:"              \
+    "\t| %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f |"
+#define KS_MAT2_ARGS(m) (m).data[0], (m).data[2], (m).data[1], (m).data[3]
 
-static inline ks_string _ks_mat_tostr_internal(const char* type_name, const float* data, int32_t n) {
-    ks_string s = ks_string_format("%s(\n", type_name);
+#define KS_MAT3_FMT            \
+    "Mat3:"                    \
+    "\t| %.3f, %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f, %.3f |"
+#define KS_MAT3_ARGS(m) \
+    (m).data[0], (m).data[3], (m).data[6], (m).data[1], (m).data[4], (m).data[7], (m).data[2], (m).data[5], (m).data[8]
 
-    for (int32_t r = 0; r < n; ++r) {
-        ks_string_append_raw2(&s, "    ", 4);
-        for (int32_t c = 0; c < n; ++c) {
-            ks_string num = ks_string_format("%f%s", data[c * n + r], (c == n - 1 ? "" : ", "));
-            ks_string_append(&s, &num);
-            ks_string_free(&num);
-        }
-
-        ks_string_append_raw(&s, (r == n - 1 ? "\n" : ",\n"));
-    }
-
-    ks_string_append_raw2(&s, ")", 1);
-    return s;
-}
+#define KS_MAT4_FMT                  \
+    "Mat4: "                         \
+    "\t| %.3f, %.3f, %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f, %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f, %.3f, %.3f |\n" \
+    "\t| %.3f, %.3f, %.3f, %.3f |"
+#define KS_MAT4_ARGS(m)                                                                                       \
+    (m).data[0], (m).data[4], (m).data[8], (m).data[12], (m).data[1], (m).data[5], (m).data[9], (m).data[13], \
+        (m).data[2], (m).data[6], (m).data[10], (m).data[14], (m).data[3], (m).data[7], (m).data[11], (m).data[15]
 
 #define KS_VEC_FUNCTIONS(type, n, params, args)                                                       \
     static inline void KS_CONCAT2(type, _zeroinit)(type * v) {                                        \
@@ -345,23 +341,6 @@ static inline ks_string _ks_mat_tostr_internal(const char* type_name, const floa
         KS_ASSERT(v, "Null arguments");                                                               \
         KS_ASSERT(i < n, "Index out of bounds");                                                      \
         v->data[i] = num;                                                                             \
-    }                                                                                                 \
-                                                                                                      \
-    static inline ks_string KS_CONCAT2(type, _tostr)(const type* v) {                                 \
-        KS_ASSERT(v, "Null arguments");                                                               \
-        return _ks_vec_tostr_internal(#type, v->data, n);                                             \
-    }                                                                                                 \
-                                                                                                      \
-    static inline void KS_CONCAT2(type, _print)(const type* v, FILE* stream) {                        \
-        KS_ASSERT(v && stream, "Null arguments");                                                     \
-        ks_string s = KS_CONCAT2(type, _tostr)(v);                                                    \
-        fprintf(stream, "%s", ks_string_as_raw(&s));                                                  \
-        ks_string_free(&s);                                                                           \
-    }                                                                                                 \
-                                                                                                      \
-    static inline void KS_CONCAT2(type, _println)(const type* v, FILE* stream) {                      \
-        KS_CONCAT2(type, _print)(v, stream);                                                          \
-        fprintf(stream, "\n");                                                                        \
     }
 
 KS_VEC_FUNCTIONS(ks_vec2, 2, (float x, float y), (x, y));
@@ -604,23 +583,6 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_SIMD_HINT for (int32_t c = 0; c < n; ++c) {                                         \
             m->data[c * n + r] = v->data[c];                                                   \
         }                                                                                      \
-    }                                                                                          \
-                                                                                               \
-    static inline ks_string KS_CONCAT2(type, _tostr)(const type* m) {                          \
-        KS_ASSERT(m, "Null arguments");                                                        \
-        return _ks_mat_tostr_internal(#type, m->data, n);                                      \
-    }                                                                                          \
-                                                                                               \
-    static inline void KS_CONCAT2(type, _print)(const type* m, FILE* stream) {                 \
-        KS_ASSERT(m && stream, "Null arguments");                                              \
-        ks_string s = KS_CONCAT2(type, _tostr)(m);                                             \
-        fprintf(stream, "%s", ks_string_as_raw(&s));                                           \
-        ks_string_free(&s);                                                                    \
-    }                                                                                          \
-                                                                                               \
-    static inline void KS_CONCAT2(type, _println)(const type* m, FILE* stream) {               \
-        KS_CONCAT2(type, _print)(m, stream);                                                   \
-        fprintf(stream, "\n");                                                                 \
     }
 
 KS_MAT_FUNCTIONS(ks_mat2, ks_vec2, 2);

@@ -5,6 +5,7 @@ set(EXAMPLES
     strings
     algebra
     analysis
+    memory
 )
 
 foreach(E IN LISTS EXAMPLES)

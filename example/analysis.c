@@ -1,7 +1,7 @@
 #define KS_CORE_IMPL
-#include <ks/core.h>
-
 #define KS_MATH_IMPL
+
+#include <ks/core.h>
 #include <ks/math.h>
 
 #include <time.h>
@@ -39,23 +39,23 @@ int main(void) {
     double res;
 
     res = ks_deriv_1d(cos_cb, KS_PI_2, 1e-6, NULL);
-    ks_log(KSINFO, "d/dx cos(pi/2) = -sin(pi/2) = %.1lf (expected %.1lf)", res, -1.0);
+    ks_print("d/dx cos(pi/2) = -sin(pi/2) = %.1lf (expected %.1lf)", res, -1.0);
 
     res = ks_integ_1d(gaussian, -100.0, 100.0, 1 << 10, NULL);
-    ks_log(KSINFO, "integral [-inf, +inf] gaussian = %.11lf (expected %.11lf)", res, KS_SQRTPI);
+    ks_print("integral [-inf, +inf] gaussian = %.11lf (expected %.11lf)", res, KS_SQRTPI);
 
     res = ks_integ_2d(cylinder_top_cb, -1.0f, 1.0f, 500, -1.0f, 1.0f, 500, NULL);
-    ks_log(KSINFO, "2D Circle Area = %lf (expected %lf)", res, KS_PI);
+    ks_print("2D Circle Area = %lf (expected %lf)", res, KS_PI);
 
     double mins1[] = {0.0, 0.0, 0.0, 0.0, 0.0};
     double maxs1[] = {2.0, 2.0, 2.0, 2.0, 2.0};
     res = ks_integ_nd(const_1, 5, mins1, maxs1, 1 << 20, NULL);
-    ks_log(KSINFO, "5D Cube Volume %lf (expected 32.0)", res);
+    ks_print("5D Cube Volume %lf (expected 32.0)", res);
 
     double mins2[] = {-1, -1, -1, -1, -1};
     double maxs2[] = {1, 1, 1, 1, 1};
     res = ks_integ_nd(sphere_5d, 5, mins2, maxs2, 1 << 20, NULL);
-    ks_log(KSINFO, "5D Sphere Volume = %lf (expected ~5.2637)", res);
+    ks_print("5D Sphere Volume = %lf (expected ~5.2637)", res);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -107,6 +107,8 @@
 #define ks_array_foreach(it, arr) for (KS_TYPEOF((arr)->data[0])* it = (arr)->data; it < (arr)->data + (arr)->len; ++it)
 #define KS_ARR_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define KS_CONTAINER_OF(ptr, type, member) ((type*)((int8_t*)(ptr) - offsetof(type, member)))
+
 #endif  // KS_DS_H
 
 #if defined(KS_DS_IMPL) && !defined(KS_DS_IMPL_DONE)

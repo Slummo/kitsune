@@ -1,6 +1,8 @@
 #define KS_CORE_IMPL
+#define KS_STRING_IMPL
 
 #include <ks/core.h>
+#include <ks/string.h>
 #include <unity.h>
 #include <stdlib.h>
 
