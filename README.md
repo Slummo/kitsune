@@ -20,7 +20,24 @@ Kitsune is an STB-style library and provides different modules:
 make help
 ```
 
-### Link in another project (cmake)
+### Compile
+
+Make sure to define implementation macros and include headers:
+
+```c
+#define KS_CORE_IMPL
+#define KS_MEM_IMPL
+#define KS_STRING_IMPL
+
+#include <ks/string.h>
+...
+```
+
+Note: In the example above both core and mem implementation are needed, because string requires them;
+not defining the necessary implementations throws a compilation error, so it shouldn't be a big problem.
+For lazy users, just use the all-inclusive 'KITSUNE_IMPL' macro.
+
+### Link (CMake)
 
 1. Create a standard CMakeLists.txt;
 2. Be sure to either clone the repo manually or use FetchContent;
