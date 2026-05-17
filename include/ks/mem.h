@@ -65,6 +65,10 @@ KS_API ks_allocator ks_arena_allocator(ks_arena* arena);
 #if defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
 #define KS_MEM_IMPL_DONE
 
+#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+#error "kitsune: mem.h requires core.h"
+#endif
+
 /* Standard allocator */
 
 static void* std_alloc(KS_UNUSED void* ctx, size_t size) {

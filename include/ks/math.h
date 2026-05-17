@@ -1279,6 +1279,10 @@ KS_API int fft(size_t n, double complex samples[static n]);
 #if defined(KS_MATH_IMPL) && !defined(KS_MATH_IMPL_DONE)
 #define KS_MATH_IMPL_DONE
 
+#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+#error "kitsune: mem.h requires core.h"
+#endif
+
 KS_API ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, double cellsize) {
     void* data = malloc(typesize * (size_t)(w * h));
     KS_ASSERT(data, "OOM");

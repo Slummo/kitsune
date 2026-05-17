@@ -1,4 +1,5 @@
 #define KS_CORE_IMPL
+#define KS_MEM_IMPL
 #define KS_STRING_IMPL
 
 #include <ks/core.h>

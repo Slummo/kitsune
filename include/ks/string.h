@@ -1,7 +1,6 @@
 #ifndef KS_STRING_H
 #define KS_STRING_H
 
-#include <ks/core.h>
 #include <ks/mem.h>
 
 #define KS_SSO_CAP (sizeof(size_t) * 3 - 2)
@@ -128,9 +127,13 @@ static inline bool ks_str_is_empty(ks_str s) {
 #if defined(KS_STRING_IMPL) && !defined(KS_STRING_IMPL_DONE)
 #define KS_STRING_IMPL_DONE
 
+#if !defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
+#error "kitsune: string.h requires mem.h"
+#endif
+
 static KS_THREAD_LOCAL ks_allocator g_string_allocator = {0};
 
-static inline ks_allocator strallocator(void) {
+static inline ks_allocator get_allocator(void) {
     if (!g_string_allocator.alloc) {
         return std_allocator;
     }
@@ -141,6 +144,12 @@ static inline ks_allocator strallocator(void) {
 KS_API void ks_string_set_allocator(ks_allocator allocator) {
     g_string_allocator = allocator;
 }
+
+// alias std calls to use the allocator (too lazy to change everything)
+#define malloc(size) ks_alloc(get_allocator(), (size))
+#define calloc(n, size) ks_calloc(get_allocator(), (n), (size))
+#define realloc(ptr, newsize) ks_realloc(get_allocator(), (ptr), 0, (newsize))
+#define free(ptr) ks_free(get_allocator(), (ptr))
 
 #define ks_string_foreach(it, s) \
     for (char *it = ks_string_as_raw((ks_string*)s), *_end = it + ks_string_len(s); it < _end; ++it)
@@ -848,5 +857,10 @@ KS_API bool ks_str_ends_with(ks_str s, const char* suffix) {
 
     return strncmp(s.ptr + (s.len - suflen), suffix, suflen) == 0;
 }
+
+#undef malloc
+#undef calloc
+#undef realloc
+#undef free
 
 #endif  // KS_STRING_IMPL

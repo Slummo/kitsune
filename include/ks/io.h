@@ -14,6 +14,10 @@ KS_API char* ks_fread(const char* filename);
 #if defined(KS_IO_IMPL) && !defined(KS_IO_IMPL_DONE)
 #define KS_IO_IMPL_DONE
 
+#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+#error "kitsune: io.h requires core.h"
+#endif
+
 KS_API char* ks_fread(const char* filename) {
     FILE* f = fopen(filename, "r");
     if (!f) {

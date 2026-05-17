@@ -27,6 +27,10 @@ KS_API extern ks_time g_time;
 #if defined(KS_TIME_IMPL) && !defined(KS_TIME_IMPL_DONE)
 #define KS_TIME_IMPL_DONE
 
+#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+#error "kitsune: time.h requires core.h"
+#endif
+
 KS_API ks_time g_time = {0};
 
 #if KS_PLATFORM_WINDOWS
