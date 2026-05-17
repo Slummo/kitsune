@@ -4,12 +4,13 @@
 
 Kitsune is an STB-style library and provides different modules:
 
-1. core.h: logging, utility macros of all types, bit manipulation and SSO Strings;
-2. io.h: simple IO functions;
-3. math.h: algebra, analysis;
-4. mem.h: memory management objects like arenas, pools and smart pointers;
-5. ds.h: data structures and algorithms;
-6. time.h: os time utilities;
+1. core.h: logging, utility macros of all types, bit manipulation, results and optionals;
+2. string.h: SSO strings;
+3. io.h: simple IO functions;
+4. math.h: algebra, analysis;
+5. mem.h: memory management objects like allocators, arenas, pools and smart pointers;
+6. ds.h: data structures and algorithms;
+7. time.h: os time utilities;
 
 ## Usage
 
@@ -35,7 +36,7 @@ target_link_libraries(target PRIVATE kitsune::lib)
 
 Kitsune uses the following libraries:
 
-* [OpenMP](https://www.openmp.org/)
+- [OpenMP](https://www.openmp.org/)
 
 Full third-party license text can be found in [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
 
