@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
+#include <float.h>
 
 /* God implementation macro */
 
@@ -333,6 +334,38 @@
         (b) = tmp;                \
     } while (0)
 #endif
+
+// Float epsilons
+
+#define KS_FEPS_MACHINE FLT_EPSILON
+#define KS_FEPS_MATH 1e-5f
+#define KS_FEPS_PHYS 1e-4f
+#define KS_FEPS_RENDER 1e-3f
+
+#define KS_FZERO(a, eps) (fabsf(a) <= (eps))
+#define KS_FNZERO(a, eps) (fabsf(a) > (eps))
+#define KS_FEQ(a, b, eps) (fabsf((a) - (b)) <= (eps))
+#define KS_FNEQ(a, b, eps) (fabsf((a) - (b)) > (eps))
+#define KS_FLESS(a, b, eps) ((a) < ((b) - (eps)))
+#define KS_FLESSEQ(a, b, eps) ((a) <= ((b) + (eps)))
+#define KS_FGREATER(a, b, eps) ((a) > ((b) + (eps)))
+#define KS_FGREATEREQ(a, b, eps) ((a) >= ((b) - (eps)))
+
+// Double epsiloms
+
+#define KS_DEPS_MACHINE DBL_EPSILON
+#define KS_DEPS_MATH 1e-10
+#define KS_DEPS_PHYS 1e-7
+#define KS_DEPS_RENDER 1e-3
+
+#define KS_DZERO(a, eps) (fabs(a) <= (eps))
+#define KS_DNZERO(a, eps) (fabs(a) > (eps))
+#define KS_DEQ(a, b, eps) (fabs((a) - (b)) <= (eps))
+#define KS_DNEQ(a, b, eps) (fabs((a) - (b)) > (eps))
+#define KS_DLESS(a, b, eps) ((a) < ((b) - (eps)))
+#define KS_DLESSEQ(a, b, eps) ((a) <= ((b) + (eps)))
+#define KS_DGREATER(a, b, eps) ((a) > ((b) + (eps)))
+#define KS_DGREATEREQ(a, b, eps) ((a) >= ((b) - (eps)))
 
 /* Utility memory macros */
 
