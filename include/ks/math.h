@@ -298,7 +298,7 @@ KS_UNION(quat, {
                                                                                                       \
     static inline void KS_CONCAT2(type, _sdiv)(type * out, const type* v, float num) {                \
         KS_ASSERT(out && v, "Null arguments");                                                        \
-        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Zero division");                                     \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Division by zero");                                  \
         float inv = 1.0f / num;                                                                       \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             out->data[i] = v->data[i] * inv;                                                          \
@@ -307,7 +307,7 @@ KS_UNION(quat, {
                                                                                                       \
     static inline void KS_CONCAT2(type, _sdivi)(type * v, float num) {                                \
         KS_ASSERT(v, "Null arguments");                                                               \
-        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Zero division");                                     \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Division by zero");                                  \
         float inv = 1.0f / num;                                                                       \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             v->data[i] *= inv;                                                                        \
@@ -403,7 +403,7 @@ KS_UNION(quat, {
     static inline bool KS_CONCAT2(type, _equals)(const type* v1, const type* v2) {                    \
         KS_ASSERT(v1 && v2, "Null arguments");                                                        \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
-            if (v1->data[i] != v2->data[i]) {                                                         \
+            if (KS_FNEQ(v1->data[i], v2->data[i], KS_FEPS_MATH)) {                                    \
                 return false;                                                                         \
             }                                                                                         \
         }                                                                                             \
@@ -414,7 +414,7 @@ KS_UNION(quat, {
     static inline bool KS_CONCAT2(type, _isunitary)(const type* v) {                                  \
         KS_ASSERT(v, "Null arguments");                                                               \
         float l2 = KS_CONCAT2(type, _length_sq)(v);                                                   \
-        return l2 == 1.0f;                                                                            \
+        return KS_FEQ(l2, 1.0f, KS_FEPS_MATH);                                                        \
     }                                                                                                 \
                                                                                                       \
     static inline bool KS_CONCAT2(type, _iscanonic)(const type* v) {                                  \
@@ -422,10 +422,10 @@ KS_UNION(quat, {
         bool onefound = false;                                                                        \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             if (onefound) {                                                                           \
-                if (v->data[i] != 0.0f) {                                                             \
+                if (KS_FNZERO(v->data[i], KS_FEPS_MATH)) {                                            \
                     return false;                                                                     \
                 }                                                                                     \
-            } else if (v->data[i] == 1.0f) {                                                          \
+            } else if (KS_FEQ(v->data[i], 1.0f, KS_FEPS_MATH)) {                                      \
                 onefound = true;                                                                      \
             } else {                                                                                  \
                 return false;                                                                         \
@@ -545,7 +545,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
                                                                                                \
     static inline void KS_CONCAT2(type, _sdiv)(type * out, const type* m, float num) {         \
         KS_ASSERT(out && m, "Null arguments");                                                 \
-        KS_ASSERT(num != 0.0f, "Zero division");                                               \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Division by zero");                           \
         float inv = 1.0f / num;                                                                \
         KS_SIMD_HINT for (int32_t i = 0; i < n * n; ++i) {                                     \
             out->data[i] = m->data[i] * inv;                                                   \
@@ -554,7 +554,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
                                                                                                \
     static inline void KS_CONCAT2(type, _sdivi)(type * m, float num) {                         \
         KS_ASSERT(m, "Null arguments");                                                        \
-        KS_ASSERT(num != 0.0f, "Zero division");                                               \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Division by zero");                           \
         float inv = 1.0f / num;                                                                \
         KS_SIMD_HINT for (int32_t i = 0; i < n * n; ++i) {                                     \
             m->data[i] *= inv;                                                                 \
@@ -680,7 +680,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
     static inline bool KS_CONCAT2(type, _equals)(const type* m1, const type* m2) {             \
         KS_ASSERT(m1 && m2, "Null arguments");                                                 \
         KS_SIMD_HINT for (int32_t i = 0; i < n * n; ++i) {                                     \
-            if (m1->data[i] != m2->data[i]) {                                                  \
+            if (KS_FNEQ(m1->data[i], m2->data[i], KS_FEPS_MATH)) {                             \
                 return false;                                                                  \
             }                                                                                  \
         }                                                                                      \
@@ -693,10 +693,10 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t r = 0; r < n; ++r) {                                                  \
                 float val = m->data[c * n + r];                                                \
-                if (c == r && val != 1.0f) {                                                   \
+                if (c != r && KS_FNEQ(val, 1.0f, KS_FEPS_MATH)) {                              \
                     return false;                                                              \
                 }                                                                              \
-                if (c != r && val != 0.0f) {                                                   \
+                if (c != r && KS_FNZERO(val, KS_FEPS_MATH)) {                                  \
                     return false;                                                              \
                 }                                                                              \
             }                                                                                  \
@@ -708,7 +708,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_ASSERT(m, "Null arguments");                                                        \
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t r = c + 1; r < n; ++r) {                                              \
-                if (m->data[c * n + r] != m->data[r * n + c]) {                                \
+                if (KS_FNEQ(m->data[c * n + r], m->data[r * n + c], KS_FEPS_MATH)) {           \
                     return false;                                                              \
                 }                                                                              \
             }                                                                                  \
@@ -720,7 +720,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_ASSERT(m, "Null arguments");                                                        \
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t r = 0; r < n; ++r) {                                                  \
-                if (c != r && m->data[c * n + r] != 0.0f) {                                    \
+                if (c != r && KS_FNZERO(m->data[c * n + r], KS_FEPS_MATH)) {                   \
                     return false;                                                              \
                 }                                                                              \
             }                                                                                  \
@@ -732,7 +732,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_ASSERT(m, "Null arguments");                                                        \
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t r = c + 1; r < n; ++r) {                                              \
-                if (m->data[c * n + r] != 0.0f) {                                              \
+                if (KS_FNZERO(m->data[c * n + r], KS_FEPS_MATH)) {                             \
                     return false;                                                              \
                 }                                                                              \
             }                                                                                  \
@@ -744,7 +744,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_ASSERT(m, "Null arguments");                                                        \
         for (int32_t c = 1; c < n; ++c) {                                                      \
             for (int32_t r = 0; r < c; ++r) {                                                  \
-                if (m->data[c * n + r] != 0.0f) {                                              \
+                if (KS_FNZERO(m->data[c * n + r], KS_FEPS_MATH)) {                             \
                     return false;                                                              \
                 }                                                                              \
             }                                                                                  \
@@ -765,7 +765,7 @@ static inline float ks_mat2_det(const ks_mat2* m) {
 static inline void ks_mat2_inv(ks_mat2* out, const ks_mat2* m) {
     KS_ASSERT(out && m, "Null arguments");
     float det = ks_mat2_det(m);
-    KS_ASSERT(det != 0.0f, "Matrix is not invertible");
+    KS_ASSERT(KS_FNZERO(det, KS_FEPS_MATH), "Matrix is not invertible");
     float inv = 1.0f / det;
     const float* d = m->data;
     float* o = out->data;
@@ -852,6 +852,7 @@ static inline void ks_mat4_project_vec3(ks_vec3* out, const ks_mat4* m, const ks
     float x = v->x, y = v->y, z = v->z;
 
     float w = d[3] * x + d[7] * y + d[11] * z + d[15];
+    KS_ASSERT(KS_FNZERO(w, KS_FEPS_MATH), "Division by zero");
     float inv_w = 1.0f / w;
 
     out->x = (d[0] * x + d[4] * y + d[8] * z + d[12]) * inv_w;
@@ -868,7 +869,7 @@ static inline float ks_mat3_det(const ks_mat3* m) {
 static inline void ks_mat3_inv(ks_mat3* out, const ks_mat3* m) {
     KS_ASSERT(out && m, "Null arguments");
     float det = ks_mat3_det(m);
-    KS_ASSERT(det != 0.0f, "Matrix is not invertible");
+    KS_ASSERT(KS_FNZERO(det, KS_FEPS_MATH), "Matrix is not invertible");
     float inv = 1.0f / det;
     const float* d = m->data;
     float* o = out->data;
@@ -893,8 +894,9 @@ static inline void ks_mat3_invi(ks_mat3* m) {
 static inline void ks_mat3_translate(ks_mat3* m, const ks_vec2* v) {
     KS_ASSERT(m && v, "Null arguments");
     float* d = m->data;
-    d[6] += d[0] * v->x + d[3] * v->y;
-    d[7] += d[1] * v->x + d[4] * v->y;
+    float x = v->x, y = v->y;
+    d[6] += d[0] * x + d[3] * y;
+    d[7] += d[1] * x + d[4] * y;
 }
 
 static inline void ks_mat3_rotate(ks_mat3* m, float angle) {
@@ -934,32 +936,37 @@ static inline void ks_mat3_lookat(ks_mat3* out, const ks_vec2* eye, const ks_vec
 }
 
 static inline void ks_mat3_ortho(ks_mat3* out, float left, float right, float bottom, float top) {
-    KS_ASSERT(out && right != left && top != bottom, "Invalid bounds");
+    KS_ASSERT(out && KS_FNEQ(right, left, KS_FEPS_MATH) && KS_FNEQ(top, bottom, KS_FEPS_MATH), "Invalid bounds");
     ks_mat3_idinit(out);
     float* d = out->data;
-    d[0] = 2.0f / (right - left);
-    d[4] = 2.0f / (top - bottom);
-    d[6] = -(right + left) / (right - left);
-    d[7] = -(top + bottom) / (top - bottom);
+    float rl = right - left;
+    float tb = top - bottom;
+    d[0] = 2.0f / rl;
+    d[4] = 2.0f / tb;
+    d[6] = -(right + left) / rl;
+    d[7] = -(top + bottom) / tb;
 }
 
 static inline float ks_mat4_det(const ks_mat4* m) {
     KS_ASSERT(m, "Null arguments");
     const float* d = m->data;
 
-    float s0 = d[0] * d[5] - d[1] * d[4];
-    float s1 = d[0] * d[6] - d[2] * d[4];
-    float s2 = d[0] * d[7] - d[3] * d[4];
-    float s3 = d[1] * d[6] - d[2] * d[5];
-    float s4 = d[1] * d[7] - d[3] * d[5];
-    float s5 = d[2] * d[7] - d[3] * d[6];
+    float d0 = d[0], d1 = d[1], d2 = d[2], d3 = d[3], d4 = d[4], d5 = d[5], d6 = d[6], d7 = d[7], d8 = d[8], d9 = d[9],
+          d10 = d[10], d11 = d[11], d12 = d[12], d13 = d[13], d14 = d[14], d15 = d[15];
 
-    float c5 = d[10] * d[15] - d[11] * d[14];
-    float c4 = d[9] * d[15] - d[11] * d[13];
-    float c3 = d[9] * d[14] - d[10] * d[13];
-    float c2 = d[8] * d[15] - d[11] * d[12];
-    float c1 = d[8] * d[14] - d[10] * d[12];
-    float c0 = d[8] * d[13] - d[9] * d[12];
+    float s0 = d0 * d5 - d1 * d4;
+    float s1 = d0 * d6 - d2 * d4;
+    float s2 = d0 * d7 - d3 * d4;
+    float s3 = d1 * d6 - d2 * d5;
+    float s4 = d1 * d7 - d3 * d5;
+    float s5 = d2 * d7 - d3 * d6;
+
+    float c5 = d10 * d15 - d11 * d14;
+    float c4 = d9 * d15 - d11 * d13;
+    float c3 = d9 * d14 - d10 * d13;
+    float c2 = d8 * d15 - d11 * d12;
+    float c1 = d8 * d14 - d10 * d12;
+    float c0 = d8 * d13 - d9 * d12;
 
     return (s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0);
 }
@@ -967,33 +974,36 @@ static inline float ks_mat4_det(const ks_mat4* m) {
 static inline void ks_mat4_inv(ks_mat4* out, const ks_mat4* m) {
     KS_ASSERT(out && m, "Null arguments");
     float det = ks_mat4_det(m);
-    KS_ASSERT(det != 0.0f, "Matrix is not invertible");
+    KS_ASSERT(KS_FNZERO(det, KS_FEPS_MATH), "Matrix is not invertible");
     float inv = 1.0f / det;
     const float* d = m->data;
 
-    float c00 = d[10] * d[15] - d[11] * d[14], c01 = d[9] * d[15] - d[11] * d[13];
-    float c02 = d[9] * d[14] - d[10] * d[13], c03 = d[8] * d[15] - d[11] * d[12];
-    float c04 = d[8] * d[14] - d[10] * d[12], c05 = d[8] * d[13] - d[9] * d[12];
-    float c12 = d[6] * d[11] - d[7] * d[10], c13 = d[5] * d[11] - d[7] * d[9];
-    float c14 = d[5] * d[10] - d[6] * d[9], c15 = d[4] * d[11] - d[7] * d[8];
-    float c16 = d[4] * d[10] - d[6] * d[8], c17 = d[4] * d[9] - d[5] * d[8];
+    float d0 = d[0], d1 = d[1], d2 = d[2], d3 = d[3], d4 = d[4], d5 = d[5], d6 = d[6], d7 = d[7], d8 = d[8], d9 = d[9],
+          d10 = d[10], d11 = d[11], d12 = d[12], d13 = d[13], d14 = d[14], d15 = d[15];
 
-    out->data[0] = (d[5] * c00 - d[6] * c01 + d[7] * c02) * inv;
-    out->data[1] = (-d[1] * c00 + d[2] * c01 - d[3] * c02) * inv;
-    out->data[2] = (d[13] * c12 - d[14] * c13 + d[15] * c14) * inv;
-    out->data[3] = (-d[9] * c12 + d[10] * c13 - d[11] * c14) * inv;
-    out->data[4] = (-d[4] * c00 + d[6] * c03 - d[7] * c04) * inv;
-    out->data[5] = (d[0] * c00 - d[2] * c03 + d[3] * c04) * inv;
-    out->data[6] = (-d[12] * c12 + d[14] * c15 - d[15] * c16) * inv;
-    out->data[7] = (d[8] * c12 - d[10] * c15 + d[11] * c16) * inv;
-    out->data[8] = (d[4] * c01 - d[5] * c03 + d[7] * c05) * inv;
-    out->data[9] = (-d[0] * c01 + d[1] * c03 - d[3] * c05) * inv;
-    out->data[10] = (d[12] * c13 - d[13] * c15 + d[15] * c17) * inv;
-    out->data[11] = (-d[8] * c13 + d[9] * c15 - d[11] * c17) * inv;
-    out->data[12] = (-d[4] * c02 + d[5] * c04 - d[6] * c05) * inv;
-    out->data[13] = (d[0] * c02 - d[1] * c04 + d[2] * c05) * inv;
-    out->data[14] = (-d[12] * c14 + d[13] * c16 - d[14] * c17) * inv;
-    out->data[15] = (d[8] * c14 - d[9] * c16 + d[10] * c17) * inv;
+    float c00 = d10 * d15 - d11 * d14, c01 = d9 * d15 - d11 * d13;
+    float c02 = d9 * d14 - d10 * d13, c03 = d8 * d15 - d11 * d12;
+    float c04 = d8 * d14 - d10 * d12, c05 = d8 * d13 - d9 * d12;
+    float c12 = d6 * d11 - d7 * d10, c13 = d5 * d11 - d7 * d9;
+    float c14 = d5 * d10 - d6 * d9, c15 = d4 * d11 - d7 * d8;
+    float c16 = d4 * d10 - d6 * d8, c17 = d4 * d9 - d5 * d8;
+
+    out->data[0] = (d5 * c00 - d6 * c01 + d7 * c02) * inv;
+    out->data[1] = (-d1 * c00 + d2 * c01 - d3 * c02) * inv;
+    out->data[2] = (d13 * c12 - d14 * c13 + d15 * c14) * inv;
+    out->data[3] = (-d9 * c12 + d10 * c13 - d11 * c14) * inv;
+    out->data[4] = (-d4 * c00 + d6 * c03 - d7 * c04) * inv;
+    out->data[5] = (d0 * c00 - d2 * c03 + d3 * c04) * inv;
+    out->data[6] = (-d12 * c12 + d14 * c15 - d15 * c16) * inv;
+    out->data[7] = (d8 * c12 - d10 * c15 + d11 * c16) * inv;
+    out->data[8] = (d4 * c01 - d5 * c03 + d7 * c05) * inv;
+    out->data[9] = (-d0 * c01 + d1 * c03 - d3 * c05) * inv;
+    out->data[10] = (d12 * c13 - d13 * c15 + d15 * c17) * inv;
+    out->data[11] = (-d8 * c13 + d9 * c15 - d11 * c17) * inv;
+    out->data[12] = (-d4 * c02 + d5 * c04 - d6 * c05) * inv;
+    out->data[13] = (d0 * c02 - d1 * c04 + d2 * c05) * inv;
+    out->data[14] = (-d12 * c14 + d13 * c16 - d14 * c17) * inv;
+    out->data[15] = (d8 * c14 - d9 * c16 + d10 * c17) * inv;
 }
 
 static inline void ks_mat4_invi(ks_mat4* m) {
@@ -1005,10 +1015,11 @@ static inline void ks_mat4_invi(ks_mat4* m) {
 static inline void ks_mat4_translate(ks_mat4* m, const ks_vec3* v) {
     KS_ASSERT(m && v, "Null arguments");
     float* d = m->data;
-    d[12] += d[0] * v->x + d[4] * v->y + d[8] * v->z;
-    d[13] += d[1] * v->x + d[5] * v->y + d[9] * v->z;
-    d[14] += d[2] * v->x + d[6] * v->y + d[10] * v->z;
-    d[15] += d[3] * v->x + d[7] * v->y + d[11] * v->z;
+    float x = v->x, y = v->y, z = v->z;
+    d[12] += d[0] * x + d[4] * y + d[8] * z;
+    d[13] += d[1] * x + d[5] * y + d[9] * z;
+    d[14] += d[2] * x + d[6] * y + d[10] * z;
+    d[15] += d[3] * x + d[7] * y + d[11] * z;
 }
 
 // Rodrigues formula
@@ -1078,29 +1089,35 @@ static inline void ks_mat4_lookat(ks_mat4* out, const ks_vec3* eye, const ks_vec
 }
 
 static inline void ks_mat4_perspective(ks_mat4* out, float fovy_rad, float aspect, float nearz, float farz) {
-    KS_ASSERT(out && aspect != 0.0f && nearz != farz, "Invalid bounds");
+    KS_ASSERT(out && KS_FNZERO(aspect, KS_FEPS_MATH) && KS_FNEQ(farz, nearz, KS_FEPS_MATH), "Invalid bounds");
     float t = tanf(fovy_rad / 2.0f);
 
     ks_mat4_zeroinit(out);
     float* d = out->data;
+    float fn = farz - nearz;
     d[0] = 1.0f / (aspect * t);
     d[5] = 1.0f / (t);
-    d[10] = -(farz + nearz) / (farz - nearz);
+    d[10] = -(farz + nearz) / fn;
     d[11] = -1.0f;
-    d[14] = -(2.0f * farz * nearz) / (farz - nearz);
+    d[14] = -(2.0f * farz * nearz) / fn;
 }
 
 static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bottom, float top, float nearz,
                                  float farz) {
-    KS_ASSERT(out && left != right && bottom != top && nearz != farz, "Invalid bounds");
+    KS_ASSERT(out && KS_FNEQ(left, right, KS_FEPS_MATH) && KS_FNEQ(bottom, top, KS_FEPS_MATH) &&
+                  KS_FNEQ(farz, nearz, KS_FEPS_MATH),
+              "Invalid bounds");
     ks_mat4_idinit(out);
     float* d = out->data;
-    d[0] = 2.0f / (right - left);
-    d[5] = 2.0f / (top - bottom);
-    d[10] = -2.0f / (farz - nearz);
-    d[12] = -(right + left) / (right - left);
-    d[13] = -(top + bottom) / (top - bottom);
-    d[14] = -(farz + nearz) / (farz - nearz);
+    float rl = right - left;
+    float tb = top - bottom;
+    float fn = farz - nearz;
+    d[0] = 2.0f / rl;
+    d[5] = 2.0f / tb;
+    d[10] = -2.0f / fn;
+    d[12] = -(right + left) / rl;
+    d[13] = -(top + bottom) / tb;
+    d[14] = -(farz + nearz) / fn;
 }
 
 // Euler
@@ -1275,7 +1292,7 @@ static inline void ks_quat_smuli(ks_quat* q, float val) {
 
 static inline void ks_quat_sdiv(ks_quat* out, const ks_quat* q, float val) {
     KS_ASSERT_NONNULL_ARGS(out && q);
-    KS_ASSERT(val != 0.0f, "Division by zero");
+    KS_ASSERT(KS_FNZERO(val, KS_FEPS_MATH), "Division by zero");
 
     float inv = 1.0f / val;
 
@@ -1287,7 +1304,7 @@ static inline void ks_quat_sdiv(ks_quat* out, const ks_quat* q, float val) {
 
 static inline void ks_quat_sdivi(ks_quat* q, float val) {
     KS_ASSERT_NONNULL_ARGS(q);
-    KS_ASSERT(val != 0.0f, "Division by zero");
+    KS_ASSERT(KS_FNZERO(val, KS_FEPS_MATH), "Division by zero");
 
     float inv = 1.0f / val;
 
@@ -1394,7 +1411,7 @@ static inline void ks_quat_inv(ks_quat* out, const ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(out && q);
 
     float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
-    KS_ASSERT(l2 != 0, "Division by zero");
+    KS_ASSERT(KS_FNZERO(l2, KS_FEPS_MATH), "Division by zero");
 
     float inv = 1.0f / l2;
 
@@ -1408,7 +1425,7 @@ static inline void ks_quat_invi(ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(q);
 
     float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
-    KS_ASSERT(l2 != 0, "Division by zero");
+    KS_ASSERT(KS_FNZERO(l2, KS_FEPS_MATH), "Division by zero");
 
     float inv = 1.0f / l2;
 
@@ -1422,9 +1439,9 @@ static inline void ks_quat_norm(ks_quat* out, const ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(out && q);
 
     float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
-    KS_ASSERT(l2 != 0, "Division by zero");
+    KS_ASSERT(KS_FNZERO(l2, KS_FEPS_MATH), "Division by zero");
 
-    if (l2 == 1.0f) {
+    if (KS_FEQ(l2, 1.0f, KS_FEPS_MATH)) {
         *out = *q;
         return;
     }
@@ -1442,9 +1459,9 @@ static inline void ks_quat_normi(ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(q);
 
     float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
-    KS_ASSERT(l2 != 0, "Division by zero");
+    KS_ASSERT(KS_FNZERO(l2, KS_FEPS_MATH), "Division by zero");
 
-    if (l2 == 1.0f) {
+    if (KS_FEQ(l2, 1.0f, KS_FEPS_MATH)) {
         return;
     }
 
@@ -1521,12 +1538,13 @@ KS_API void ks_quat_to_mat4(ks_mat4* out, const ks_quat* q) {
 static inline bool ks_quat_isunitary(const ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(q);
     float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
-    return l2 == 1.0f;
+    return KS_FEQ(l2, 1.0f, KS_FEPS_MATH);
 }
 
 static inline bool ks_quat_isidentity(const ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(q);
-    return q->w == 1.0f && q->x == 0.0f && q->y == 0.0f && q->z == 0.0f;
+    return KS_FEQ(q->w, 1.0f, KS_FEPS_MATH) && KS_FZERO(q->x, KS_FEPS_MATH) && KS_FZERO(q->y, KS_FEPS_MATH) &&
+           KS_FZERO(q->z, KS_FEPS_MATH);
 }
 
 /* Derivatives and integrals */
@@ -1538,14 +1556,17 @@ KS_FUNC(ks_vec2, odef_2d, double t, ks_vec2 state, void* args);
 KS_FUNC(ks_vec3, odef_3d, double t, ks_vec3 state, void* args);
 
 static inline double ks_deriv_1d(ks_realf_1d f, double x, double h, void* args) {
+    KS_ASSERT(KS_DNZERO(h, KS_DEPS_MATH), "Division by zero");
     return (f(x + h, args) - f(x - h, args)) / (2.0 * h);
 }
 
 static inline double ks_deriv_2d_x(ks_realf_2d f, double x, double y, double h, void* args) {
+    KS_ASSERT(KS_DNZERO(h, KS_DEPS_MATH), "Division by zero");
     return (f(x + h, y, args) - f(x - h, y, args)) / (2.0 * h);
 }
 
 static inline double ks_deriv_2d_y(ks_realf_2d f, double x, double y, double h, void* args) {
+    KS_ASSERT(KS_DNZERO(h, KS_DEPS_MATH), "Division by zero");
     return (f(x, y + h, args) - f(x, y - h, args)) / (2.0 * h);
 }
 
@@ -1716,6 +1737,7 @@ static inline ks_vec2 ks_sf2_grad(const ks_field* f, int32_t x, int32_t y) {
     int32_t y0 = KS_CLAMP(y - 1, 0, f->height - 1);
     int32_t y1 = KS_CLAMP(y + 1, 0, f->height - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
     int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
@@ -1736,6 +1758,7 @@ static inline double ks_vf2_div(const ks_field* f, int32_t x, int32_t y) {
     int32_t y0 = KS_CLAMP(y - 1, 0, f->height - 1);
     int32_t y1 = KS_CLAMP(y + 1, 0, f->height - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
     int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
@@ -1755,6 +1778,7 @@ static inline double ks_vf2_curl(const ks_field* f, int32_t x, int32_t y) {
     int32_t y0 = KS_CLAMP(y - 1, 0, f->height - 1);
     int32_t y1 = KS_CLAMP(y + 1, 0, f->height - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f2_idx_internal(x1, y, f->width);
     int32_t xj = _ks_f2_idx_internal(x0, y, f->width);
@@ -1774,6 +1798,7 @@ static inline double ks_sf2_lap(const ks_field* f, int32_t x, int32_t y) {
     int32_t y0 = KS_CLAMP(y - 1, 0, f->height - 1);
     int32_t y1 = KS_CLAMP(y + 1, 0, f->height - 1);
     double hsq = f->cellsize * f->cellsize;
+    KS_ASSERT(KS_DNZERO(hsq, KS_DEPS_MATH), "Division by zero");
 
     int32_t ci = _ks_f2_idx_internal(x, y, f->width);
     int32_t li = _ks_f2_idx_internal(x0, y, f->width);
@@ -1800,6 +1825,7 @@ static inline ks_vec3 ks_sf3_grad(const ks_field* f, int32_t x, int32_t y, int32
     int32_t z0 = KS_CLAMP(z - 1, 0, f->depth - 1);
     int32_t z1 = KS_CLAMP(z + 1, 0, f->depth - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
     int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
@@ -1825,6 +1851,7 @@ static inline double ks_vf3_div(const ks_field* f, int32_t x, int32_t y, int32_t
     int32_t z0 = KS_CLAMP(z - 1, 0, f->depth - 1);
     int32_t z1 = KS_CLAMP(z + 1, 0, f->depth - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
     int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
@@ -1850,6 +1877,7 @@ static inline ks_vec3 ks_vf3_curl(const ks_field* f, int32_t x, int32_t y, int32
     int32_t z0 = KS_CLAMP(z - 1, 0, f->depth - 1);
     int32_t z1 = KS_CLAMP(z + 1, 0, f->depth - 1);
     double h2 = 2.0 * f->cellsize;
+    KS_ASSERT(KS_DNZERO(h2, KS_DEPS_MATH), "Division by zero");
 
     int32_t xi = _ks_f3_idx_internal(x1, y, z, f->width, f->height);
     int32_t xj = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
@@ -1880,6 +1908,7 @@ static inline double ks_sf3_lap(const ks_field* f, int32_t x, int32_t y, int32_t
     int32_t z0 = KS_CLAMP(z - 1, 0, f->depth - 1);
     int32_t z1 = KS_CLAMP(z + 1, 0, f->depth - 1);
     double hsq = f->cellsize * f->cellsize;
+    KS_ASSERT(KS_DNZERO(hsq, KS_DEPS_MATH), "Division by zero");
 
     int32_t ci = _ks_f3_idx_internal(x, y, z, f->width, f->height);
     int32_t li = _ks_f3_idx_internal(x0, y, z, f->width, f->height);
