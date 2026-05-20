@@ -122,6 +122,61 @@ KS_UNION(mat4, {
     };
 });
 
+KS_ENUM(euler_order, {KS_EULER_XYZ = 0, KS_EULER_XZY, KS_EULER_YXZ, KS_EULER_YZX, KS_EULER_ZXY, KS_EULER_ZYX});
+
+KS_STRUCT(euler, {
+    union {
+        struct {
+            float x;
+            float y;
+            float z;
+        };
+        struct {
+            float alpha;
+            float beta;
+            float gamma;
+        };
+        struct {
+            float phi;
+            float theta;
+            float psi;
+        };
+        struct {
+            float pitch;
+            float yaw;
+            float roll;
+        };
+    };
+    ks_euler_order order;
+});
+
+#define KS_EULER(x, y, z, o) \
+    (ks_euler) {             \
+        {{x, y, z}}, o       \
+    }
+
+KS_UNION(quat, {
+    struct {
+        float w;
+        float x;
+        float y;
+        float z;
+    };
+    struct {
+        float a;
+        float b;
+        float c;
+        float d;
+    };
+});
+
+#define KS_QUAT(w, x, y, z) \
+    (ks_quat) {             \
+        {                   \
+            w, x, y, z      \
+        }                   \
+    }
+
 #define KS_VEC2_FMT "Vec2(%.3f, %.3f)"
 #define KS_VEC2_ARGS(v) (v).data[0], (v).data[1]
 
@@ -154,6 +209,8 @@ KS_UNION(mat4, {
 #define KS_MAT4_ARGS(m)                                                                                       \
     (m).data[0], (m).data[4], (m).data[8], (m).data[12], (m).data[1], (m).data[5], (m).data[9], (m).data[13], \
         (m).data[2], (m).data[6], (m).data[10], (m).data[14], (m).data[3], (m).data[7], (m).data[11], (m).data[15]
+
+// Vectors
 
 #define KS_VEC_FUNCTIONS(type, n, params, args)                                                       \
     static inline void KS_CONCAT2(type, _zeroinit)(type * v) {                                        \
@@ -241,7 +298,7 @@ KS_UNION(mat4, {
                                                                                                       \
     static inline void KS_CONCAT2(type, _sdiv)(type * out, const type* v, float num) {                \
         KS_ASSERT(out && v, "Null arguments");                                                        \
-        KS_ASSERT(num != 0.0f, "Zero division");                                                      \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Zero division");                                     \
         float inv = 1.0f / num;                                                                       \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             out->data[i] = v->data[i] * inv;                                                          \
@@ -250,7 +307,7 @@ KS_UNION(mat4, {
                                                                                                       \
     static inline void KS_CONCAT2(type, _sdivi)(type * v, float num) {                                \
         KS_ASSERT(v, "Null arguments");                                                               \
-        KS_ASSERT(num != 0.0f, "Zero division");                                                      \
+        KS_ASSERT(KS_FNZERO(num, KS_FEPS_MATH), "Zero division");                                     \
         float inv = 1.0f / num;                                                                       \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             v->data[i] *= inv;                                                                        \
@@ -276,13 +333,13 @@ KS_UNION(mat4, {
                                                                                                       \
     static inline void KS_CONCAT2(type, _norm)(type * out, const type* v) {                           \
         float len = KS_CONCAT2(type, _length)(v);                                                     \
-        KS_ASSERT(len != 0.0f, "Normalizing zero vector");                                            \
+        KS_ASSERT(KS_FNZERO(len, KS_FEPS_MATH), "Normalizing zero vector");                           \
         KS_CONCAT2(type, _sdiv)(out, v, len);                                                         \
     }                                                                                                 \
                                                                                                       \
     static inline void KS_CONCAT2(type, _normi)(type * v) {                                           \
         float len = KS_CONCAT2(type, _length)(v);                                                     \
-        KS_ASSERT(len != 0.0f, "Normalizing zero vector");                                            \
+        KS_ASSERT(KS_FNZERO(len, KS_FEPS_MATH), "Normalizing zero vector");                           \
         KS_CONCAT2(type, _sdivi)(v, len);                                                             \
     }                                                                                                 \
                                                                                                       \
@@ -341,13 +398,46 @@ KS_UNION(mat4, {
         KS_ASSERT(v, "Null arguments");                                                               \
         KS_ASSERT(i < n, "Index out of bounds");                                                      \
         v->data[i] = num;                                                                             \
+    }                                                                                                 \
+                                                                                                      \
+    static inline bool KS_CONCAT2(type, _equals)(const type* v1, const type* v2) {                    \
+        KS_ASSERT(v1 && v2, "Null arguments");                                                        \
+        KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
+            if (v1->data[i] != v2->data[i]) {                                                         \
+                return false;                                                                         \
+            }                                                                                         \
+        }                                                                                             \
+                                                                                                      \
+        return true;                                                                                  \
+    }                                                                                                 \
+                                                                                                      \
+    static inline bool KS_CONCAT2(type, _isunitary)(const type* v) {                                  \
+        KS_ASSERT(v, "Null arguments");                                                               \
+        float l2 = KS_CONCAT2(type, _length_sq)(v);                                                   \
+        return l2 == 1.0f;                                                                            \
+    }                                                                                                 \
+                                                                                                      \
+    static inline bool KS_CONCAT2(type, _iscanonic)(const type* v) {                                  \
+        KS_ASSERT(v, "Null arguments");                                                               \
+        bool onefound = false;                                                                        \
+        KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
+            if (onefound) {                                                                           \
+                if (v->data[i] != 0.0f) {                                                             \
+                    return false;                                                                     \
+                }                                                                                     \
+            } else if (v->data[i] == 1.0f) {                                                          \
+                onefound = true;                                                                      \
+            } else {                                                                                  \
+                return false;                                                                         \
+            }                                                                                         \
+        }                                                                                             \
+                                                                                                      \
+        return true;                                                                                  \
     }
 
 KS_VEC_FUNCTIONS(ks_vec2, 2, (float x, float y), (x, y));
 KS_VEC_FUNCTIONS(ks_vec3, 3, (float x, float y, float z), (x, y, z));
 KS_VEC_FUNCTIONS(ks_vec4, 4, (float x, float y, float z, float w), (x, y, z, w));
-
-/* vec3 */
 
 static inline void ks_vec3_cross(ks_vec3* out, const ks_vec3* v1, const ks_vec3* v2) {
     KS_ASSERT(out && v1 && v2, "Null arguments");
@@ -362,6 +452,8 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
     v1->y = v1->z * v2->x - v1->x * v2->z;
     v1->z = v1->x * v2->y - v1->y * v2->x;
 }
+
+// Matrices
 
 #define KS_MAT_FUNCTIONS(type, vtype, n)                                                       \
     static inline void KS_CONCAT2(type, _zeroinit)(type * m) {                                 \
@@ -524,11 +616,11 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         *v = tmp;                                                                              \
     }                                                                                          \
                                                                                                \
-    static inline type KS_CONCAT2(type, _model)(const type* t, const type* r, const type* s) { \
-        KS_ASSERT_NONNULL_ARGS(t && r && s);                                                   \
+    static inline type KS_CONCAT2(type, _model)(const type* T, const type* R, const type* S) { \
+        KS_ASSERT_NONNULL_ARGS(T && R && S);                                                   \
         type m;                                                                                \
-        KS_CONCAT2(type, _mul)(&m, t, r);                                                      \
-        KS_CONCAT2(type, _muli)(&m, s);                                                        \
+        KS_CONCAT2(type, _mul)(&m, T, R);                                                      \
+        KS_CONCAT2(type, _muli)(&m, S);                                                        \
         return m;                                                                              \
     }                                                                                          \
                                                                                                \
@@ -583,13 +675,86 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_SIMD_HINT for (int32_t c = 0; c < n; ++c) {                                         \
             m->data[c * n + r] = v->data[c];                                                   \
         }                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _equals)(const type* m1, const type* m2) {             \
+        KS_ASSERT(m1 && m2, "Null arguments");                                                 \
+        KS_SIMD_HINT for (int32_t i = 0; i < n * n; ++i) {                                     \
+            if (m1->data[i] != m2->data[i]) {                                                  \
+                return false;                                                                  \
+            }                                                                                  \
+        }                                                                                      \
+                                                                                               \
+        return true;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _isidentity)(const type* m) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int32_t c = 0; c < n; ++c) {                                                      \
+            for (int32_t r = 0; r < n; ++r) {                                                  \
+                float val = m->data[c * n + r];                                                \
+                if (c == r && val != 1.0f) {                                                   \
+                    return false;                                                              \
+                }                                                                              \
+                if (c != r && val != 0.0f) {                                                   \
+                    return false;                                                              \
+                }                                                                              \
+            }                                                                                  \
+        }                                                                                      \
+        return true;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _issymmetric)(const type* m) {                         \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int32_t c = 0; c < n; ++c) {                                                      \
+            for (int32_t r = c + 1; r < n; ++r) {                                              \
+                if (m->data[c * n + r] != m->data[r * n + c]) {                                \
+                    return false;                                                              \
+                }                                                                              \
+            }                                                                                  \
+        }                                                                                      \
+        return true;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _isdiagonal)(const type* m) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int32_t c = 0; c < n; ++c) {                                                      \
+            for (int32_t r = 0; r < n; ++r) {                                                  \
+                if (c != r && m->data[c * n + r] != 0.0f) {                                    \
+                    return false;                                                              \
+                }                                                                              \
+            }                                                                                  \
+        }                                                                                      \
+        return true;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _isuppertri)(const type* m) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int32_t c = 0; c < n; ++c) {                                                      \
+            for (int32_t r = c + 1; r < n; ++r) {                                              \
+                if (m->data[c * n + r] != 0.0f) {                                              \
+                    return false;                                                              \
+                }                                                                              \
+            }                                                                                  \
+        }                                                                                      \
+        return true;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    static inline bool KS_CONCAT2(type, _islowertri)(const type* m) {                          \
+        KS_ASSERT(m, "Null arguments");                                                        \
+        for (int32_t c = 1; c < n; ++c) {                                                      \
+            for (int32_t r = 0; r < c; ++r) {                                                  \
+                if (m->data[c * n + r] != 0.0f) {                                              \
+                    return false;                                                              \
+                }                                                                              \
+            }                                                                                  \
+        }                                                                                      \
+        return true;                                                                           \
     }
 
 KS_MAT_FUNCTIONS(ks_mat2, ks_vec2, 2);
 KS_MAT_FUNCTIONS(ks_mat3, ks_vec3, 3);
 KS_MAT_FUNCTIONS(ks_mat4, ks_vec4, 4);
-
-/* mat2 */
 
 static inline float ks_mat2_det(const ks_mat2* m) {
     KS_ASSERT(m, "Null arguments");
@@ -638,7 +803,61 @@ static inline void ks_mat2_scale(ks_mat2* m, const ks_vec2* v) {
     d[3] *= v->y;
 }
 
-/* mat3 */
+// Applies translation
+static inline void ks_mat3_mul_pos2(ks_vec2* out, const ks_mat3* m, const ks_vec2* v) {
+    KS_ASSERT(out && m && v, "Null arguments");
+    const float* d = m->data;
+    float x = v->x, y = v->y;
+
+    out->x = d[0] * x + d[3] * y + d[6];
+    out->y = d[1] * x + d[4] * y + d[7];
+}
+
+// Ignores translation
+static inline void ks_mat3_mul_dir2(ks_vec2* out, const ks_mat3* m, const ks_vec2* v) {
+    KS_ASSERT(out && m && v, "Null arguments");
+    const float* d = m->data;
+    float x = v->x, y = v->y;
+
+    out->x = d[0] * x + d[3] * y;
+    out->y = d[1] * x + d[4] * y;
+}
+
+// Applies translation
+static inline void ks_mat4_mul_pos3(ks_vec3* out, const ks_mat4* m, const ks_vec3* v) {
+    KS_ASSERT(out && m && v, "Null arguments");
+    const float* d = m->data;
+    float x = v->x, y = v->y, z = v->z;
+
+    out->x = d[0] * x + d[4] * y + d[8] * z + d[12];
+    out->y = d[1] * x + d[5] * y + d[9] * z + d[13];
+    out->z = d[2] * x + d[6] * y + d[10] * z + d[14];
+}
+
+// Ignores translation
+static inline void ks_mat4_mul_dir3(ks_vec3* out, const ks_mat4* m, const ks_vec3* v) {
+    KS_ASSERT(out && m && v, "Null arguments");
+    const float* d = m->data;
+    float x = v->x, y = v->y, z = v->z;
+
+    out->x = d[0] * x + d[4] * y + d[8] * z;
+    out->y = d[1] * x + d[5] * y + d[9] * z;
+    out->z = d[2] * x + d[6] * y + d[10] * z;
+}
+
+// Performs w division for NDC
+static inline void ks_mat4_project_vec3(ks_vec3* out, const ks_mat4* m, const ks_vec3* v) {
+    KS_ASSERT(out && m && v, "Null arguments");
+    const float* d = m->data;
+    float x = v->x, y = v->y, z = v->z;
+
+    float w = d[3] * x + d[7] * y + d[11] * z + d[15];
+    float inv_w = 1.0f / w;
+
+    out->x = (d[0] * x + d[4] * y + d[8] * z + d[12]) * inv_w;
+    out->y = (d[1] * x + d[5] * y + d[9] * z + d[13]) * inv_w;
+    out->z = (d[2] * x + d[6] * y + d[10] * z + d[14]) * inv_w;
+}
 
 static inline float ks_mat3_det(const ks_mat3* m) {
     KS_ASSERT(m, "Null arguments");
@@ -723,8 +942,6 @@ static inline void ks_mat3_ortho(ks_mat3* out, float left, float right, float bo
     d[6] = -(right + left) / (right - left);
     d[7] = -(top + bottom) / (top - bottom);
 }
-
-/* mat4 */
 
 static inline float ks_mat4_det(const ks_mat4* m) {
     KS_ASSERT(m, "Null arguments");
@@ -886,6 +1103,432 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     d[14] = -(farz + nearz) / (farz - nearz);
 }
 
+// Euler
+
+static inline void ks_euler_zeroinit(ks_euler* out, ks_euler_order o) {
+    KS_ASSERT(out, "Null arguments");
+    memset(out, 0, sizeof(float) * 3);
+    out->order = o;
+}
+
+static inline ks_euler ks_euler_zeronew(ks_euler_order o) {
+    ks_euler e;
+    ks_euler_zeroinit(&e, o);
+    return e;
+}
+
+static inline void ks_euler_init(ks_euler* out, float x, float y, float z, ks_euler_order o) {
+    *out = KS_EULER(x, y, z, o);
+}
+
+static inline ks_euler ks_euler_new(float x, float y, float z, ks_euler_order o) {
+    return KS_EULER(x, y, z, o);
+}
+
+static inline void ks_euler_to_quat(ks_quat* out, const ks_euler* e) {
+    KS_ASSERT_NONNULL_ARGS(out && e);
+
+    float ex = e->x, ey = e->y, ez = e->z;
+
+    float cx = cosf(ex / 2.0f), cy = cosf(ey / 2.0f), cz = cosf(ez / 2.0f);
+    float sx = sinf(ex / 2.0f), sy = sinf(ey / 2.0f), sz = sinf(ez / 2.0f);
+
+    float cxcy = cx * cy;
+    float sxsy = sx * sy;
+    float cxsy = cx * sy;
+    float sxcy = sx * cy;
+
+    out->w = cxcy * cz + sxsy * sz;
+    out->x = sxcy * cz - cxsy * sz;
+    out->y = cxsy * cz + sxcy * sz;
+    out->z = cxcy * sz - sxsy * cz;
+}
+
+static inline void ks_euler_to_mat4(ks_mat4* out, const ks_euler* e) {
+    KS_ASSERT(out && e, "Null arguments");
+
+    ks_mat4_idinit(out);
+
+    ks_vec3 ax = KS_VEC3(1.0, 0.0, 0.0);
+    ks_vec3 ay = KS_VEC3(0.0, 1.0, 0.0);
+    ks_vec3 az = KS_VEC3(0.0, 0.0, 1.0);
+
+    switch (e->order) {
+        case KS_EULER_XYZ: {
+            ks_mat4_rotate(out, e->z, &az);
+            ks_mat4_rotate(out, e->y, &ay);
+            ks_mat4_rotate(out, e->x, &ax);
+        }
+        case KS_EULER_XZY: {
+            ks_mat4_rotate(out, e->y, &ay);
+            ks_mat4_rotate(out, e->z, &az);
+            ks_mat4_rotate(out, e->x, &ax);
+        }
+        case KS_EULER_YXZ: {
+            ks_mat4_rotate(out, e->z, &az);
+            ks_mat4_rotate(out, e->x, &ax);
+            ks_mat4_rotate(out, e->y, &ay);
+        }
+        case KS_EULER_YZX: {
+            ks_mat4_rotate(out, e->x, &ax);
+            ks_mat4_rotate(out, e->z, &az);
+            ks_mat4_rotate(out, e->y, &ay);
+        }
+        case KS_EULER_ZXY: {
+            ks_mat4_rotate(out, e->y, &ay);
+            ks_mat4_rotate(out, e->x, &ax);
+            ks_mat4_rotate(out, e->z, &az);
+        }
+        case KS_EULER_ZYX: {
+            ks_mat4_rotate(out, e->x, &ax);
+            ks_mat4_rotate(out, e->y, &ay);
+            ks_mat4_rotate(out, e->z, &az);
+        }
+    }
+}
+
+// Quaternions
+
+static inline void ks_quat_zeroinit(ks_quat* q) {
+    KS_ASSERT(q, "Null arguments");
+    memset(q, 0, sizeof(ks_quat));
+}
+
+static inline ks_quat ks_quat_zeronew(void) {
+    ks_quat q;
+    ks_quat_zeroinit(&q);
+    return q;
+}
+
+static inline void ks_quat_idinit(ks_quat* q) {
+    ks_quat_zeroinit(q);
+    q->w = 1.0f;
+}
+
+static inline ks_quat ks_quat_idnew(void) {
+    ks_quat q;
+    ks_quat_idinit(&q);
+    return q;
+}
+
+static inline void ks_quat_init(ks_quat* out, float a, float b, float c, float d) {
+    *out = KS_QUAT(a, b, c, d);
+}
+
+static inline ks_quat ks_quat_new(float a, float b, float c, float d) {
+    return KS_QUAT(a, b, c, d);
+}
+
+static inline void ks_quat_add(ks_quat* out, const ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(out && q1 && q2);
+
+    out->w = q1->w + q2->w;
+    out->x = q1->x + q2->x;
+    out->y = q1->y + q2->y;
+    out->z = q1->z + q2->z;
+}
+
+static inline void ks_quat_addi(ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(q1 && q2);
+
+    q1->w += q2->w;
+    q1->x += q2->x;
+    q1->y += q2->y;
+    q1->z += q2->z;
+}
+
+static inline void ks_quat_sub(ks_quat* out, const ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(out && q1 && q2);
+
+    out->w = q1->w - q2->w;
+    out->x = q1->x - q2->x;
+    out->y = q1->y - q2->y;
+    out->z = q1->z - q2->z;
+}
+
+static inline void ks_quat_subi(ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(q1 && q2);
+
+    q1->w -= q2->w;
+    q1->x -= q2->x;
+    q1->y -= q2->y;
+    q1->z -= q2->z;
+}
+
+static inline void ks_quat_smul(ks_quat* out, const ks_quat* q, float val) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+
+    out->w = q->w * val;
+    out->x = q->x * val;
+    out->y = q->y * val;
+    out->z = q->z * val;
+}
+
+static inline void ks_quat_smuli(ks_quat* q, float val) {
+    KS_ASSERT_NONNULL_ARGS(q);
+
+    q->w *= val;
+    q->x *= val;
+    q->y *= val;
+    q->z *= val;
+}
+
+static inline void ks_quat_sdiv(ks_quat* out, const ks_quat* q, float val) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+    KS_ASSERT(val != 0.0f, "Division by zero");
+
+    float inv = 1.0f / val;
+
+    out->w = q->w * inv;
+    out->x = q->x * inv;
+    out->y = q->y * inv;
+    out->z = q->z * inv;
+}
+
+static inline void ks_quat_sdivi(ks_quat* q, float val) {
+    KS_ASSERT_NONNULL_ARGS(q);
+    KS_ASSERT(val != 0.0f, "Division by zero");
+
+    float inv = 1.0f / val;
+
+    q->w *= inv;
+    q->x *= inv;
+    q->y *= inv;
+    q->z *= inv;
+}
+
+static inline void ks_quat_mul(ks_quat* out, const ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(out && q1 && q2);
+
+    float w1 = q1->w, x1 = q1->x, y1 = q1->y, z1 = q1->z;  // q1
+    float w2 = q2->w, x2 = q2->x, y2 = q2->y, z2 = q2->z;  // q2
+
+    out->w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
+    out->x = x1 * w2 + w1 * x2 - z1 * y2 + y1 * z2;
+    out->y = y1 * w2 + z1 * x2 + w1 * y2 - x1 * z2;
+    out->z = z1 * w2 - y1 * x2 + x1 * y2 + w1 * z2;
+}
+
+static inline void ks_quat_muli(ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(q1 && q2);
+
+    float w1 = q1->w, x1 = q1->x, y1 = q1->y, z1 = q1->z;  // q1
+    float w2 = q2->w, x2 = q2->x, y2 = q2->y, z2 = q2->z;  // q2
+
+    q1->w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
+    q1->x = x1 * w2 + w1 * x2 - z1 * y2 + y1 * z2;
+    q1->y = y1 * w2 + z1 * x2 + w1 * y2 - x1 * z2;
+    q1->z = z1 * w2 - y1 * x2 + x1 * y2 + w1 * z2;
+}
+
+static inline void ks_quat_mulv(ks_vec3* out, const ks_quat* q, const ks_vec3* v) {
+    KS_ASSERT_NONNULL_ARGS(out && q && v);
+
+    float w = q->w, x = q->x, y = q->y, z = q->z;  // q
+    float vx = v->x, vy = v->y, vz = v->z;         // v
+
+    // 't' stands for "times"
+    float xt2 = x + x, yt2 = y + y, zt2 = z + z;
+    float x2t2 = x * xt2, y2t2 = y * yt2, z2t2 = z * zt2;
+    float wtxt2 = w * xt2, wtyt2 = w * yt2, wtzt2 = w * zt2;
+    float xtyt2 = x * yt2;
+    float xtzt2 = x * zt2;
+    float ytzt2 = y * zt2;
+
+    out->x = ((vx * ((1.0f - y2t2) - z2t2)) + (vy * (xtyt2 - wtzt2))) + (vz * (xtzt2 + wtyt2));
+    out->y = ((vx * (xtyt2 + wtzt2)) + (vy * ((1.0f - x2t2) - z2t2))) + (vz * (ytzt2 - wtxt2));
+    out->z = ((vx * (xtzt2 - wtyt2)) + (vy * (ytzt2 + wtxt2))) + (vz * ((1.0f - x2t2) - y2t2));
+}
+
+static inline void ks_quat_mulvi(const ks_quat* q, ks_vec3* v) {
+    KS_ASSERT_NONNULL_ARGS(q && v);
+
+    float w = q->w, x = q->x, y = q->y, z = q->z;  // q
+    float vx = v->x, vy = v->y, vz = v->z;         // v
+
+    // 't' stands for "times"
+    float xt2 = x + x, yt2 = y + y, zt2 = z + z;
+    float x2t2 = x * xt2, y2t2 = y * yt2, z2t2 = z * zt2;
+    float wtxt2 = w * xt2, wtyt2 = w * yt2, wtzt2 = w * zt2;
+    float xtyt2 = x * yt2;
+    float xtzt2 = x * zt2;
+    float ytzt2 = y * zt2;
+
+    v->x = ((vx * ((1.0f - y2t2) - z2t2)) + (vy * (xtyt2 - wtzt2))) + (vz * (xtzt2 + wtyt2));
+    v->y = ((vx * (xtyt2 + wtzt2)) + (vy * ((1.0f - x2t2) - z2t2))) + (vz * (ytzt2 - wtxt2));
+    v->z = ((vx * (xtzt2 - wtyt2)) + (vy * (ytzt2 + wtxt2))) + (vz * ((1.0f - x2t2) - y2t2));
+}
+
+static inline void ks_quat_conj(ks_quat* out, const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+
+    out->w = q->w;
+    out->x = -q->x;
+    out->y = -q->y;
+    out->z = -q->z;
+}
+
+static inline void ks_quat_conji(ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+
+    q->x = -q->x;
+    q->y = -q->y;
+    q->z = -q->z;
+}
+
+static inline float ks_quat_dot(const ks_quat* q1, const ks_quat* q2) {
+    KS_ASSERT_NONNULL_ARGS(q1 && q2);
+    return q1->w * q2->w + q1->x * q2->x + q1->y * q2->y + q1->z * q2->z;
+}
+
+static inline float ks_quat_length_sq(const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+    return q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+}
+
+static inline float ks_quat_length(const ks_quat* q) {
+    return sqrtf(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
+}
+
+static inline void ks_quat_inv(ks_quat* out, const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+
+    float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+    KS_ASSERT(l2 != 0, "Division by zero");
+
+    float inv = 1.0f / l2;
+
+    out->w = q->w * inv;
+    out->x = -q->x * inv;
+    out->y = -q->y * inv;
+    out->z = -q->z * inv;
+}
+
+static inline void ks_quat_invi(ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+
+    float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+    KS_ASSERT(l2 != 0, "Division by zero");
+
+    float inv = 1.0f / l2;
+
+    q->w *= inv;
+    q->x *= -inv;
+    q->y *= -inv;
+    q->z *= -inv;
+}
+
+static inline void ks_quat_norm(ks_quat* out, const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+
+    float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+    KS_ASSERT(l2 != 0, "Division by zero");
+
+    if (l2 == 1.0f) {
+        *out = *q;
+        return;
+    }
+
+    float l = sqrtf(l2);
+    float inv = 1.0f / l;
+
+    out->w = q->w * inv;
+    out->x = q->x * inv;
+    out->y = q->y * inv;
+    out->z = q->z * inv;
+}
+
+static inline void ks_quat_normi(ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+
+    float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+    KS_ASSERT(l2 != 0, "Division by zero");
+
+    if (l2 == 1.0f) {
+        return;
+    }
+
+    float l = sqrtf(l2);
+    float inv = 1.0f / l;
+
+    q->w *= inv;
+    q->x *= inv;
+    q->y *= inv;
+    q->z *= inv;
+}
+
+KS_API void ks_quat_from_axis_angle(ks_quat* out, const ks_vec3* axis, float radians) {
+    float sr = sinf(radians);
+
+    out->w = cosf(radians);
+    out->x = sr * axis->x;
+    out->y = sr * axis->y;
+    out->z = sr * axis->z;
+}
+
+KS_API void ks_quat_from_euler(ks_quat* out, const ks_euler* e) {
+    KS_ASSERT_NONNULL_ARGS(out && e);
+
+    float ex = e->x, ey = e->y, ez = e->z;
+
+    float cx = cosf(ex / 2.0f), cy = cosf(ey / 2.0f), cz = cosf(ez / 2.0f);
+    float sx = sinf(ex / 2.0f), sy = sinf(ey / 2.0f), sz = sinf(ez / 2.0f);
+
+    float cxcy = cx * cy;
+    float sxsy = sx * sy;
+    float cxsy = cx * sy;
+    float sxcy = sx * cy;
+
+    out->w = cxcy * cz + sxsy * sz;
+    out->x = sxcy * cz - cxsy * sz;
+    out->y = cxsy * cz + sxcy * sz;
+    out->z = cxcy * sz - sxsy * cz;
+}
+
+KS_API void ks_quat_to_mat4(ks_mat4* out, const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(out && q);
+
+    ks_mat4_idinit(out);
+
+    float w = q->w, x = q->x, y = q->y, z = q->z;
+
+    // 't' stands for "times"
+    float xt2 = x + x;
+    float yt2 = y + y;
+    float zt2 = z + z;
+
+    float x2t2 = x * xt2, y2t2 = y * yt2, z2t2 = z * zt2;
+    float wtxt2 = w * xt2, wtyt2 = w * yt2, wtzt2 = w * zt2;
+    float xtyt2 = x * yt2, xtzt2 = x * zt2;
+    float ytzt2 = y * zt2;
+
+    // column 0
+    out->e00 = 1.0f - (y2t2 + z2t2);
+    out->e01 = xtyt2 + wtzt2;
+    out->e02 = xtzt2 - wtyt2;
+
+    // column 1
+    out->e10 = xtyt2 - wtzt2;
+    out->e11 = 1.0f - (x2t2 + z2t2);
+    out->e12 = ytzt2 + wtxt2;
+
+    // column 2
+    out->e20 = xtzt2 + wtyt2;
+    out->e21 = ytzt2 - wtxt2;
+    out->e22 = 1.0f - (x2t2 + y2t2);
+}
+
+static inline bool ks_quat_isunitary(const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+    float l2 = q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z;
+    return l2 == 1.0f;
+}
+
+static inline bool ks_quat_isidentity(const ks_quat* q) {
+    KS_ASSERT_NONNULL_ARGS(q);
+    return q->w == 1.0f && q->x == 0.0f && q->y == 0.0f && q->z == 0.0f;
+}
+
 /* Derivatives and integrals */
 
 KS_FUNC(double, realf_1d, double x, void* args);
@@ -973,11 +1616,11 @@ static inline double ks_integ_nd(ks_realf_nd f, int32_t dims, const double* min_
 
 /* ODE solvers */
 
-static inline void ks_euler(double* val, double rate, double dt) {
+static inline void ks_integ_euler(double* val, double rate, double dt) {
     *val += rate * dt;
 }
 
-static inline void ks_semi_euler_2d(ks_vec2* pos, ks_vec2* vel, ks_vec2 accel, double dt) {
+static inline void ks_integ_semi_euler_2d(ks_vec2* pos, ks_vec2* vel, ks_vec2 accel, double dt) {
     vel->x += accel.x * dt;
     vel->y += accel.y * dt;
 
@@ -985,7 +1628,7 @@ static inline void ks_semi_euler_2d(ks_vec2* pos, ks_vec2* vel, ks_vec2 accel, d
     pos->y += vel->y * dt;
 }
 
-static inline void ks_semi_euler_3d(ks_vec3* pos, ks_vec3* vel, ks_vec3 accel, double dt) {
+static inline void ks_integ_semi_euler_3d(ks_vec3* pos, ks_vec3* vel, ks_vec3 accel, double dt) {
     vel->x += accel.x * dt;
     vel->y += accel.y * dt;
     vel->z += accel.z * dt;
@@ -995,7 +1638,7 @@ static inline void ks_semi_euler_3d(ks_vec3* pos, ks_vec3* vel, ks_vec3 accel, d
     pos->z += vel->z * dt;
 }
 
-static inline ks_vec2 ks_rk4_2d(ks_odef_2d f, double t, ks_vec2 state, double dt, void* args) {
+static inline ks_vec2 ks_integ_rk4_2d(ks_odef_2d f, double t, ks_vec2 state, double dt, void* args) {
     double dt_2 = dt / 2.0;
 
     ks_vec2 k1 = f(t, state, args);
@@ -1016,7 +1659,7 @@ static inline ks_vec2 ks_rk4_2d(ks_odef_2d f, double t, ks_vec2 state, double dt
     return next_state;
 }
 
-static inline ks_vec3 ks_rk4_3d(ks_odef_3d f, double t, ks_vec3 state, double dt, void* args) {
+static inline ks_vec3 ks_integ_rk4_3d(ks_odef_3d f, double t, ks_vec3 state, double dt, void* args) {
     double dt_2 = dt / 2.0;
 
     ks_vec3 k1 = f(t, state, args);
@@ -1280,8 +1923,10 @@ KS_API int fft(size_t n, double complex samples[static n]);
 #define KS_MATH_IMPL_DONE
 
 #if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
-#error "kitsune: mem.h requires core.h"
+#error "kitsune: math.h requires core.h"
 #endif
+
+/* Fields */
 
 KS_API ks_field ks_field_create(int32_t w, int32_t h, int32_t d, size_t typesize, double cellsize) {
     void* data = malloc(typesize * (size_t)(w * h));
@@ -1318,6 +1963,8 @@ KS_API void ks_field_destroy(ks_field* f) {
     free(f->data);
     memset(f, 0, sizeof(ks_field));
 }
+
+/* FFT */
 
 KS_API int fft(size_t n, double complex samples[static n]) {
     if (!KS_ISPOW2(n)) {
