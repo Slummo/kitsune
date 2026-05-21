@@ -5,8 +5,8 @@
 #include <ks/math.h>
 
 int main(void) {
-    ks_vec3 v1 = ks_vec3_new(1.0f, 0.0f, 0.0f);
-    ks_vec3 v2 = ks_vec3_new(0.0f, 1.0f, 0.0f);
+    ks_vec3 v1 = KS_VEC3(1.0f, 0.0f, 0.0f);
+    ks_vec3 v2 = KS_VEC3(0.0f, 1.0f, 0.0f);
     ks_vec3 v3;
     ks_vec3_cross(&v3, &v1, &v2);
     ks_vec3_smuli(&v3, 3.0f);
@@ -20,7 +20,7 @@ int main(void) {
     ks_mat3_set(&m2, 2, 0, 5.0f);
     ks_mat3_set(&m2, 0, 1, 2.3f);
     ks_mat3 m3;
-    ks_mat3_trans(&m3, &m2);
+    ks_mat3_transp(&m3, &m2);
 
     ks_print(KS_MAT3_FMT "\n\n\twith det=%f\n", KS_MAT3_ARGS(m2), ks_mat3_det(&m2));
     ks_print(KS_MAT3_FMT "\n\n\twith det=%f\n", KS_MAT3_ARGS(m3), ks_mat3_det(&m3));

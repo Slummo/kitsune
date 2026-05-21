@@ -8,6 +8,7 @@ FetchContent_MakeAvailable(unity)
 
 set(TESTS 
     strings
+    math
 )
 
 foreach(T IN LISTS TESTS)
