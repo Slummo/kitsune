@@ -2,6 +2,7 @@
 #define KS_CORE_H
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>

@@ -32,6 +32,8 @@ static double sphere_5d(const double* vars, int32_t dims, KS_UNUSED void* args) 
 int main(void) {
     double res;
 
+    srand(time(NULL));
+
     res = ks_deriv_1d(cos_cb, KS_PI_2, 1e-6, NULL);
     ks_print("d/dx cos(pi/2) = -sin(pi/2) = %.1lf (expected %.1lf)", res, -1.0);
 

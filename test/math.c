@@ -1,3 +1,4 @@
+#define KS_CORE_IMPL
 #define KS_MEM_IMPL
 #define KS_MATH_IMPL
 
@@ -11,7 +12,18 @@
 #define TEST_EPS 1e-4f
 #define TEST_DEPS 1e-6
 
+#define TEST_ASSERT_OK(stat_expr)                                    \
+    do {                                                             \
+        ks_status _s = (stat_expr);                                  \
+        if (_s.code != KS_OK) {                                      \
+            char _err_msg[256];                                      \
+            ks_status_fmt(_s, _err_msg, sizeof(_err_msg));           \
+            TEST_ASSERT_EQUAL_INT_MESSAGE(KS_OK, _s.code, _err_msg); \
+        }                                                            \
+    } while (0)
+
 void setUp(void) {
+    srand(time(NULL));
 }
 void tearDown(void) {
 }
@@ -415,10 +427,16 @@ void test_mat4_explicit(void) {
     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f / 10.0f, ks_mat4_get(&scl, 0, 0));
 }
 
+/* ========================================================================= */
+/* TENSORS - LIFECYCLE, MEMORY, AND SHAPE                                    */
+/* ========================================================================= */
+
 void test_tensor_lifecycle_and_memory(void) {
-    size_t shape[] = {2, 3, 4};  // 3D Tensor: 2x3x4 = 24 elements
+    ks_tensor_int shape[] = {2, 3, 4};  // 3D Tensor: 2x3x4 = 24 elements
     ks_tensor t;
-    ks_tensor_init(&t, 3, shape, NULL);
+
+    // Fails elegantly with a detailed printout if OOM or invalid!
+    TEST_ASSERT_OK(ks_tensor_init(&t, 3, shape, NULL));
 
     TEST_ASSERT_EQUAL_UINT64(24, ks_tensor_count(&t));
     TEST_ASSERT_EQUAL_UINT64(3, t.ndims);
@@ -435,7 +453,7 @@ void test_tensor_lifecycle_and_memory(void) {
     // Clone test (Deep Copy)
     ks_tensor_fill(&t, 7.5f);
     ks_tensor clone;
-    ks_tensor_clone(&clone, &t, NULL);
+    TEST_ASSERT_OK(ks_tensor_clone(&clone, &t, NULL));
 
     TEST_ASSERT_NOT_EQUAL(t.data, clone.data);  // Pointers must be independent
     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 7.5f, clone.data[0]);
@@ -452,19 +470,21 @@ void test_tensor_lifecycle_and_memory(void) {
 }
 
 void test_tensor_shape_operations(void) {
-    size_t shape[] = {2, 3};
+    ks_tensor_int shape[] = {2, 3};
     ks_tensor t;
-    ks_tensor_init(&t, 2, shape, NULL);
+    TEST_ASSERT_OK(ks_tensor_init(&t, 2, shape, NULL));
 
     // Reshape 2x3 -> 6x1 (Zero-copy)
-    size_t new_shape[] = {6, 1};
-    ks_tensor_reshape(&t, 2, new_shape);
+    ks_tensor_int new_shape[] = {6, 1};
+    TEST_ASSERT_OK(ks_tensor_reshape(&t, 2, new_shape));
+
     TEST_ASSERT_EQUAL_UINT64(6, t.shape[0]);
     TEST_ASSERT_EQUAL_UINT64(1, t.shape[1]);
     TEST_ASSERT_TRUE(ks_tensor_is_contiguous(&t));
 
-    // Transpose 6x1 -> 1x6
-    ks_tensor_transpose(&t, 0, 1);
+    // Transpose 6x1 -> 1x6 (Now returning status)
+    TEST_ASSERT_OK(ks_tensor_transpose(&t, 0, 1));
+
     TEST_ASSERT_EQUAL_UINT64(1, t.shape[0]);
     TEST_ASSERT_EQUAL_UINT64(6, t.shape[1]);
     TEST_ASSERT_EQUAL_UINT64(1, t.strides[0]);
@@ -474,9 +494,9 @@ void test_tensor_shape_operations(void) {
 }
 
 void test_tensor_initialization_distributions(void) {
-    size_t shape[] = {1000};  // 1000 elements for statistical distribution validation
+    ks_tensor_int shape[] = {1000};
     ks_tensor t;
-    ks_tensor_init(&t, 1, shape, NULL);
+    TEST_ASSERT_OK(ks_tensor_init(&t, 1, shape, NULL));
 
     // Test Zeros
     ks_tensor_zeros(&t);
@@ -491,158 +511,161 @@ void test_tensor_initialization_distributions(void) {
 
     // Test Gaussian Normal Distribution (mean = 0.0, stddev = 1.0)
     ks_tensor_rand_normal(&t, 0.0f, 1.0f);
-    float sum = 0.0f;
-    for (size_t i = 0; i < 1000; ++i) {
-        sum += t.data[i];
-    }
+    float sum = ks_tensor_sum_all(&t);
     float sample_mean = sum / 1000.0f;
-    TEST_ASSERT_FLOAT_WITHIN(0.1f, 0.0f, sample_mean);  // Mean should be close to 0.0
+    TEST_ASSERT_FLOAT_WITHIN(0.1f, 0.0f, sample_mean);
 
     ks_tensor_fini(&t);
 }
 
-// /* ========================================================================= */
-// /* TENSORS - MATHEMATICAL OPERATIONS                                         */
-// /* ========================================================================= */
+/* ========================================================================= */
+/* TENSORS - MATHEMATICAL OPERATIONS                                         */
+/* ========================================================================= */
 
 // void test_tensor_unary_math(void) {
-//     size_t shape[] = {4};
-//     ks_tensor* a = ks_tensor_create(NULL, 1, shape);
-//     ks_tensor* out = ks_tensor_create(NULL, 1, shape);
+//     ks_tensor_int shape[] = {4};
+//     ks_tensor a, out;
+//     TEST_ASSERT_OK(ks_tensor_init(&a, 1, shape, NULL));
+//     TEST_ASSERT_OK(ks_tensor_init(&out, 1, shape, NULL));
 
-//     a->data[0] = -2.0f;
-//     a->data[1] = 0.0f;
-//     a->data[2] = 1.0f;
-//     a->data[3] = 3.0f;
+//     a.data[0] = -2.0f;
+//     a.data[1] = 0.0f;
+//     a.data[2] = 1.0f;
+//     a.data[3] = 3.0f;
 
 //     // Abs
-//     ks_tensor_abs(out, a);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 2.0f, out->data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out->data[1]);
+//     ks_tensor_abs(&out, &a);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 2.0f, out.data[0]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);
 
 //     // Exp & Log
-//     a->data[0] = 0.0f;
-//     a->data[1] = 1.0f;
-//     ks_tensor_exp(out, a);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out->data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, KS_E, out->data[1]);
+//     a.data[0] = 0.0f;
+//     a.data[1] = 1.0f;
+//     ks_tensor_exp(&out, &a);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 2.71828f, out.data[1]);  // KS_E
 
-//     ks_tensor_log(a, out);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, a->data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, a->data[1]);
+//     ks_tensor_log(&out, &a);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);  // Log(1) = 0
 
 //     // Sigmoid
-//     a->data[0] = 0.0f;
-//     ks_tensor_sigmoid(out, a);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.5f, out->data[0]);  // Sigmoid(0) = 0.5
+//     a.data[0] = 0.0f;
+//     ks_tensor_sigmoid(&out, &a);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.5f, out.data[0]);  // Sigmoid(0) = 0.5
 
 //     // ReLU
-//     a->data[0] = -5.0f;
-//     a->data[1] = 3.0f;
-//     ks_tensor_relu(out, a);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out->data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 3.0f, out->data[1]);
+//     a.data[0] = -5.0f;
+//     a.data[1] = 3.0f;
+//     ks_tensor_relu(&out, &a);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[0]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 3.0f, out.data[1]);
 
-//     ks_tensor_destroy(a);
-//     ks_tensor_destroy(out);
+//     ks_tensor_fini(&a);
+//     ks_tensor_fini(&out);
 // }
 
 // void test_tensor_binary_math(void) {
-//     size_t shape[] = {2, 2};
-//     ks_tensor* a = ks_tensor_create(NULL, 2, shape);
-//     ks_tensor* b = ks_tensor_create(NULL, 2, shape);
-//     ks_tensor* out = ks_tensor_create(NULL, 2, shape);
+//     ks_tensor_int shape[] = {2, 2};
+//     ks_tensor a, b, out;
+//     TEST_ASSERT_OK(ks_tensor_init(&a, 2, shape, NULL));
+//     TEST_ASSERT_OK(ks_tensor_init(&b, 2, shape, NULL));
+//     TEST_ASSERT_OK(ks_tensor_init(&out, 2, shape, NULL));
 
-//     ks_tensor_fill(a, 10.0f);
-//     ks_tensor_fill(b, 2.0f);
+//     ks_tensor_fill(&a, 10.0f);
+//     ks_tensor_fill(&b, 2.0f);
 
-//     ks_tensor_add(out, a, b);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out->data[0]);
+//     ks_tensor_add(&out, &a, &b);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out.data[0]);
 
-//     ks_tensor_sub(out, a, b);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out->data[0]);
+//     ks_tensor_sub(&out, &a, &b);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out.data[0]);
 
-//     ks_tensor_mul(out, a, b);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, out->data[0]);
+//     ks_tensor_mul(&out, &a, &b);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, out.data[0]);
 
-//     ks_tensor_div(out, a, b);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, out->data[0]);
+//     ks_tensor_div(&out, &a, &b);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, out.data[0]);
 
-//     ks_tensor_destroy(a);
-//     ks_tensor_destroy(b);
-//     ks_tensor_destroy(out);
+//     ks_tensor_fini(&a);
+//     ks_tensor_fini(&b);
+//     ks_tensor_fini(&out);
 // }
 
 // void test_tensor_reductions(void) {
-//     size_t shape[] = {2, 3};  // Matrix: [[1, 5, 2], [9, 0, 3]]
-//     ks_tensor* t = ks_tensor_create(NULL, 2, shape);
-//     t->data[0] = 1.0f;
-//     t->data[1] = 5.0f;
-//     t->data[2] = 2.0f;
-//     t->data[3] = 9.0f;
-//     t->data[4] = 0.0f;
-//     t->data[5] = 3.0f;
+//     ks_tensor_int shape[] = {2, 3};  // Matrix: [[1, 5, 2], [9, 0, 3]]
+//     ks_tensor t;
+//     TEST_ASSERT_OK(ks_tensor_init(&t, 2, shape, NULL));
+
+//     t.data[0] = 1.0f;
+//     t.data[1] = 5.0f;
+//     t.data[2] = 2.0f;
+//     t.data[3] = 9.0f;
+//     t.data[4] = 0.0f;
+//     t.data[5] = 3.0f;
 
 //     // Total Sum & Max
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, ks_tensor_sum_all(t));
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, ks_tensor_max_all(t));
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, ks_tensor_sum_all(&t));
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, ks_tensor_max_all(&t));
 
 //     // Axis Reduction: Sum along columns (axis 1) -> output shape [2]
 //     size_t out_shape[] = {2};
-//     ks_tensor* out = ks_tensor_create(NULL, 1, out_shape);
-//     ks_tensor_sum(out, t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out->data[0]);   // 1 + 5 + 2 = 8
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out->data[1]);  // 9 + 0 + 3 = 12
+//     ks_tensor out;
+//     TEST_ASSERT_OK(ks_tensor_init(&out, 1, out_shape, NULL));
+
+//     ks_tensor_sum(&out, &t, 1);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out.data[0]);   // 1 + 5 + 2 = 8
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out.data[1]);  // 9 + 0 + 3 = 12
 
 //     // Argmax along columns (axis 1)
-//     ks_tensor_argmax(out, t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out->data[0]);  // Max of row 0 is at index 1 (val 5)
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out->data[1]);  // Max of row 1 is at index 0 (val 9)
+//     ks_tensor_argmax(&out, &t, 1);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);  // Max of row 0 is at index 1 (val 5)
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);  // Max of row 1 is at index 0 (val 9)
 
-//     ks_tensor_destroy(t);
-//     ks_tensor_destroy(out);
+//     ks_tensor_fini(&t);
+//     ks_tensor_fini(&out);
 // }
 
 // void test_tensor_matmul(void) {
 //     // A: 2x3, B: 3x2 -> Out: 2x2
-//     size_t shape_a[] = {2, 3};
-//     size_t shape_b[] = {3, 2};
-//     size_t shape_c[] = {2, 2};
+//     ks_tensor_int shape_a[] = {2, 3};
+//     ks_tensor_int shape_b[] = {3, 2};
+//     ks_tensor_int shape_c[] = {2, 2};
 
-//     ks_tensor* a = ks_tensor_create(NULL, 2, shape_a);
-//     ks_tensor* b = ks_tensor_create(NULL, 2, shape_b);
-//     ks_tensor* c = ks_tensor_create(NULL, 2, shape_c);
+//     ks_tensor a, b, c;
+//     TEST_ASSERT_OK(ks_tensor_init(&a, 2, shape_a, NULL));
+//     TEST_ASSERT_OK(ks_tensor_init(&b, 2, shape_b, NULL));
+//     TEST_ASSERT_OK(ks_tensor_init(&c, 2, shape_c, NULL));
 
 //     // A = [[1, 2, 3], [4, 5, 6]]
-//     a->data[0] = 1.0f;
-//     a->data[1] = 2.0f;
-//     a->data[2] = 3.0f;
-//     a->data[3] = 4.0f;
-//     a->data[4] = 5.0f;
-//     a->data[5] = 6.0f;
+//     a.data[0] = 1.0f;
+//     a.data[1] = 2.0f;
+//     a.data[2] = 3.0f;
+//     a.data[3] = 4.0f;
+//     a.data[4] = 5.0f;
+//     a.data[5] = 6.0f;
 
 //     // B = [[7, 8], [9, 1], [2, 3]]
-//     b->data[0] = 7.0f;
-//     b->data[1] = 8.0f;
-//     b->data[2] = 9.0f;
-//     b->data[3] = 1.0f;
-//     b->data[4] = 2.0f;
-//     b->data[5] = 3.0f;
+//     b.data[0] = 7.0f;
+//     b.data[1] = 8.0f;
+//     b.data[2] = 9.0f;
+//     b.data[3] = 1.0f;
+//     b.data[4] = 2.0f;
+//     b.data[5] = 3.0f;
 
-//     ks_tensor_matmul(c, a, b);
+//     ks_tensor_matmul(&c, &a, &b);
 
 //     // C[0,0] = 1*7 + 2*9 + 3*2 = 31
 //     // C[0,1] = 1*8 + 2*1 + 3*3 = 19
 //     // C[1,0] = 4*7 + 5*9 + 6*2 = 79
 //     // C[1,1] = 4*8 + 5*1 + 6*3 = 55
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 31.0f, c->data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 19.0f, c->data[1]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 79.0f, c->data[2]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 55.0f, c->data[3]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 31.0f, c.data[0]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 19.0f, c.data[1]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 79.0f, c.data[2]);
+//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 55.0f, c.data[3]);
 
-//     ks_tensor_destroy(a);
-//     ks_tensor_destroy(b);
-//     ks_tensor_destroy(c);
+//     ks_tensor_fini(&a);
+//     ks_tensor_fini(&b);
+//     ks_tensor_fini(&c);
 // }
 
 // /* ========================================================================= */
@@ -715,7 +738,7 @@ void test_tensor_initialization_distributions(void) {
 
 // void test_nn_activations_and_loss(void) {
 //     // 1. ReLU Backward
-//     size_t shape[] = {4};
+//     ks_tensor_int shape[] = {4};
 //     ks_tensor* x = ks_tensor_create(NULL, 1, shape);
 //     ks_tensor* d_out = ks_tensor_create(NULL, 1, shape);
 //     ks_tensor* d_x = ks_tensor_create(NULL, 1, shape);
@@ -770,7 +793,7 @@ void test_tensor_initialization_distributions(void) {
 //     layer->weights->data[0] = 2.0f;
 //     layer->biases->data[0] = 0.0f;
 
-//     size_t shape[] = {1, 1};
+//     ks_tensor_int shape[] = {1, 1};
 //     ks_tensor* x = ks_tensor_create(NULL, 2, shape);
 //     ks_tensor* target = ks_tensor_create(NULL, 2, shape);
 //     ks_tensor* out = ks_tensor_create(NULL, 2, shape);
@@ -1192,6 +1215,8 @@ int main(void) {
 
     // --- TENSOR TESTS ---
     RUN_TEST(test_tensor_lifecycle_and_memory);
+    RUN_TEST(test_tensor_shape_operations);
+    RUN_TEST(test_tensor_initialization_distributions);
     // RUN_TEST(test_tensor_shape_operations);
     // RUN_TEST(test_tensor_initialization_distributions);
     // RUN_TEST(test_tensor_unary_math);

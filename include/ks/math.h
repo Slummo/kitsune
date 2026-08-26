@@ -111,11 +111,19 @@ KS_UNION(mat4, {
     };
 });
 
+#ifdef KS_TENSOR_USE_64BIT
+typedef int64_t ks_tensor_int;
+#define KS_TENSOR_INT_FMT "%" PRId64
+#else
+typedef int32_t ks_tensor_int;
+#define KS_TENSOR_INT_FMT "%d"
+#endif
+
 KS_STRUCT(tensor, {
     const ks_allocator* allocator;
     int32_t ndims;
-    size_t shape[KS_TENSOR_MAX_DIMS];
-    size_t strides[KS_TENSOR_MAX_DIMS];
+    ks_tensor_int shape[KS_TENSOR_MAX_DIMS];
+    ks_tensor_int strides[KS_TENSOR_MAX_DIMS];
     float* data;
 });
 
@@ -1430,30 +1438,26 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
 
 // Tensors
 
-KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const size_t* shape, const ks_allocator* a);
+KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a);
 KS_API void ks_tensor_fini(ks_tensor* t);
 
 KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src);
 KS_API ks_status ks_tensor_clone(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a);
 KS_API void ks_tensor_view(ks_tensor* dst, const ks_tensor* src);
 
-KS_API size_t ks_tensor_count(const ks_tensor* t);
+KS_API ks_tensor_int ks_tensor_count(const ks_tensor* t);
 
 KS_API bool ks_tensor_is_contiguous(const ks_tensor* t);
 KS_API bool ks_tensor_same_shape(const ks_tensor* a, const ks_tensor* b);
 
 KS_API ks_status ks_tensor_contiguous(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a);
-KS_API ks_status ks_tensor_reshape(ks_tensor* t, int32_t new_ndims, const size_t* new_shape);
-
-KS_API void ks_tensor_transpose(ks_tensor* t, int32_t dim1, int32_t dim2);
+KS_API ks_status ks_tensor_reshape(ks_tensor* t, const int32_t new_ndims, const ks_tensor_int* new_shape);
+KS_API ks_status ks_tensor_transpose(ks_tensor* t, const int32_t dim1, const int32_t dim2);
 
 KS_API void ks_tensor_zeros(ks_tensor* t);
-
-KS_API void ks_tensor_fill(ks_tensor* t, float val);
-
-KS_API void ks_tensor_rand_uniform(ks_tensor* t, float min, float max);
-
-KS_API void ks_tensor_rand_normal(ks_tensor* t, float mean, float stddev);
+KS_API void ks_tensor_fill(ks_tensor* t, const float val);
+KS_API void ks_tensor_rand_uniform(ks_tensor* t, const float min, const float max);
+KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float stddev);
 
 KS_API void ks_tensor_exp(ks_tensor* out, const ks_tensor* a);
 KS_API void ks_tensor_log(ks_tensor* out, const ks_tensor* a);
@@ -1470,8 +1474,8 @@ KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b
 KS_API float ks_tensor_sum_all(const ks_tensor* a);
 KS_API float ks_tensor_max_all(const ks_tensor* a);
 
-KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, size_t axis);
-KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, size_t axis);
+KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, const int32_t axis);
+KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, const int32_t axis);
 
 KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
@@ -1928,11 +1932,9 @@ static inline double ks_integ_nd(ks_realf_nd f, int32_t dims, const double* min_
     double sum = 0.0;
     double pt[dims];
 
-    srand(time(NULL));
-
     for (int32_t s = 0; s < samples; ++s) {
         for (int32_t d = 0; d < dims; ++d) {
-            double r = (double)rand() / RAND_MAX;
+            double r = (double)rand() / (double)RAND_MAX;
             pt[d] = min_bounds[d] + r * (max_bounds[d] - min_bounds[d]);
         }
 
@@ -2264,39 +2266,39 @@ KS_API int fft(size_t n, double complex samples[static n]);
 
 /* Tensors */
 
-#define KS_TENSOR_VARS(t, prefix)                              \
-    size_t* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
-    size_t* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+#define KS_TENSOR_VARS(t, prefix)                                     \
+    ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
+    ks_tensor_int* restrict KS_CONCAT2(prefix, strides) = t->strides; \
     float* restrict KS_CONCAT2(prefix, data) = t->data
 
-#define KS_CONST_TENSOR_VARS(t, prefix)                              \
-    const size_t* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
-    const size_t* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+#define KS_CONST_TENSOR_VARS(t, prefix)                                     \
+    const ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
+    const ks_tensor_int* restrict KS_CONCAT2(prefix, strides) = t->strides; \
     const float* restrict KS_CONCAT2(prefix, data) = t->data
 
-static inline void ks_tensor_calc_strides(size_t* strides, int32_t length, const size_t* shape) {
-    strides[length - 1] = 1;
-
-    if (length <= 2) {
+static inline void ks_tensor_calc_strides(ks_tensor_int* strides, int32_t length, const ks_tensor_int* shape) {
+    if (length <= 0) {
         return;
     }
+
+    strides[length - 1] = 1;
 
     for (int32_t i = length - 2; i >= 0; --i) {
         strides[i] = strides[i + 1] * shape[i + 1];
     }
 }
 
-static inline size_t ks_tensor_index(const ks_tensor* t, size_t logical_idx) {
-    size_t physical_idx = 0;
-    size_t temp_idx = logical_idx;
+static inline ks_tensor_int ks_tensor_index(const ks_tensor* t, ks_tensor_int logical_idx) {
+    ks_tensor_int physical_idx = 0;
+    ks_tensor_int temp_idx = logical_idx;
 
-    int32_t ndims = t->ndims;
+    const int32_t ndims = t->ndims;
 
     KS_CONST_TENSOR_VARS(t, t);
 
     for (int32_t i = ndims - 1; i >= 0; --i) {
-        size_t s = tshape[i];
-        size_t coord = temp_idx % s;
+        ks_tensor_int s = tshape[i];
+        ks_tensor_int coord = temp_idx % s;
         physical_idx += coord * tstrides[i];
         temp_idx /= s;
     }
@@ -2304,19 +2306,25 @@ static inline size_t ks_tensor_index(const ks_tensor* t, size_t logical_idx) {
     return physical_idx;
 }
 
-KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const size_t* shape, const ks_allocator* a) {
+KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a) {
     KS_ASSERT_NONNULL_ARGS(t && shape);
-    KS_ASSERT(ndims >= 1 && ndims <= 8, "Number of dimensions out of range [1, 8]");
 
-    memcpy(t->shape, shape, sizeof(size_t) * (size_t)ndims);
+    if (ndims < 1 || ndims > 8) {
+        return KS_STATUS(KS_ERR_BOUNDS, "Number of dimensions out of range [1, 8]");
+    }
+
+    memcpy(t->shape, shape, sizeof(ks_tensor_int) * (size_t)ndims);
     ks_tensor_calc_strides(t->strides, ndims, shape);
 
-    size_t count = 1;
+    ks_tensor_int count = 1;
     for (int32_t i = 0; i < ndims; ++i) {
+        if (shape[i] <= 0) {
+            return KS_STATUS(KS_ERR_INVALID, "Shape dimensions must be positive");
+        }
         count *= shape[i];
     }
 
-    float* data = ks_alloc(a, sizeof(float) * count);
+    float* data = ks_alloc(a, sizeof(float) * (size_t)count);
     if (!data) {
         return KS_STATUS(KS_ERR_OOM);
     }
@@ -2324,6 +2332,8 @@ KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const size_t* shape
     t->allocator = a ? a : &std_allocator;
     t->ndims = ndims;
     t->data = data;
+
+    KS_ASSERT(ks_tensor_is_contiguous(t), "Tensor is not contigous");
 
     return KS_STATUS(KS_OK);
 }
@@ -2342,28 +2352,28 @@ KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src) {
     KS_ASSERT(dst->ndims == src->ndims, "Tensor dimensions mismatch");
     KS_ASSERT(dst->data && src->data, "Tensors must have allocated buffer");
 
-    int32_t ndims = dst->ndims;
+    const int32_t ndims = dst->ndims;
     KS_TENSOR_VARS(dst, d);
     KS_CONST_TENSOR_VARS(src, s);
 
-    size_t count = 1;
+    ks_tensor_int count = 1;
     for (int32_t i = 0; i < ndims; ++i) {
-        size_t s = sshape[i];
+        ks_tensor_int s = sshape[i];
         KS_ASSERT(dshape[i] == s, "Tensor shapes mismatch");
         count *= s;
     }
 
-    bool dcont = ks_tensor_is_contiguous(dst);
-    bool scont = ks_tensor_is_contiguous(src);
+    const bool dcont = ks_tensor_is_contiguous(dst);
+    const bool scont = ks_tensor_is_contiguous(src);
 
     if (dcont && scont) {
-        memcpy(ddata, sdata, sizeof(float) * count);
+        memcpy(ddata, sdata, sizeof(float) * (size_t)count);
         return;
     }
 
-    for (size_t i = 0; i < count; ++i) {
-        size_t dsti = dcont ? i : ks_tensor_index(dst, i);
-        size_t srci = scont ? i : ks_tensor_index(src, i);
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int dsti = dcont ? i : ks_tensor_index(dst, i);
+        ks_tensor_int srci = scont ? i : ks_tensor_index(src, i);
         ddata[dsti] = sdata[srci];
     }
 }
@@ -2384,17 +2394,17 @@ KS_API void ks_tensor_view(ks_tensor* dst, const ks_tensor* src) {
     dst->allocator = NULL;
 }
 
-KS_API size_t ks_tensor_count(const ks_tensor* t) {
+KS_API ks_tensor_int ks_tensor_count(const ks_tensor* t) {
     KS_ASSERT_NONNULL_ARGS(t);
     KS_ASSERT(t->data, "Tensor is not initialized");
 
-    int32_t ndims = t->ndims;
+    const int32_t ndims = t->ndims;
     if (ndims == 0) {
         return 0;
     }
 
-    const size_t* shape = t->shape;
-    size_t count = 1;
+    const ks_tensor_int* shape = t->shape;
+    ks_tensor_int count = 1;
     for (int32_t i = 0; i < ndims; ++i) {
         count *= shape[i];
     }
@@ -2404,11 +2414,12 @@ KS_API size_t ks_tensor_count(const ks_tensor* t) {
 
 KS_API bool ks_tensor_is_contiguous(const ks_tensor* t) {
     KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->shape && t->strides, "Tensors shape or stride is NULL");
 
-    size_t expected_stride = 1;
-    int32_t n = t->ndims - 1;
-    const size_t* restrict shape = t->shape;
-    const size_t* restrict strides = t->strides;
+    ks_tensor_int expected_stride = 1;
+    const int32_t n = t->ndims - 1;
+    const ks_tensor_int* restrict shape = t->shape;
+    const ks_tensor_int* restrict strides = t->strides;
 
     for (int32_t i = n; i >= 0; --i) {
         if (strides[i] != expected_stride) {
@@ -2423,16 +2434,20 @@ KS_API bool ks_tensor_is_contiguous(const ks_tensor* t) {
 
 KS_API bool ks_tensor_same_shape(const ks_tensor* a, const ks_tensor* b) {
     KS_ASSERT_NONNULL_ARGS(a && b);
+    KS_ASSERT(a->shape && b->shape, "Tensors data is NULL");
 
-    int32_t na = a->ndims;
-    int32_t nb = b->ndims;
+    const int32_t na = a->ndims;
+    const int32_t nb = b->ndims;
 
     if (na != nb) {
         return false;
     }
 
+    const ks_tensor_int* restrict sa = a->shape;
+    const ks_tensor_int* restrict sb = b->shape;
+
     for (int32_t i = 0; i < na; ++i) {
-        if (a->shape[i] != b->shape[i]) {
+        if (sa[i] != sb[i]) {
             return false;
         }
     }
@@ -2457,16 +2472,22 @@ KS_API ks_status ks_tensor_contiguous(ks_tensor* dst, const ks_tensor* src, cons
     return KS_STATUS(KS_OK);
 }
 
-KS_API ks_status ks_tensor_reshape(ks_tensor* t, int32_t new_ndims, const size_t* new_shape) {
+KS_API ks_status ks_tensor_reshape(ks_tensor* t, const int32_t new_ndims, const ks_tensor_int* new_shape) {
     KS_ASSERT_NONNULL_ARGS(t && new_shape);
-    KS_ASSERT(new_ndims >= 1 && new_ndims <= 8, "Number of dimensions out of range [1, 8]");
+
+    if (new_ndims < 1 || new_ndims > 8) {
+        return KS_STATUS(KS_ERR_BOUNDS, "Number of dimensions out of range [1, 8]");
+    }
 
     if (!ks_tensor_is_contiguous(t)) {
         return KS_STATUS(KS_ERR_INVALID, "Tensor is not contiguous");
     }
 
-    size_t new_count = 1;
+    ks_tensor_int new_count = 1;
     for (int32_t i = 0; i < new_ndims; ++i) {
+        if (new_shape[i] <= 0) {
+            return KS_STATUS(KS_ERR_INVALID, "Shape dimensions must be positive");
+        }
         new_count *= new_shape[i];
     }
 
@@ -2474,184 +2495,153 @@ KS_API ks_status ks_tensor_reshape(ks_tensor* t, int32_t new_ndims, const size_t
         return KS_STATUS(KS_ERR_INVALID, "Shape mismatch");
     }
 
-    memcpy(t->shape, new_shape, sizeof(size_t) * (size_t)new_ndims);
+    memcpy(t->shape, new_shape, sizeof(ks_tensor_int) * (size_t)new_ndims);
     ks_tensor_calc_strides(t->strides, new_ndims, new_shape);
     t->ndims = new_ndims;
 
     return KS_STATUS(KS_OK);
 }
 
-KS_API void ks_tensor_transpose(ks_tensor* t, int32_t dim1, int32_t dim2) {
+KS_API ks_status ks_tensor_transpose(ks_tensor* t, const int32_t dim1, const int32_t dim2) {
     KS_ASSERT_NONNULL_ARGS(t);
-    KS_ASSERT(dim1 >= 0 && dim2 >= 0, "Dimension indices must be non-negative");
-    KS_ASSERT(dim1 <= t->ndims && dim2 <= t->ndims,
-              "Dimension indices must be less then the tensor's number of dimensions");
+
+    if (dim1 < 0 || dim1 >= t->ndims) {
+        return KS_STATUS(KS_ERR_BOUNDS, "dim1 out of bounds");
+    }
+
+    if (dim2 < 0 || dim2 >= t->ndims) {
+        return KS_STATUS(KS_ERR_BOUNDS, "dim2 out of bounds");
+    }
+
+    if (dim1 == dim2) {
+        return KS_STATUS(KS_OK);
+    }
 
     KS_SWAP(t->shape[dim1], t->shape[dim2]);
-    ks_tensor_calc_strides(t->strides, t->ndims, t->shape);
+    KS_SWAP(t->strides[dim1], t->strides[dim2]);
+
+    return KS_STATUS(KS_OK);
 }
 
 KS_API void ks_tensor_zeros(ks_tensor* t) {
     KS_ASSERT_NONNULL_ARGS(t && t->data);
 
-    size_t count = ks_tensor_count(t);
+    const ks_tensor_int count = ks_tensor_count(t);
     float* restrict data = t->data;
-    bool cont = ks_tensor_is_contiguous(t);
 
-    if (cont) {
-        memset(data, 0, sizeof(float) * count);
+    if (KS_LIKELY(ks_tensor_is_contiguous(t))) {
+        memset(data, 0, sizeof(float) * (size_t)count);
         return;
     }
 
-    for (size_t i = 0; i < count; ++i) {
-        size_t i = ks_tensor_index(t, i);
-        data[i] = 0.0f;
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int j = ks_tensor_index(t, i);
+        data[j] = 0.0f;
     }
 }
 
-KS_API void ks_tensor_fill(ks_tensor* t, float val) {
+KS_API void ks_tensor_fill(ks_tensor* t, const float val) {
     KS_ASSERT_NONNULL_ARGS(t && t->data);
 
-    size_t count = ks_tensor_count(t);
+    if (KS_FEQ(val, 0.0f, KS_FEPS_MATH)) {
+        ks_tensor_zeros(t);
+        return;
+    }
+
+    const ks_tensor_int count = ks_tensor_count(t);
     float* restrict data = t->data;
-    bool cont = ks_tensor_is_contiguous(t);
 
-    if (cont) {
-        if (KS_FEQ(val, 0.0f, KS_FEPS_MATH)) {
-            memset(data, 0, sizeof(float) * count);
-            return;
-        }
-
-        KS_SIMD_HINT for (size_t i = 0; i < count; ++i) {
+    if (KS_LIKELY(ks_tensor_is_contiguous(t))) {
+        KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {
             data[i] = val;
         }
 
         return;
     }
 
-    for (size_t i = 0; i < count; ++i) {
-        size_t i = ks_tensor_index(t, i);
-        data[i] = val;
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int j = ks_tensor_index(t, i);
+        data[j] = val;
     }
 }
 
-KS_API void ks_tensor_rand_uniform(ks_tensor* t, float min, float max) {
+KS_API void ks_tensor_rand_uniform(ks_tensor* t, const float min, const float max) {
     KS_ASSERT_NONNULL_ARGS(t);
     KS_ASSERT(KS_FLESSEQ(min, max, KS_FEPS_MATH), "Min is greater than max");
 
-    size_t count = ks_tensor_count(t);
-    float* restrict data = t->data;
-    bool cont = ks_tensor_is_contiguous(t);
-
-    if (cont) {
-        if (KS_FEQ(min, 0.0f, KS_FEPS_MATH) && KS_FEQ(max, 0.0f, KS_FEPS_MATH)) {
-            memset(data, 0, sizeof(float) * count);
-            return;
-        }
-
-        if (KS_FEQ(min, max, KS_FEPS_MATH)) {
-            KS_SIMD_HINT for (size_t i = 0; i < count; ++i) {
-                data[i] = min;
-            }
-            return;
-        }
-
-        srand(time(NULL));
-        const float dist = max - min;
-        for (size_t i = 0; i < count; ++i) {
-            data[i] = rand() / RAND_MAX * dist + min;
-        }
-
+    if (KS_UNLIKELY(KS_FEQ(min, 0.0f, KS_FEPS_MATH) && KS_FEQ(max, 0.0f, KS_FEPS_MATH))) {
+        ks_tensor_zeros(t);
         return;
     }
 
-    srand(time(NULL));
+    if (KS_UNLIKELY(KS_FEQ(min, max, KS_FEPS_MATH))) {
+        ks_tensor_fill(t, min);
+        return;
+    }
+
+    const ks_tensor_int count = ks_tensor_count(t);
+    float* restrict data = t->data;
+    const bool cont = ks_tensor_is_contiguous(t);
+
     const float dist = max - min;
-    for (size_t i = 0; i < count; ++i) {
-        size_t i = ks_tensor_index(t, i);
-        data[i] = rand() / RAND_MAX * dist + min;
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int j = cont ? i : ks_tensor_index(t, i);
+        data[j] = (float)rand() / (float)RAND_MAX * dist + min;
     }
 }
 
-KS_API void ks_tensor_rand_normal(ks_tensor* t, float mean, float stddev) {
+KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float stddev) {
     KS_ASSERT_NONNULL_ARGS(t);
 
-    size_t count = ks_tensor_count(t);
+    const ks_tensor_int count = ks_tensor_count(t);
     float* restrict data = t->data;
-    bool cont = ks_tensor_is_contiguous(t);
+    const bool cont = ks_tensor_is_contiguous(t);
 
-    if (cont) {
-        if (KS_FEQ(mean, 0.0f, KS_FEPS_MATH) && KS_FEQ(stddev, 0.0f, KS_FEPS_MATH)) {
-            memset(data, 0, sizeof(float) * count);
-            return;
-        }
-
-        srand(time(NULL));
-        for (size_t i = 0; i < count; ++i) {
-            float a = rand() / RAND_MAX;
-            float b = rand() / RAND_MAX;
-            float r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
-            data[i] = r * stddev + mean;
-        }
-
+    if (cont && KS_FEQ(mean, 0.0f, KS_FEPS_MATH) && KS_FEQ(stddev, 0.0f, KS_FEPS_MATH)) {
+        memset(data, 0, sizeof(float) * (size_t)count);
         return;
     }
 
-    srand(time(NULL));
-    for (size_t i = 0; i < count; ++i) {
-        size_t i = ks_tensor_index(t, i);
-        float a = rand() / RAND_MAX;
-        float b = rand() / RAND_MAX;
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int j = cont ? i : ks_tensor_index(t, i);
+
+        float a = ((float)rand() + 1.0f) / ((float)RAND_MAX + 1.0f);
+        float b = (float)rand() / (float)RAND_MAX;
         float r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
-        data[i] = r * stddev + mean;
+
+        data[j] = r * stddev + mean;
     }
 }
 
-KS_API void ks_tensor_exp(ks_tensor* out, const ks_tensor* a) {
-    KS_ASSERT_NONNULL_ARGS(out && a);
-    KS_ASSERT(ks_tensor_same_shape(out, a), "Tensors have different shapes");
-
-    size_t count = ks_tensor_count(out);
-    bool c1 = ks_tensor_is_contiguous(out);
-    bool c2 = ks_tensor_is_contiguous(a);
-    float* restrict d1 = out->data;
-    const float* restrict d2 = a->data;
-
-    if (c1) {
-        if (c2) {
-            for (size_t i = 0; i < count; ++i) {
-                d1[i] = expf(d2[i]);
-            }
-
-            return;
-        }
-
-        for (size_t i = 0; i < count; ++i) {
-            size_t j = ks_tensor_index(a, i);
-            d1[i] = expf(d2[j]);
-        }
-
-        return;
+#define KS_TENSOR_UNARY(name, op)                                                   \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a) { \
+        KS_ASSERT_NONNULL_ARGS(out && a);                                           \
+        KS_ASSERT(ks_tensor_same_shape(out, a), "Tensors have different shapes");   \
+                                                                                    \
+        const ks_tensor_int count = ks_tensor_count(out);                           \
+        const bool c1 = ks_tensor_is_contiguous(out);                               \
+        const bool c2 = ks_tensor_is_contiguous(a);                                 \
+        float* restrict d1 = out->data;                                             \
+        const float* restrict d2 = a->data;                                         \
+                                                                                    \
+        if (KS_LIKELY(c1 && c2)) {                                                  \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                \
+                d1[i] = op(d2[i]);                                                  \
+            }                                                                       \
+                                                                                    \
+            return;                                                                 \
+        }                                                                           \
+                                                                                    \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                 \
+            ks_tensor_int j = c1 ? i : ks_tensor_index(out, i);                     \
+            ks_tensor_int k = c2 ? i : ks_tensor_index(a, i);                       \
+            d1[j] = op(d2[k]);                                                      \
+        }                                                                           \
     }
 
-    if (c2) {
-        for (size_t i = 0; i < count; ++i) {
-            size_t j = ks_tensor_index(out, i);
-            d1[j] = expf(d2[i]);
-        }
-
-        return;
-    }
-
-    for (size_t i = 0; i < count; ++i) {
-        size_t j = ks_tensor_index(out, i);
-        size_t k = ks_tensor_index(a, i);
-        d1[j] = expf(d2[k]);
-    }
-}
-
-KS_API void ks_tensor_log(ks_tensor* out, const ks_tensor* a);
-KS_API void ks_tensor_abs(ks_tensor* out, const ks_tensor* a);
+KS_TENSOR_UNARY(exp, expf);
+KS_TENSOR_UNARY(log, logf);
+KS_TENSOR_UNARY(abs, fabsf);
 
 KS_API void ks_tensor_relu(ks_tensor* out, const ks_tensor* a);
 KS_API void ks_tensor_sigmoid(ks_tensor* out, const ks_tensor* a);
@@ -2661,11 +2651,33 @@ KS_API void ks_tensor_sub(ks_tensor* out, const ks_tensor* a, const ks_tensor* b
 KS_API void ks_tensor_mul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
-KS_API float ks_tensor_sum_all(const ks_tensor* a);
+KS_API float ks_tensor_sum_all(const ks_tensor* a) {
+    KS_ASSERT_NONNULL_ARGS(a);
+    KS_ASSERT(a->data, "Tensor's data is NULL");
+
+    const float* restrict data = a->data;
+    const ks_tensor_int count = ks_tensor_count(a);
+    float sum = 0.0f;
+
+    if (KS_LIKELY(ks_tensor_is_contiguous(a))) {
+        KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {
+            sum += data[i];
+        }
+
+        return sum;
+    }
+
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        sum += data[ks_tensor_index(a, i)];
+    }
+
+    return sum;
+}
+
 KS_API float ks_tensor_max_all(const ks_tensor* a);
 
-KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, size_t axis);
-KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, size_t axis);
+KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, const int32_t axis);
+KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, const int32_t axis);
 
 KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
