@@ -1,9 +1,11 @@
 #ifndef KS_MATH_H
 #define KS_MATH_H
 
-#include <ks/core.h>
+#include <ks/ds.h>
+
 #include <complex.h>
 #include <omp.h>
+#include <time.h>
 
 #define KS_E 2.7182818284590452354          // e
 #define KS_LOG2E 1.4426950408889634074      // log2 e
@@ -29,6 +31,8 @@
 #define KS_DEG2RAD (KS_PI / 180.0)
 #define KS_RAD2DEG (180.0 / KS_PI)
 
+#define KS_TENSOR_MAX_DIMS 8
+
 /* Utilities */
 
 static inline size_t log2ld(size_t n) {
@@ -49,12 +53,7 @@ KS_UNION(vec2, {
     float data[2];
 });
 
-#define KS_VEC2(x, y) \
-    (ks_vec2) {       \
-        {             \
-            x, y      \
-        }             \
-    }
+#define KS_VEC2(x, y) ((ks_vec2){{x, y}})
 
 KS_UNION(vec3, {
     struct {
@@ -65,12 +64,7 @@ KS_UNION(vec3, {
     float data[3];
 });
 
-#define KS_VEC3(x, y, z) \
-    (ks_vec3) {          \
-        {                \
-            x, y, z      \
-        }                \
-    }
+#define KS_VEC3(x, y, z) ((ks_vec3){{x, y, z}})
 
 KS_UNION(vec4, {
     struct {
@@ -82,12 +76,7 @@ KS_UNION(vec4, {
     float data[4];
 });
 
-#define KS_VEC4(x, y, z, w) \
-    (ks_vec4) {             \
-        {                   \
-            x, y, z, w      \
-        }                   \
-    }
+#define KS_VEC4(x, y, z, w) ((ks_vec4){{x, y, z, w}})
 
 KS_UNION(mat2, {
     float m[2][2];
@@ -122,6 +111,14 @@ KS_UNION(mat4, {
     };
 });
 
+KS_STRUCT(tensor, {
+    const ks_allocator* allocator;
+    int32_t ndims;
+    size_t shape[KS_TENSOR_MAX_DIMS];
+    size_t strides[KS_TENSOR_MAX_DIMS];
+    float* data;
+});
+
 KS_ENUM(euler_order, {KS_EULER_XYZ = 0, KS_EULER_XZY, KS_EULER_YXZ, KS_EULER_YZX, KS_EULER_ZXY, KS_EULER_ZYX});
 
 KS_STRUCT(euler, {
@@ -150,10 +147,7 @@ KS_STRUCT(euler, {
     ks_euler_order order;
 });
 
-#define KS_EULER(x, y, z, o) \
-    (ks_euler) {             \
-        {{x, y, z}}, o       \
-    }
+#define KS_EULER(x, y, z, o) ((ks_euler){{{x, y, z}}, o})
 
 KS_UNION(quat, {
     struct {
@@ -170,12 +164,7 @@ KS_UNION(quat, {
     };
 });
 
-#define KS_QUAT(w, x, y, z) \
-    (ks_quat) {             \
-        {                   \
-            w, x, y, z      \
-        }                   \
-    }
+#define KS_QUAT(w, x, y, z) ((ks_quat){{w, x, y, z}})
 
 #define KS_VEC2_FMT "Vec2(%.3f, %.3f)"
 #define KS_VEC2_ARGS(v) (v).data[0], (v).data[1]
@@ -213,30 +202,16 @@ KS_UNION(quat, {
 // Vectors
 
 #define KS_VEC_FUNCTIONS(type, n, params, args)                                                       \
-    static inline void KS_CONCAT2(type, _zeroinit)(type * v) {                                        \
+    static inline void KS_CONCAT2(type, _zeroes)(type * v) {                                          \
         KS_ASSERT(v, "Null arguments");                                                               \
-        memset(v->data, 0, sizeof(type));                                                             \
+        memset(v, 0, sizeof(type));                                                                   \
     }                                                                                                 \
                                                                                                       \
-    static inline type KS_CONCAT2(type, _zeronew)(void) {                                             \
-        type v;                                                                                       \
-        KS_CONCAT2(type, _zeroinit)(&v);                                                              \
-        return v;                                                                                     \
-    }                                                                                                 \
-                                                                                                      \
-    static inline void KS_CONCAT2(type, _fillinit)(type * v, float num) {                             \
+    static inline void KS_CONCAT2(type, _fill)(type * v, float num) {                                 \
         KS_ASSERT(v, "Null arguments");                                                               \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
             v->data[i] = num;                                                                         \
         }                                                                                             \
-    }                                                                                                 \
-                                                                                                      \
-    static inline type KS_CONCAT2(type, _fillnew)(float num) {                                        \
-        type v;                                                                                       \
-        KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                                \
-            v.data[i] = num;                                                                          \
-        }                                                                                             \
-        return v;                                                                                     \
     }                                                                                                 \
                                                                                                       \
     static inline void KS_CONCAT2(type, _add)(type * out, const type* v1, const type* v2) {           \
@@ -458,54 +433,30 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
 // Matrices
 
 #define KS_MAT_FUNCTIONS(type, vtype, n)                                                       \
-    static inline void KS_CONCAT2(type, _zeroinit)(type * m) {                                 \
+    static inline void KS_CONCAT2(type, _zeroes)(type * m) {                                   \
         KS_ASSERT(m, "Null arguments");                                                        \
-        memset(m->data, 0, sizeof(type));                                                      \
+        memset(m, 0, sizeof(type));                                                            \
     }                                                                                          \
                                                                                                \
-    static inline type KS_CONCAT2(type, _zeronew)(void) {                                      \
-        type m;                                                                                \
-        KS_CONCAT2(type, _zeroinit)(&m);                                                       \
-        return m;                                                                              \
-    }                                                                                          \
-                                                                                               \
-    static inline void KS_CONCAT2(type, _idinit)(type * m) {                                   \
-        KS_CONCAT2(type, _zeroinit)(m);                                                        \
+    static inline void KS_CONCAT2(type, _id)(type * m) {                                       \
+        KS_CONCAT2(type, _zeroes)(m);                                                          \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                         \
             m->data[i * n + i] = 1.0f;                                                         \
         }                                                                                      \
     }                                                                                          \
                                                                                                \
-    static inline type KS_CONCAT2(type, _idnew)(void) {                                        \
-        type m;                                                                                \
-        KS_CONCAT2(type, _idinit)(&m);                                                         \
-        return m;                                                                              \
-    }                                                                                          \
-                                                                                               \
-    static inline void KS_CONCAT2(type, _fillinit)(type * m, float num) {                      \
+    static inline void KS_CONCAT2(type, _fill)(type * m, float num) {                          \
         KS_ASSERT(m, "Null arguments");                                                        \
         KS_SIMD_HINT for (int32_t i = 0; i < n * n; ++i) {                                     \
             m->data[i] = num;                                                                  \
         }                                                                                      \
     }                                                                                          \
                                                                                                \
-    static inline type KS_CONCAT2(type, _fillnew)(float num) {                                 \
-        type m;                                                                                \
-        KS_CONCAT2(type, _fillinit)(&m, num);                                                  \
-        return m;                                                                              \
-    }                                                                                          \
-                                                                                               \
-    static inline void KS_CONCAT2(type, _diaginit)(type * m, float num) {                      \
+    static inline void KS_CONCAT2(type, _diag)(type * m, float num) {                          \
         KS_ASSERT(m, "Null arguments");                                                        \
         KS_SIMD_HINT for (int32_t i = 0; i < n; ++i) {                                         \
             m->data[i * n + i] = num;                                                          \
         }                                                                                      \
-    }                                                                                          \
-                                                                                               \
-    static inline type KS_CONCAT2(type, _diagnew)(float num) {                                 \
-        type m;                                                                                \
-        KS_CONCAT2(type, _diaginit)(&m, num);                                                  \
-        return m;                                                                              \
     }                                                                                          \
                                                                                                \
     static inline void KS_CONCAT2(type, _add)(type * out, const type* m1, const type* m2) {    \
@@ -606,7 +557,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
     static inline void KS_CONCAT2(type, _mul)(type * out, const type* m1, const type* m2) {    \
         KS_ASSERT(out && m1 && m2, "Null arguments");                                          \
         KS_ASSERT(out != m1 && out != m2, "Destination and source must be different ");        \
-        KS_CONCAT2(type, _zeroinit)(out);                                                      \
+        KS_CONCAT2(type, _zeroes)(out);                                                        \
                                                                                                \
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t k = 0; k < n; ++k) {                                                  \
@@ -837,7 +788,7 @@ static inline void ks_mat2_rot(ks_mat2* m, float angle) {
 static inline void ks_mat2_mkscale(ks_mat2* out, const ks_vec2* v) {
     KS_ASSERT_NONNULL_ARGS(out && v);
     float* d = out->data;
-    ks_mat2_zeroinit(out);
+    ks_mat2_zeroes(out);
     d[0] = v->x;
     d[3] = v->y;
 }
@@ -890,7 +841,7 @@ static inline void ks_mat3_invi(ks_mat3* m) {
 static inline void ks_mat3_mktransl(ks_mat3* out, const ks_vec2* v) {
     KS_ASSERT_NONNULL_ARGS(out && v);
     float* d = out->data;
-    ks_mat3_idinit(out);
+    ks_mat3_id(out);
     d[6] = v->x;
     d[7] = v->y;
 }
@@ -908,7 +859,7 @@ static inline void ks_mat3_mkrotx(ks_mat3* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
     float* d = out->data;
-    ks_mat3_zeroinit(out);
+    ks_mat3_zeroes(out);
 
     d[0] = 1.0f;
     d[4] = c;
@@ -921,7 +872,7 @@ static inline void ks_mat3_mkroty(ks_mat3* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
     float* d = out->data;
-    ks_mat3_zeroinit(out);
+    ks_mat3_zeroes(out);
 
     d[0] = c;
     d[2] = -s;
@@ -934,7 +885,7 @@ static inline void ks_mat3_mkrotz(ks_mat3* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
     float* d = out->data;
-    ks_mat3_zeroinit(out);
+    ks_mat3_zeroes(out);
 
     d[0] = c;
     d[1] = s;
@@ -1074,7 +1025,7 @@ static inline void ks_mat3_rot(ks_mat3* m, ks_vec3 axis, float angle) {
 static inline void ks_mat3_mkscale(ks_mat3* out, const ks_vec3* v) {
     KS_ASSERT_NONNULL_ARGS(out && v);
     float* d = out->data;
-    ks_mat3_zeroinit(out);
+    ks_mat3_zeroes(out);
     d[0] = v->x;
     d[4] = v->y;
     d[8] = v->z;
@@ -1104,7 +1055,7 @@ static inline void ks_mat3_lookat(ks_mat3* out, const ks_vec2* eye, const ks_vec
 
     ks_vec2 r = KS_VEC2(f.y, -f.x);
 
-    ks_mat3_idinit(out);
+    ks_mat3_id(out);
     float* d = out->data;
 
     d[0] = r.x;
@@ -1120,7 +1071,7 @@ static inline void ks_mat3_lookat(ks_mat3* out, const ks_vec2* eye, const ks_vec
 
 static inline void ks_mat3_ortho(ks_mat3* out, float left, float right, float bottom, float top) {
     KS_ASSERT(out && KS_FNEQ(right, left, KS_FEPS_MATH) && KS_FNEQ(top, bottom, KS_FEPS_MATH), "Invalid bounds");
-    ks_mat3_idinit(out);
+    ks_mat3_id(out);
     float* d = out->data;
     float rl = right - left;
     float tb = top - bottom;
@@ -1200,7 +1151,7 @@ static inline void ks_mat4_invi(ks_mat4* m) {
 static inline void ks_mat4_mktransl(ks_mat4* out, const ks_vec3* v) {
     KS_ASSERT_NONNULL_ARGS(out && v);
     float* d = out->data;
-    ks_mat4_idinit(out);
+    ks_mat4_id(out);
     d[12] = v->x;
     d[13] = v->y;
     d[14] = v->z;
@@ -1219,7 +1170,7 @@ static inline void ks_mat4_transl(ks_mat4* m, const ks_vec3* v) {
 static inline void ks_mat4_mkrotx(ks_mat4* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
-    ks_mat4_zeroinit(out);
+    ks_mat4_zeroes(out);
 
     float* d = out->data;
     d[0] = 1.0f;
@@ -1233,7 +1184,7 @@ static inline void ks_mat4_mkrotx(ks_mat4* out, float angle) {
 static inline void ks_mat4_mkroty(ks_mat4* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
-    ks_mat4_zeroinit(out);
+    ks_mat4_zeroes(out);
 
     float* d = out->data;
     d[0] = c;
@@ -1247,7 +1198,7 @@ static inline void ks_mat4_mkroty(ks_mat4* out, float angle) {
 static inline void ks_mat4_mkrotz(ks_mat4* out, float angle) {
     KS_ASSERT_NONNULL_ARGS(out);
     float c = cosf(angle), s = sinf(angle);
-    ks_mat4_zeroinit(out);
+    ks_mat4_zeroes(out);
 
     float* d = out->data;
     d[0] = c;
@@ -1277,7 +1228,7 @@ static inline void ks_mat4_mkrot(ks_mat4* out, const ks_vec3* axis, float angle)
     float ys = y * s;
     float zs = z * s;
 
-    ks_mat4_idinit(out);
+    ks_mat4_id(out);
     float* d = out->data;
 
     d[0] = xx * t + c;
@@ -1392,7 +1343,7 @@ static inline void ks_mat4_rot(ks_mat4* m, const ks_vec3* axis, float angle) {
 static inline void ks_mat4_mkscale(ks_mat4* out, const ks_vec3* v) {
     KS_ASSERT_NONNULL_ARGS(out && v);
     float* d = out->data;
-    ks_mat4_zeroinit(out);
+    ks_mat4_zeroes(out);
     d[0] = v->x;
     d[5] = v->y;
     d[10] = v->z;
@@ -1429,7 +1380,7 @@ static inline void ks_mat4_lookat(ks_mat4* out, const ks_vec3* eye, const ks_vec
 
     ks_vec3_cross(&u, &s, &f);
 
-    ks_mat4_idinit(out);
+    ks_mat4_id(out);
     float* d = out->data;
     d[0] = s.x;
     d[4] = s.y;
@@ -1449,7 +1400,7 @@ static inline void ks_mat4_perspective(ks_mat4* out, float fovy_rad, float aspec
     KS_ASSERT(out && KS_FNZERO(aspect, KS_FEPS_MATH) && KS_FNEQ(farz, nearz, KS_FEPS_MATH), "Invalid bounds");
     float t = tanf(fovy_rad / 2.0f);
 
-    ks_mat4_zeroinit(out);
+    ks_mat4_zeroes(out);
     float* d = out->data;
     float fn = farz - nearz;
     d[0] = 1.0f / (aspect * t);
@@ -1464,7 +1415,7 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     KS_ASSERT(out && KS_FNEQ(left, right, KS_FEPS_MATH) && KS_FNEQ(bottom, top, KS_FEPS_MATH) &&
                   KS_FNEQ(farz, nearz, KS_FEPS_MATH),
               "Invalid bounds");
-    ks_mat4_idinit(out);
+    ks_mat4_id(out);
     float* d = out->data;
     float rl = right - left;
     float tb = top - bottom;
@@ -1477,50 +1428,75 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     d[14] = -(farz + nearz) / fn;
 }
 
+// Tensors
+
+KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const size_t* shape, const ks_allocator* a);
+KS_API void ks_tensor_fini(ks_tensor* t);
+
+KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src);
+KS_API ks_status ks_tensor_clone(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a);
+KS_API void ks_tensor_view(ks_tensor* dst, const ks_tensor* src);
+
+KS_API size_t ks_tensor_count(const ks_tensor* t);
+
+KS_API bool ks_tensor_is_contiguous(const ks_tensor* t);
+KS_API bool ks_tensor_same_shape(const ks_tensor* a, const ks_tensor* b);
+
+KS_API ks_status ks_tensor_contiguous(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a);
+KS_API ks_status ks_tensor_reshape(ks_tensor* t, int32_t new_ndims, const size_t* new_shape);
+
+KS_API void ks_tensor_transpose(ks_tensor* t, int32_t dim1, int32_t dim2);
+
+KS_API void ks_tensor_zeros(ks_tensor* t);
+
+KS_API void ks_tensor_fill(ks_tensor* t, float val);
+
+KS_API void ks_tensor_rand_uniform(ks_tensor* t, float min, float max);
+
+KS_API void ks_tensor_rand_normal(ks_tensor* t, float mean, float stddev);
+
+KS_API void ks_tensor_exp(ks_tensor* out, const ks_tensor* a);
+KS_API void ks_tensor_log(ks_tensor* out, const ks_tensor* a);
+KS_API void ks_tensor_abs(ks_tensor* out, const ks_tensor* a);
+
+KS_API void ks_tensor_relu(ks_tensor* out, const ks_tensor* a);
+KS_API void ks_tensor_sigmoid(ks_tensor* out, const ks_tensor* a);
+
+KS_API void ks_tensor_add(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_sub(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_mul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+
+KS_API float ks_tensor_sum_all(const ks_tensor* a);
+KS_API float ks_tensor_max_all(const ks_tensor* a);
+
+KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, size_t axis);
+KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, size_t axis);
+
+KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+
 // Euler
 
-static inline void ks_euler_zeroinit(ks_euler* out, ks_euler_order o) {
+static inline void ks_euler_zeroes(ks_euler* out, ks_euler_order o) {
     KS_ASSERT(out, "Null arguments");
     memset(out, 0, sizeof(float) * 3);
     out->order = o;
-}
-
-static inline ks_euler ks_euler_zeronew(ks_euler_order o) {
-    ks_euler e;
-    ks_euler_zeroinit(&e, o);
-    return e;
 }
 
 static inline void ks_euler_init(ks_euler* out, float x, float y, float z, ks_euler_order o) {
     *out = KS_EULER(x, y, z, o);
 }
 
-static inline ks_euler ks_euler_new(float x, float y, float z, ks_euler_order o) {
-    return KS_EULER(x, y, z, o);
-}
-
 // Quaternions
 
-static inline void ks_quat_zeroinit(ks_quat* q) {
+static inline void ks_quat_zeroes(ks_quat* q) {
     KS_ASSERT(q, "Null arguments");
     memset(q, 0, sizeof(ks_quat));
 }
 
-static inline ks_quat ks_quat_zeronew(void) {
-    ks_quat q;
-    ks_quat_zeroinit(&q);
-    return q;
-}
-
-static inline void ks_quat_idinit(ks_quat* q) {
-    ks_quat_zeroinit(q);
+static inline void ks_quat_id(ks_quat* q) {
+    ks_quat_zeroes(q);
     q->w = 1.0f;
-}
-
-static inline ks_quat ks_quat_idnew(void) {
-    ks_quat q;
-    ks_quat_idinit(&q);
-    return q;
 }
 
 static inline void ks_quat_add(ks_quat* out, const ks_quat* q1, const ks_quat* q2) {
@@ -1843,7 +1819,7 @@ static inline ks_quat ks_quat_from_euler(const ks_euler* e) {
 
 static inline void ks_quat_to_mat4(ks_mat4* out, const ks_quat* q) {
     KS_ASSERT_NONNULL_ARGS(out && q);
-    ks_mat4_idinit(out);
+    ks_mat4_id(out);
 
     float w = q->w, x = q->x, y = q->y, z = q->z;
     float x2 = x + x, y2 = y + y, z2 = z + z;
@@ -1951,6 +1927,8 @@ static inline double ks_integ_nd(ks_realf_nd f, int32_t dims, const double* min_
 
     double sum = 0.0;
     double pt[dims];
+
+    srand(time(NULL));
 
     for (int32_t s = 0; s < samples; ++s) {
         for (int32_t d = 0; d < dims; ++d) {
@@ -2280,9 +2258,416 @@ KS_API int fft(size_t n, double complex samples[static n]);
 #if defined(KS_MATH_IMPL) && !defined(KS_MATH_IMPL_DONE)
 #define KS_MATH_IMPL_DONE
 
-#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
-#error "kitsune: math.h requires core.h"
+#if !defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
+#error "kitsune: math.h requires mem.h"
 #endif
+
+/* Tensors */
+
+#define KS_TENSOR_VARS(t, prefix)                              \
+    size_t* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
+    size_t* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+    float* restrict KS_CONCAT2(prefix, data) = t->data
+
+#define KS_CONST_TENSOR_VARS(t, prefix)                              \
+    const size_t* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
+    const size_t* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+    const float* restrict KS_CONCAT2(prefix, data) = t->data
+
+static inline void ks_tensor_calc_strides(size_t* strides, int32_t length, const size_t* shape) {
+    strides[length - 1] = 1;
+
+    if (length <= 2) {
+        return;
+    }
+
+    for (int32_t i = length - 2; i >= 0; --i) {
+        strides[i] = strides[i + 1] * shape[i + 1];
+    }
+}
+
+static inline size_t ks_tensor_index(const ks_tensor* t, size_t logical_idx) {
+    size_t physical_idx = 0;
+    size_t temp_idx = logical_idx;
+
+    int32_t ndims = t->ndims;
+
+    KS_CONST_TENSOR_VARS(t, t);
+
+    for (int32_t i = ndims - 1; i >= 0; --i) {
+        size_t s = tshape[i];
+        size_t coord = temp_idx % s;
+        physical_idx += coord * tstrides[i];
+        temp_idx /= s;
+    }
+
+    return physical_idx;
+}
+
+KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const size_t* shape, const ks_allocator* a) {
+    KS_ASSERT_NONNULL_ARGS(t && shape);
+    KS_ASSERT(ndims >= 1 && ndims <= 8, "Number of dimensions out of range [1, 8]");
+
+    memcpy(t->shape, shape, sizeof(size_t) * (size_t)ndims);
+    ks_tensor_calc_strides(t->strides, ndims, shape);
+
+    size_t count = 1;
+    for (int32_t i = 0; i < ndims; ++i) {
+        count *= shape[i];
+    }
+
+    float* data = ks_alloc(a, sizeof(float) * count);
+    if (!data) {
+        return KS_STATUS(KS_ERR_OOM);
+    }
+
+    t->allocator = a ? a : &std_allocator;
+    t->ndims = ndims;
+    t->data = data;
+
+    return KS_STATUS(KS_OK);
+}
+
+KS_API void ks_tensor_fini(ks_tensor* t) {
+    // NULL allocator means the tensor is a view
+    if (!t || !t->allocator) {
+        return;
+    }
+
+    ks_free(t->allocator, t->data);
+}
+
+KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+    KS_ASSERT(dst->ndims == src->ndims, "Tensor dimensions mismatch");
+    KS_ASSERT(dst->data && src->data, "Tensors must have allocated buffer");
+
+    int32_t ndims = dst->ndims;
+    KS_TENSOR_VARS(dst, d);
+    KS_CONST_TENSOR_VARS(src, s);
+
+    size_t count = 1;
+    for (int32_t i = 0; i < ndims; ++i) {
+        size_t s = sshape[i];
+        KS_ASSERT(dshape[i] == s, "Tensor shapes mismatch");
+        count *= s;
+    }
+
+    bool dcont = ks_tensor_is_contiguous(dst);
+    bool scont = ks_tensor_is_contiguous(src);
+
+    if (dcont && scont) {
+        memcpy(ddata, sdata, sizeof(float) * count);
+        return;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        size_t dsti = dcont ? i : ks_tensor_index(dst, i);
+        size_t srci = scont ? i : ks_tensor_index(src, i);
+        ddata[dsti] = sdata[srci];
+    }
+}
+
+KS_API ks_status ks_tensor_clone(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
+    if (status.code != KS_OK) {
+        return status;
+    }
+    ks_tensor_copy(dst, src);
+    return KS_STATUS(KS_OK);
+}
+
+KS_API void ks_tensor_view(ks_tensor* dst, const ks_tensor* src) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+    *dst = *src;
+    dst->allocator = NULL;
+}
+
+KS_API size_t ks_tensor_count(const ks_tensor* t) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensor is not initialized");
+
+    int32_t ndims = t->ndims;
+    if (ndims == 0) {
+        return 0;
+    }
+
+    const size_t* shape = t->shape;
+    size_t count = 1;
+    for (int32_t i = 0; i < ndims; ++i) {
+        count *= shape[i];
+    }
+
+    return count;
+}
+
+KS_API bool ks_tensor_is_contiguous(const ks_tensor* t) {
+    KS_ASSERT_NONNULL_ARGS(t);
+
+    size_t expected_stride = 1;
+    int32_t n = t->ndims - 1;
+    const size_t* restrict shape = t->shape;
+    const size_t* restrict strides = t->strides;
+
+    for (int32_t i = n; i >= 0; --i) {
+        if (strides[i] != expected_stride) {
+            return false;
+        }
+
+        expected_stride *= shape[i];
+    }
+
+    return true;
+}
+
+KS_API bool ks_tensor_same_shape(const ks_tensor* a, const ks_tensor* b) {
+    KS_ASSERT_NONNULL_ARGS(a && b);
+
+    int32_t na = a->ndims;
+    int32_t nb = b->ndims;
+
+    if (na != nb) {
+        return false;
+    }
+
+    for (int32_t i = 0; i < na; ++i) {
+        if (a->shape[i] != b->shape[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+KS_API ks_status ks_tensor_contiguous(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+
+    if (ks_tensor_is_contiguous(src)) {
+        ks_tensor_view(dst, src);
+        return KS_STATUS(KS_OK);
+    }
+
+    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
+    if (status.code != KS_OK) {
+        return status;
+    }
+
+    ks_tensor_copy(dst, src);
+    return KS_STATUS(KS_OK);
+}
+
+KS_API ks_status ks_tensor_reshape(ks_tensor* t, int32_t new_ndims, const size_t* new_shape) {
+    KS_ASSERT_NONNULL_ARGS(t && new_shape);
+    KS_ASSERT(new_ndims >= 1 && new_ndims <= 8, "Number of dimensions out of range [1, 8]");
+
+    if (!ks_tensor_is_contiguous(t)) {
+        return KS_STATUS(KS_ERR_INVALID, "Tensor is not contiguous");
+    }
+
+    size_t new_count = 1;
+    for (int32_t i = 0; i < new_ndims; ++i) {
+        new_count *= new_shape[i];
+    }
+
+    if (ks_tensor_count(t) != new_count) {
+        return KS_STATUS(KS_ERR_INVALID, "Shape mismatch");
+    }
+
+    memcpy(t->shape, new_shape, sizeof(size_t) * (size_t)new_ndims);
+    ks_tensor_calc_strides(t->strides, new_ndims, new_shape);
+    t->ndims = new_ndims;
+
+    return KS_STATUS(KS_OK);
+}
+
+KS_API void ks_tensor_transpose(ks_tensor* t, int32_t dim1, int32_t dim2) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(dim1 >= 0 && dim2 >= 0, "Dimension indices must be non-negative");
+    KS_ASSERT(dim1 <= t->ndims && dim2 <= t->ndims,
+              "Dimension indices must be less then the tensor's number of dimensions");
+
+    KS_SWAP(t->shape[dim1], t->shape[dim2]);
+    ks_tensor_calc_strides(t->strides, t->ndims, t->shape);
+}
+
+KS_API void ks_tensor_zeros(ks_tensor* t) {
+    KS_ASSERT_NONNULL_ARGS(t && t->data);
+
+    size_t count = ks_tensor_count(t);
+    float* restrict data = t->data;
+    bool cont = ks_tensor_is_contiguous(t);
+
+    if (cont) {
+        memset(data, 0, sizeof(float) * count);
+        return;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        size_t i = ks_tensor_index(t, i);
+        data[i] = 0.0f;
+    }
+}
+
+KS_API void ks_tensor_fill(ks_tensor* t, float val) {
+    KS_ASSERT_NONNULL_ARGS(t && t->data);
+
+    size_t count = ks_tensor_count(t);
+    float* restrict data = t->data;
+    bool cont = ks_tensor_is_contiguous(t);
+
+    if (cont) {
+        if (KS_FEQ(val, 0.0f, KS_FEPS_MATH)) {
+            memset(data, 0, sizeof(float) * count);
+            return;
+        }
+
+        KS_SIMD_HINT for (size_t i = 0; i < count; ++i) {
+            data[i] = val;
+        }
+
+        return;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        size_t i = ks_tensor_index(t, i);
+        data[i] = val;
+    }
+}
+
+KS_API void ks_tensor_rand_uniform(ks_tensor* t, float min, float max) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(KS_FLESSEQ(min, max, KS_FEPS_MATH), "Min is greater than max");
+
+    size_t count = ks_tensor_count(t);
+    float* restrict data = t->data;
+    bool cont = ks_tensor_is_contiguous(t);
+
+    if (cont) {
+        if (KS_FEQ(min, 0.0f, KS_FEPS_MATH) && KS_FEQ(max, 0.0f, KS_FEPS_MATH)) {
+            memset(data, 0, sizeof(float) * count);
+            return;
+        }
+
+        if (KS_FEQ(min, max, KS_FEPS_MATH)) {
+            KS_SIMD_HINT for (size_t i = 0; i < count; ++i) {
+                data[i] = min;
+            }
+            return;
+        }
+
+        srand(time(NULL));
+        const float dist = max - min;
+        for (size_t i = 0; i < count; ++i) {
+            data[i] = rand() / RAND_MAX * dist + min;
+        }
+
+        return;
+    }
+
+    srand(time(NULL));
+    const float dist = max - min;
+    for (size_t i = 0; i < count; ++i) {
+        size_t i = ks_tensor_index(t, i);
+        data[i] = rand() / RAND_MAX * dist + min;
+    }
+}
+
+KS_API void ks_tensor_rand_normal(ks_tensor* t, float mean, float stddev) {
+    KS_ASSERT_NONNULL_ARGS(t);
+
+    size_t count = ks_tensor_count(t);
+    float* restrict data = t->data;
+    bool cont = ks_tensor_is_contiguous(t);
+
+    if (cont) {
+        if (KS_FEQ(mean, 0.0f, KS_FEPS_MATH) && KS_FEQ(stddev, 0.0f, KS_FEPS_MATH)) {
+            memset(data, 0, sizeof(float) * count);
+            return;
+        }
+
+        srand(time(NULL));
+        for (size_t i = 0; i < count; ++i) {
+            float a = rand() / RAND_MAX;
+            float b = rand() / RAND_MAX;
+            float r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
+            data[i] = r * stddev + mean;
+        }
+
+        return;
+    }
+
+    srand(time(NULL));
+    for (size_t i = 0; i < count; ++i) {
+        size_t i = ks_tensor_index(t, i);
+        float a = rand() / RAND_MAX;
+        float b = rand() / RAND_MAX;
+        float r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
+        data[i] = r * stddev + mean;
+    }
+}
+
+KS_API void ks_tensor_exp(ks_tensor* out, const ks_tensor* a) {
+    KS_ASSERT_NONNULL_ARGS(out && a);
+    KS_ASSERT(ks_tensor_same_shape(out, a), "Tensors have different shapes");
+
+    size_t count = ks_tensor_count(out);
+    bool c1 = ks_tensor_is_contiguous(out);
+    bool c2 = ks_tensor_is_contiguous(a);
+    float* restrict d1 = out->data;
+    const float* restrict d2 = a->data;
+
+    if (c1) {
+        if (c2) {
+            for (size_t i = 0; i < count; ++i) {
+                d1[i] = expf(d2[i]);
+            }
+
+            return;
+        }
+
+        for (size_t i = 0; i < count; ++i) {
+            size_t j = ks_tensor_index(a, i);
+            d1[i] = expf(d2[j]);
+        }
+
+        return;
+    }
+
+    if (c2) {
+        for (size_t i = 0; i < count; ++i) {
+            size_t j = ks_tensor_index(out, i);
+            d1[j] = expf(d2[i]);
+        }
+
+        return;
+    }
+
+    for (size_t i = 0; i < count; ++i) {
+        size_t j = ks_tensor_index(out, i);
+        size_t k = ks_tensor_index(a, i);
+        d1[j] = expf(d2[k]);
+    }
+}
+
+KS_API void ks_tensor_log(ks_tensor* out, const ks_tensor* a);
+KS_API void ks_tensor_abs(ks_tensor* out, const ks_tensor* a);
+
+KS_API void ks_tensor_relu(ks_tensor* out, const ks_tensor* a);
+KS_API void ks_tensor_sigmoid(ks_tensor* out, const ks_tensor* a);
+
+KS_API void ks_tensor_add(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_sub(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_mul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+
+KS_API float ks_tensor_sum_all(const ks_tensor* a);
+KS_API float ks_tensor_max_all(const ks_tensor* a);
+
+KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, size_t axis);
+KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, size_t axis);
+
+KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
 /* Fields */
 

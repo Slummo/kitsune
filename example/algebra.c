@@ -1,7 +1,5 @@
-#define KS_CORE_IMPL
-#define KS_MATH_IMPL
+#define KS_MEM_IMPL
 
-#include <ks/core.h>
 #include <ks/math.h>
 
 int main(void) {
@@ -13,8 +11,10 @@ int main(void) {
 
     ks_print(KS_VEC3_FMT " with length=%f\n", KS_VEC3_ARGS(v3), ks_vec3_length(&v3));
 
-    ks_mat3 m1 = ks_mat3_idnew();
-    ks_mat3 m2 = ks_mat3_idnew();
+    ks_mat3 m1;
+    ks_mat3_id(&m1);
+    ks_mat3 m2;
+    ks_mat3_id(&m2);
     ks_mat3_smuli(&m1, 0.5f);
     ks_mat3_addi(&m2, &m1);
     ks_mat3_set(&m2, 2, 0, 5.0f);

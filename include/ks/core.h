@@ -25,6 +25,8 @@
 #endif
 
 /* Concatenation */
+
+#define KS_EXPAND(x) x
 #define _KS_CONCAT2(a, b) a##b
 #define KS_CONCAT2(a, b) _KS_CONCAT2(a, b)
 #define KS_CONCAT3(a, b, c) KS_CONCAT2(KS_CONCAT2(a, b), c)
@@ -90,7 +92,9 @@
 #define KS_ALIAS(oldT, newT) typedef oldT newT
 #define KS_USING(T, usingT) typedef T usingT
 
-/* Platform and compiler detection */
+/* Platform, language and compiler detection */
+
+// Platform
 
 #if defined(__linux__)
 #define KS_PLATFORM_LINUX 1
@@ -108,33 +112,87 @@
 #error "Unsupported operating system"
 #endif
 
-#if defined(__GNUC__) || defined(__GNUG__)
-#define KS_COMPILER_GCC 1
-#define KS_COMPILER_CLANG 0
-#define KS_COMPILER_MSVC 0
-#define KS_COMPILER_UNKNOWN 0
-#define KS_COMPILER_NAME "GCC"
-#elif defined(__clang__)
-#define KS_COMPILER_GCC 0
-#define KS_COMPILER_CLANG 1
-#define KS_COMPILER_MSVC 0
-#define KS_COMPILER_UNKNOWN 0
-#define KS_COMPILER_NAME "Clang"
-#elif defined(_MSC_VER)
-#define KS_COMPILER_GCC 0
-#define KS_COMPILER_CLANG 0
-#define KS_COMPILER_MSVC 1
-#define KS_COMPILER_UNKNOWN 0
-#define KS_COMPILER_NAME "MSVC"
+#if KS_PLATFORM_WINDOWS
+#define KS_PLATFORM_NAME "Windows"
+#elif KS_PLATFORM_MACOS
+#define KS_PLATFORM_NAME "macOS"
+#elif KS_PLATFORM_LINUX
+#define KS_PLATFORM_NAME "Linux"
 #else
-#define KS_COMPILER_GCC 0
-#define KS_COMPILER_CLANG 0
-#define KS_COMPILER_MSVC 0
-#define KS_COMPILER_UNKNOWN 1
-#define KS_COMPILER_NAME "Unknown"
+#define KS_PLATFORM_NAME "Unknown OS"
 #endif
 
-/* Shader library import/export */
+// Language
+
+#if defined(__cplusplus)
+#define KS_LANGUAGE_CXX 1
+#define KS_LANGUAGE_C 0
+#define KS_CXX_VERSION __cplusplus
+#define KS_C_VERSION 0
+#else
+#define KS_LANGUAGE_CXX 0
+#define KS_LANGUAGE_C 1
+#define KS_CXX_VERSION 0
+#if defined(__STDC_VERSION__)
+#define KS_C_VERSION __STDC_VERSION__
+#else
+#define KS_C_VERSION 198900L  // C89/C90 fallback
+#endif
+#endif
+
+#if KS_LANGUAGE_CXX
+#define KS_EXTERN_C_BEGIN extern "C" {
+#define KS_EXTERN_C_END }
+#else
+#define KS_EXTERN_C_BEGIN
+#define KS_EXTERN_C_END
+#endif
+
+#if KS_LANGUAGE_CXX
+#define KS_LANGUAGE_NAME "C++"
+#define KS_LANGUAGE_STD KS_CXX_VERSION
+#else
+#define KS_LANGUAGE_NAME "C"
+#define KS_LANGUAGE_STD KS_C_VERSION
+#endif
+
+// Compiler and version
+
+#if defined(__clang__)
+#define KS_COMPILER_CLANG 1
+#define KS_COMPILER_GCC 0
+#define KS_COMPILER_MSVC 0
+#define KS_COMPILER_NAME "Clang"
+#define KS_COMPILER_VERSION_MAJOR __clang_major__
+#define KS_COMPILER_VERSION_MINOR __clang_minor__
+#define KS_COMPILER_VERSION_PATCH __clang_patchlevel__
+#elif defined(__GNUC__) || defined(__GNUG__)
+#define KS_COMPILER_CLANG 0
+#define KS_COMPILER_GCC 1
+#define KS_COMPILER_MSVC 0
+#define KS_COMPILER_NAME "GCC"
+#define KS_COMPILER_VERSION_MAJOR __GNUC__
+#define KS_COMPILER_VERSION_MINOR __GNUC_MINOR__
+#define KS_COMPILER_VERSION_PATCH __GNUC_PATCHLEVEL__
+#elif defined(_MSC_VER)
+#define KS_COMPILER_CLANG 0
+#define KS_COMPILER_GCC 0
+#define KS_COMPILER_MSVC 1
+#define KS_COMPILER_NAME "MSVC"
+#define KS_COMPILER_VERSION_MAJOR (_MSC_VER / 100)
+#define KS_COMPILER_VERSION_MINOR (_MSC_VER % 100)
+#define KS_COMPILER_VERSION_PATCH 0
+#else
+#define KS_COMPILER_CLANG 0
+#define KS_COMPILER_GCC 0
+#define KS_COMPILER_MSVC 0
+#define KS_COMPILER_NAME "Unknown"
+#define KS_COMPILER_VERSION_MAJOR 0
+#define KS_COMPILER_VERSION_MINOR 0
+#define KS_COMPILER_VERSION_PATCH 0
+#endif
+
+/* Shared library import/export */
 
 #if KS_PLATFORM_WINDOWS
 #if defined(KS_EXPORT_SHARED)
@@ -152,10 +210,12 @@
 #endif
 #endif
 
-/* Thread local storage */
+/* TLS Thread-local storage */
 
 #ifndef KS_THREAD_LOCAL
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#if KS_LANGUAGE_CXX && KS_CXX_VERSION >= 201103L
+#define KS_THREAD_LOCAL thread_local
+#elif KS_LANGUAGE_C && KS_C_VERSION >= 201112L && !defined(__STDC_NO_THREADS__)
 #define KS_THREAD_LOCAL _Thread_local
 #elif KS_COMPILER_GCC || KS_COMPILER_CLANG
 #define KS_THREAD_LOCAL __thread
@@ -163,6 +223,36 @@
 #define KS_THREAD_LOCAL __declspec(thread)
 #else
 #error "Your compiler does not support thread-local storage"
+#endif
+#endif
+
+/* Atomics */
+
+#ifndef KS_ATOMIC_H
+#define KS_ATOMIC_H
+
+#if KS_LANGUAGE_CXX && KS_CXX_VERSION >= 201103L
+#include <atomic>
+#define KS_ATOMIC_INT std::atomic<int>
+#define KS_ATOMIC_LOAD(ptr) (ptr)->load(std::memory_order_relaxed)
+#define KS_ATOMIC_STORE(ptr, val) (ptr)->store((val), std::memory_order_relaxed)
+#elif KS_LANGUAGE_C && KS_C_VERSION >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#include <stdatomic.h>
+#define KS_ATOMIC_INT _Atomic int
+#define KS_ATOMIC_LOAD(ptr) atomic_load_explicit((ptr), memory_order_relaxed)
+#define KS_ATOMIC_STORE(ptr, val) atomic_store_explicit((ptr), (val), memory_order_relaxed)
+#elif KS_COMPILER_GCC || KS_COMPILER_CLANG
+#define KS_ATOMIC_INT volatile int
+#define KS_ATOMIC_LOAD(ptr) __atomic_load_n((ptr), __ATOMIC_RELAXED)
+#define KS_ATOMIC_STORE(ptr, val) __atomic_store_n((ptr), (val), __ATOMIC_RELAXED)
+#elif KS_COMPILER_MSVC
+#define KS_ATOMIC_INT volatile long
+long _InterlockedExchange(long volatile* Target, long Value);
+#pragma intrinsic(_InterlockedExchange)
+#define KS_ATOMIC_LOAD(ptr) (*(ptr))
+#define KS_ATOMIC_STORE(ptr, val) _InterlockedExchange((long volatile*)(ptr), (long)(val))
+#else
+#error "Compiler does not support atomics!"
 #endif
 #endif
 
@@ -351,7 +441,7 @@
 #define KS_FGREATER(a, b, eps) ((a) > ((b) + (eps)))
 #define KS_FGREATEREQ(a, b, eps) ((a) >= ((b) - (eps)))
 
-// Double epsiloms
+// Double epsilons
 
 #define KS_DEPS_MACHINE DBL_EPSILON
 #define KS_DEPS_MATH 1e-10
@@ -378,14 +468,60 @@
 #define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((intptr_t)(ptr1) - (intptr_t)(ptr2)))
 #define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((uintptr_t)(ptr1) - (uintptr_t)(ptr2)))
 
+/* Return codes and status */
+
+KS_ENUM(code, {KS_OK = 0, KS_ERR_GENERIC = -1, KS_ERR_INVALID = -2, KS_ERR_OOM = -3, KS_ERR_NOT_FOUND = -4,
+               KS_ERR_DUPLICATE = -5, KS_ERR_EMPTY = -6, KS_ERR_FULL = -7, KS_ERR_BOUNDS = -8});
+
+KS_STRUCT(status, {
+    ks_code code;
+    const char* msg;
+});
+
+#define _ks_status_1(code) ((ks_status){code, ""})
+#define _ks_status_2(code, msg) ((ks_status){code, msg})
+
+#define _KS_STATUS_GET_MACRO(_1, _2, NAME, ...) NAME
+
+#define KS_STATUS(...) KS_EXPAND(_KS_STATUS_GET_MACRO(__VA_ARGS__, _ks_status_2, _ks_status_1)(__VA_ARGS__))
+
+KS_EXTERN_C_BEGIN
+
+KS_API const char* ks_code_to_str(ks_code code);
+KS_API const char* ks_status_to_str(ks_status status);
+
+KS_EXTERN_C_END
+
+static inline void ks_status_fmt(ks_status status, char* out_buf, size_t buf_size) {
+    if (!out_buf || buf_size == 0) {
+        return;
+    }
+
+    const char* code_str = ks_code_to_str(status.code);
+
+    if (status.msg && status.msg[0] != '\0') {
+        snprintf(out_buf, buf_size, "%s: %s", code_str, status.msg);
+    } else {
+        snprintf(out_buf, buf_size, "%s", code_str);
+    }
+}
+
 /* Logging */
 
-#define KSERR 0
-#define KSWARN 1
-#define KSINFO 2
-#define KSDEBUG 3
+KS_ENUM(log_level_enum, {
+                            KSERR = 0,
+                            KSWARN = 1,
+                            KSINFO = 2,
+                            KSDEBUG = 3,
+                        });
 
-KS_API extern int ks_log_level;
+KS_EXTERN_C_BEGIN
+
+KS_API extern KS_ATOMIC_INT ks_log_level;
+KS_API void ks_log_init(void);
+KS_API void ks_log_impl(int type, const char* file, int line, const char* fmt, ...);
+
+KS_EXTERN_C_END
 
 /**
  * @brief Print a message to stdout
@@ -397,47 +533,65 @@ KS_API extern int ks_log_level;
  * @brief Print a message and eventually errno to stderr
  *
  */
-#define KS_PRINT_ERR(fmt, ...)               \
-    do {                                     \
-        fprintf(stderr, fmt, ##__VA_ARGS__); \
-        if (errno) {                         \
-            perror(". ERR");                 \
-            errno = 0;                       \
-        } else {                             \
-            fprintf(stderr, "\n");           \
-        }                                    \
+#define KS_PRINT_ERR(fmt, ...)                              \
+    do {                                                    \
+        int _err = errno;                                   \
+        fprintf(stderr, fmt, ##__VA_ARGS__);                \
+        if (_err) {                                         \
+            fprintf(stderr, ". ERR: %s\n", strerror(_err)); \
+        } else {                                            \
+            fprintf(stderr, "\n");                          \
+        }                                                   \
+        errno = _err;                                       \
     } while (0)
 
-static inline void ks_log_init(void) {
-    char* env = getenv("KSLOGLVL");
-    if (env) {
-        ks_log_level = strtol(env, NULL, 10);
-    }
-}
-
-#define ks_log(type, fmt, ...)                                                          \
-    do {                                                                                \
-        if (ks_log_level >= type) {                                                     \
-            switch (type) {                                                             \
-                case KSERR:                                                             \
-                    KS_PRINT_ERR("{-}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
-                    break;                                                              \
-                case KSWARN:                                                            \
-                    KS_PRINT_OUT("{~}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
-                    break;                                                              \
-                case KSINFO:                                                            \
-                    KS_PRINT_OUT("{+}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
-                    break;                                                              \
-                case KSDEBUG:                                                           \
-                    KS_PRINT_OUT("{*}[%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
-                    break;                                                              \
-                default:                                                                \
-                    break;                                                              \
-            }                                                                           \
-        }                                                                               \
+#define ks_log(type, fmt, ...)                                             \
+    do {                                                                   \
+        if (KS_ATOMIC_LOAD(&ks_log_level) >= (type)) {                     \
+            ks_log_impl((type), __FILE__, __LINE__, (fmt), ##__VA_ARGS__); \
+        }                                                                  \
     } while (0)
+
+#define _ks_log_stat_1(stat)                                                                      \
+    do {                                                                                          \
+        ks_status _s = (stat);                                                                    \
+        int _lvl = (_s.code == KS_OK) ? KSINFO : KSERR;                                           \
+        if (KS_ATOMIC_LOAD(&ks_log_level) >= _lvl) {                                              \
+            if (_s.msg && _s.msg[0] != '\0') {                                                    \
+                ks_log_impl(_lvl, __FILE__, __LINE__, "%s: %s", ks_code_to_str(_s.code), _s.msg); \
+            } else {                                                                              \
+                ks_log_impl(_lvl, __FILE__, __LINE__, "%s", ks_code_to_str(_s.code));             \
+            }                                                                                     \
+        }                                                                                         \
+    } while (0)
+#define _ks_log_stat_2(stat, msg)                                                                             \
+    do {                                                                                                      \
+        ks_status _s = (stat);                                                                                \
+        int _lvl = (_s.code == KS_OK) ? KSINFO : KSERR;                                                       \
+        if (KS_ATOMIC_LOAD(&ks_log_level) >= _lvl) {                                                          \
+            if (_s.msg && _s.msg[0] != '\0') {                                                                \
+                ks_log_impl(_lvl, __FILE__, __LINE__, "%s - %s: %s", (msg), ks_code_to_str(_s.code), _s.msg); \
+            } else {                                                                                          \
+                ks_log_impl(_lvl, __FILE__, __LINE__, "%s - %s", (msg), ks_code_to_str(_s.code));             \
+            }                                                                                                 \
+        }                                                                                                     \
+    } while (0)
+
+#define _KS_LOG_STAT_GET_MACRO(_1, _2, NAME, ...) NAME
+
+#define ks_log_stat(...) KS_EXPAND(_KS_LOG_STAT_GET_MACRO(__VA_ARGS__, _ks_log_stat_2, _ks_log_stat_1)(__VA_ARGS__))
 
 #define ks_print(fmt, ...) KS_PRINT_OUT(fmt, ##__VA_ARGS__)
+
+#define ks_print_sys_info()                                                                                          \
+    do {                                                                                                             \
+        ks_print("==============================");                                                                  \
+        ks_print("OS:       %s", KS_PLATFORM_NAME);                                                                  \
+        ks_print("Compiler: %s (v%d.%d.%d)", KS_COMPILER_NAME, KS_COMPILER_VERSION_MAJOR, KS_COMPILER_VERSION_MINOR, \
+                 KS_COMPILER_VERSION_PATCH);                                                                         \
+        ks_print("Language: %s (Standard: %ld)", KS_LANGUAGE_NAME, (long)KS_LANGUAGE_STD);                           \
+        ks_print("==============================");                                                                  \
+    } while (0)
 
 /* Debug and assert */
 
@@ -476,7 +630,7 @@ static inline void ks_log_init(void) {
 
 #define KS_ASSERT_NONNULL_ARGS(x) KS_ASSERT(x, "Null arguments");
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#if KS_C_VERSION >= 201112L
 // ISO C11
 #define KS_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
 #else
@@ -484,36 +638,6 @@ static inline void ks_log_init(void) {
 // forcing a compile error
 #define KS_STATIC_ASSERT(cond, msg) typedef char KS_CONCAT(static_assertion_failed_, __LINE__)[(cond) ? 1 : -1]
 #endif
-
-/* Return codes */
-
-KS_ENUM(code, {KS_OK = 0, KS_ERR_GENERIC = -1, KS_ERR_INVALID = -2, KS_ERR_OOM = -3, KS_ERR_NOT_FOUND = -4,
-               KS_ERR_DUPLICATE = -5, KS_ERR_EMPTY = -6, KS_ERR_FULL = -7, KS_ERR_BOUNDS = -8});
-
-static inline const char* ks_res_str(int res) {
-    switch (res) {
-        case KS_OK:
-            return "Success";
-        case KS_ERR_GENERIC:
-            return "Generic error";
-        case KS_ERR_INVALID:
-            return "Invalid argument";
-        case KS_ERR_OOM:
-            return "Out of memory";
-        case KS_ERR_NOT_FOUND:
-            return "Not found";
-        case KS_ERR_DUPLICATE:
-            return "Duplicate entry";
-        case KS_ERR_EMPTY:
-            return "Container empty";
-        case KS_ERR_FULL:
-            return "Container full";
-        case KS_ERR_BOUNDS:
-            return "Index out of bounds";
-        default:
-            return "Unknown error";
-    }
-}
 
 /* Bit manipulation */
 
@@ -676,9 +800,13 @@ static KS_FORCE_INLINE uint64_t KS_BSWAP64(uint64_t x) {
                                                                                    \
     KS_UNUSED static inline T _KS_OPT_FN(unwrap, T)(_KS_OPT(T) * self) {           \
         KS_ASSERT(self, "self is NULL");                                           \
-        KS_ASSERT(_KS_OPT_FN(is_some, T)(self), "self is NONE");                   \
+        KS_ASSERT(_KS_OPT_FN(is_some, T)(self), "self is None");                   \
         return self->value;                                                        \
     }
+
+#define ks_opt(T) _KS_OPT(T)
+#define ks_opt_is_some(ptr) ((ptr)->has_value)
+#define ks_opt_is_none(ptr) (!(ptr)->has_value)
 
 /* Result */
 
@@ -725,11 +853,80 @@ static KS_FORCE_INLINE uint64_t KS_BSWAP64(uint64_t x) {
         return self->err;                                                                         \
     }
 
+#define ks_res(ok_t, err_t) _KS_RES(ok_t, err_t)
+#define ks_res_is_ok(ptr) ((ptr)->is_ok)
+#define ks_res_is_err(ptr) (!(ptr)->is_ok)
+#define ks_res_get_ok(ptr) ((ptr)->ok)
+#define ks_res_get_err(ptr) ((ptr)->err)
+
 #endif  // KS_CORE_H
 
 #if defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
 #define KS_CORE_IMPL_DONE
 
-KS_API int ks_log_level = KSINFO;
+KS_API const char* ks_code_to_str(ks_code code) {
+    switch (code) {
+        case KS_OK:
+            return "Success";
+        case KS_ERR_GENERIC:
+            return "Generic error";
+        case KS_ERR_INVALID:
+            return "Invalid argument";
+        case KS_ERR_OOM:
+            return "Out of memory";
+        case KS_ERR_NOT_FOUND:
+            return "Not found";
+        case KS_ERR_DUPLICATE:
+            return "Duplicate entry";
+        case KS_ERR_EMPTY:
+            return "Container empty";
+        case KS_ERR_FULL:
+            return "Container full";
+        case KS_ERR_BOUNDS:
+            return "Index out of bounds";
+        default:
+            return "Unknown error";
+    }
+}
+
+KS_API const char* ks_status_to_str(ks_status status) {
+    static KS_THREAD_LOCAL char buffer[256];
+    ks_status_fmt(status, buffer, sizeof(buffer));
+    return buffer;
+}
+
+KS_API KS_ATOMIC_INT ks_log_level = KSINFO;
+
+void ks_log_init(void) {
+    char* env = getenv("KSLOGLVL");
+    if (env) {
+        KS_ATOMIC_STORE(&ks_log_level, (int)strtol(env, NULL, 10));
+    }
+}
+
+void ks_log_impl(int type, const char* file, int line, const char* fmt, ...) {
+    static const char* prefixes[] = {
+        "{-}",  // KSERR
+        "{~}",  // KSWARN
+        "{+}",  // KSINFO
+        "{*}"   // KSDEBUG
+    };
+
+    FILE* stream = (type == KSERR) ? stderr : stdout;
+    const char* prefix = (type >= 0 && type <= 3) ? prefixes[type] : "{?}";
+
+    fprintf(stream, "%s[%s:%d] ", prefix, file, line);
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stream, fmt, args);
+    va_end(args);
+
+    fprintf(stream, "\n");
+
+    if (type == KSERR) {
+        fflush(stream);
+    }
+}
 
 #endif  // KS_CORE_IMPL

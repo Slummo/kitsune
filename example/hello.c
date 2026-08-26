@@ -4,5 +4,6 @@
 
 int main(void) {
     ks_print("Hello World!");
+    ks_print_sys_info();
     return EXIT_SUCCESS;
 }

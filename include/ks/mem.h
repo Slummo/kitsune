@@ -27,26 +27,43 @@ KS_STRUCT(allocator, {
 
 KS_API extern const ks_allocator std_allocator;
 
-static inline void* ks_alloc(ks_allocator a, size_t size) {
-    return a.alloc(a.ctx, size);
+static inline void* ks_alloc(const ks_allocator* a, size_t size) {
+    return a ? a->alloc(a->ctx, size) : std_allocator.alloc(std_allocator.ctx, size);
 }
 
-static inline void* ks_calloc(ks_allocator a, size_t n, size_t size) {
-    return a.calloc(a.ctx, n, size);
+static inline void* ks_calloc(const ks_allocator* a, size_t n, size_t size) {
+    return a ? a->calloc(a->ctx, n, size) : std_allocator.calloc(std_allocator.ctx, n, size);
 }
 
-static inline void* ks_realloc(ks_allocator a, void* ptr, size_t oldsize, size_t newsize) {
-    return a.realloc(a.ctx, ptr, oldsize, newsize);
+static inline void* ks_realloc(const ks_allocator* a, void* ptr, size_t oldsize, size_t newsize) {
+    return a ? a->realloc(a->ctx, ptr, oldsize, newsize)
+             : std_allocator.realloc(std_allocator.ctx, ptr, oldsize, newsize);
 }
 
-static inline void ks_free(ks_allocator a, void* ptr) {
-    return a.free(a.ctx, ptr);
+static inline void ks_free(const ks_allocator* a, void* ptr) {
+    return a ? a->free(a->ctx, ptr) : std_allocator.free(std_allocator.ctx, ptr);
 }
 
 #define KS_ALLOC_ONE(alloc, type) ((type*)ks_alloc(alloc, sizeof(type)))
+#define KS_ALLOC_ARR(alloc, type, count) ((type*)ks_alloc(alloc, sizeof(type) * (size_t)(count)))
 #define KS_CALLOC_ONE(alloc, type) ((type*)ks_calloc(alloc, 1, sizeof(type)))
-#define KS_ALLOC_ARR(alloc, type, count) ((type*)ks_alloc(alloc, sizeof(type) * (count)))
-#define KS_CALLOC_ARR(alloc, type, count) ((type*)ks_alloc(alloc, count, sizeof(type)))
+#define KS_CALLOC_ARR(alloc, type, count) ((type*)ks_calloc(alloc, (size_t)count, sizeof(type)))
+
+static inline void ks_ptr_copy(void* dest, const void* src, size_t size) {
+    KS_ASSERT_NONNULL_ARGS(dest && src);
+    memcpy(dest, src, size);
+}
+
+static inline void* ks_ptr_clone(const ks_allocator* a, const void* src, size_t size) {
+    KS_ASSERT_NONNULL_ARGS(src);
+
+    void* clone = ks_alloc(a, size);
+    if (clone) {
+        ks_ptr_copy(clone, src, size);
+    }
+
+    return clone;
+}
 
 /* Arena allocator */
 
@@ -65,9 +82,9 @@ KS_API ks_allocator ks_arena_allocator(ks_arena* arena);
 #if defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
 #define KS_MEM_IMPL_DONE
 
-#if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
-#error "kitsune: mem.h requires core.h"
-#endif
+// #if !defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
+// #error "kitsune: mem.h requires core.h"
+// #endif
 
 /* Standard allocator */
 

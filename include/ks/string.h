@@ -133,12 +133,12 @@ static inline bool ks_str_is_empty(ks_str s) {
 
 static KS_THREAD_LOCAL ks_allocator g_string_allocator = {0};
 
-static inline ks_allocator get_allocator(void) {
+static inline const ks_allocator* get_allocator(void) {
     if (!g_string_allocator.alloc) {
-        return std_allocator;
+        return &std_allocator;
     }
 
-    return g_string_allocator;
+    return &g_string_allocator;
 }
 
 KS_API void ks_string_set_allocator(ks_allocator allocator) {

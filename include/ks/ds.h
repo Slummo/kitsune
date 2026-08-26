@@ -47,6 +47,14 @@
         size_t cap;              \
     })
 
+#define KS_DA_UNNAMED(T)         \
+    struct {                     \
+        ks_allocator* allocator; \
+        T* data;                 \
+        size_t len;              \
+        size_t cap;              \
+    }
+
 #define ks_da_data(da) ((da)->data)
 #define ks_da_len(da) ((da)->len)
 #define ks_da_cap(da) ((da)->cap)
@@ -105,7 +113,6 @@
     } while (0)
 
 #define ks_array_foreach(it, arr) for (KS_TYPEOF((arr)->data[0])* it = (arr)->data; it < (arr)->data + (arr)->len; ++it)
-#define KS_ARR_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define KS_CONTAINER_OF(ptr, type, member) ((type*)((int8_t*)(ptr) - offsetof(type, member)))
 
@@ -113,5 +120,9 @@
 
 #if defined(KS_DS_IMPL) && !defined(KS_DS_IMPL_DONE)
 #define KS_DS_IMPL_DONE
+
+#if !defined(KS_MEM_IMPL) && !defined(KS_MEM_IMPL_DONE)
+#error "kitsune: ds.h requires mem.h"
+#endif
 
 #endif  // KS_DS_IMPL

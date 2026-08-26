@@ -1,10 +1,6 @@
-#define KS_CORE_IMPL
-#define KS_MATH_IMPL
+#define KS_MEM_IMPL
 
-#include <ks/core.h>
 #include <ks/math.h>
-
-#include <time.h>
 
 static double cos_cb(double x, KS_UNUSED void* args) {
     return cos(x);
@@ -34,8 +30,6 @@ static double sphere_5d(const double* vars, int32_t dims, KS_UNUSED void* args) 
 }
 
 int main(void) {
-    srand(time(NULL));
-
     double res;
 
     res = ks_deriv_1d(cos_cb, KS_PI_2, 1e-6, NULL);
