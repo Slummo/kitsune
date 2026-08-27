@@ -7,26 +7,28 @@
 #include <omp.h>
 #include <time.h>
 
-#define KS_E 2.7182818284590452354          // e
-#define KS_LOG2E 1.4426950408889634074      // log2 e
-#define KS_LOG10E 0.43429448190325182765    // log10 e
-#define KS_LN2 0.69314718055994530942       // loge 2
-#define KS_LN10 2.30258509299404568402      // loge 10
-#define KS_PI 3.14159265358979323846        // pi
-#define KS_2PI 6.28318530718                // 2pi
-#define KS_PI_2 1.57079632679489661923      // pi/2
-#define KS_PI_4 0.78539816339744830962      // pi/4
-#define KS_1_PI 0.31830988618379067154      // 1/pi
-#define KS_2_PI 0.63661977236758134308      // 2/pi
-#define KS_SQRTPI 1.77245385091             // sqrt(pi)
-#define KS_1_SQRTPI 0.564189583548          // 1/sqrt(pi)
-#define KS_1_SQRT2PI 0.398942280401         // 1/sqrt(2pi)
-#define KS_2_SQRTPI 1.12837916709551257390  // 2/sqrt(pi)
-#define KS_2_SQRT2PI 0.797884560803         // 2/sqrt(2pi)
-#define KS_SQRT2 1.41421356237309504880     // sqrt(2)
-#define KS_1_SQRT2 0.70710678118654752440   // 1/sqrt(2)
-#define KS_SQRT3 1.73205080757              // sqrt(3)
-#define KS_1_SQRT3 0.57735026919            // 1/sqrt(3)
+// clang-format off
+#define KS_E            2.7182818284590452354       // e
+#define KS_LOG2E        1.4426950408889634074       // log2 e
+#define KS_LOG10E       0.43429448190325182765      // log10 e
+#define KS_LN2          0.69314718055994530942      // loge 2
+#define KS_LN10         2.30258509299404568402      // loge 10
+#define KS_PI           3.14159265358979323846      // pi
+#define KS_2PI          6.28318530718               // 2pi
+#define KS_PI_2         1.57079632679489661923      // pi/2
+#define KS_PI_4         0.78539816339744830962      // pi/4
+#define KS_1_PI         0.31830988618379067154      // 1/pi
+#define KS_2_PI         0.63661977236758134308      // 2/pi
+#define KS_SQRTPI       1.77245385091               // sqrt(pi)
+#define KS_1_SQRTPI     0.564189583548              // 1/sqrt(pi)
+#define KS_1_SQRT2PI    0.398942280401              // 1/sqrt(2pi)
+#define KS_2_SQRTPI     1.12837916709551257390      // 2/sqrt(pi)
+#define KS_2_SQRT2PI    0.797884560803              // 2/sqrt(2pi)
+#define KS_SQRT2        1.41421356237309504880      // sqrt(2)
+#define KS_1_SQRT2      0.70710678118654752440      // 1/sqrt(2)
+#define KS_SQRT3        1.73205080757               // sqrt(3)
+#define KS_1_SQRT3      0.57735026919               // 1/sqrt(3)
+// clang-format on
 
 #define KS_DEG2RAD (KS_PI / 180.0)
 #define KS_RAD2DEG (180.0 / KS_PI)
@@ -207,7 +209,7 @@ KS_UNION(quat, {
     (m).data[0], (m).data[4], (m).data[8], (m).data[12], (m).data[1], (m).data[5], (m).data[9], (m).data[13], \
         (m).data[2], (m).data[6], (m).data[10], (m).data[14], (m).data[3], (m).data[7], (m).data[11], (m).data[15]
 
-// Vectors
+/* Vectors */
 
 #define KS_VEC_FUNCTIONS(type, n, params, args)                                                       \
     static inline void KS_CONCAT2(type, _zeroes)(type * v) {                                          \
@@ -438,7 +440,7 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
     v1->z = x1 * y2 - y1 * x2;
 }
 
-// Matrices
+/* Matrices */
 
 #define KS_MAT_FUNCTIONS(type, vtype, n)                                                       \
     static inline void KS_CONCAT2(type, _zeroes)(type * m) {                                   \
@@ -1436,7 +1438,21 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     d[14] = -(farz + nearz) / fn;
 }
 
-// Tensors
+/* Tensors */
+
+#define KS_TENSOR_DECLARE_UNARY(name, ...)                                                        \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, ##__VA_ARGS__); \
+    KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, ##__VA_ARGS__)
+
+#define KS_TENSOR_DECLARE_BINARY(name, ...)                                                                           \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, const ks_tensor* b, ##__VA_ARGS__); \
+    KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, const ks_tensor* b, ##__VA_ARGS__)
+
+#define KS_DECLARE_REDUCE_ALL(name, ...) \
+    KS_API float KS_CONCAT3(ks_tensor_, name, _all)(const ks_tensor* a, ##__VA_ARGS__)
+
+#define KS_DECLARE_REDUCE_AXIS(name, ...) \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis, ##__VA_ARGS__)
 
 KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a);
 KS_API void ks_tensor_fini(ks_tensor* t);
@@ -1459,23 +1475,35 @@ KS_API void ks_tensor_fill(ks_tensor* t, const float val);
 KS_API void ks_tensor_rand_uniform(ks_tensor* t, const float min, const float max);
 KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float stddev);
 
-KS_API void ks_tensor_exp(ks_tensor* out, const ks_tensor* a);
-KS_API void ks_tensor_log(ks_tensor* out, const ks_tensor* a);
-KS_API void ks_tensor_abs(ks_tensor* out, const ks_tensor* a);
+KS_TENSOR_DECLARE_UNARY(neg);
+KS_TENSOR_DECLARE_UNARY(clamp, float min, float max);
+KS_TENSOR_DECLARE_UNARY(pow, float exponent);
+KS_TENSOR_DECLARE_UNARY(sqrt);
+KS_TENSOR_DECLARE_UNARY(exp);
+KS_TENSOR_DECLARE_UNARY(log);
+KS_TENSOR_DECLARE_UNARY(abs);
+KS_TENSOR_DECLARE_UNARY(sigmoid);
+KS_TENSOR_DECLARE_UNARY(tanh);
+KS_TENSOR_DECLARE_UNARY(relu);
+KS_TENSOR_DECLARE_UNARY(leaky_relu, float alpha);
+KS_TENSOR_DECLARE_UNARY(softplus);
+KS_TENSOR_DECLARE_UNARY(elu, float alpha);
+KS_TENSOR_DECLARE_UNARY(selu, float scale, float alpha);
 
-KS_API void ks_tensor_relu(ks_tensor* out, const ks_tensor* a);
-KS_API void ks_tensor_sigmoid(ks_tensor* out, const ks_tensor* a);
+KS_TENSOR_DECLARE_BINARY(add);
+KS_TENSOR_DECLARE_BINARY(sub);
+KS_TENSOR_DECLARE_BINARY(mul);
+KS_TENSOR_DECLARE_BINARY(div);
 
-KS_API void ks_tensor_add(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_sub(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_mul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_DECLARE_REDUCE_ALL(sum);
+KS_DECLARE_REDUCE_ALL(max);
+KS_DECLARE_REDUCE_ALL(min);
 
-KS_API float ks_tensor_sum_all(const ks_tensor* a);
-KS_API float ks_tensor_max_all(const ks_tensor* a);
-
-KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, const int32_t axis);
-KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, const int32_t axis);
+KS_DECLARE_REDUCE_AXIS(sum);
+KS_DECLARE_REDUCE_AXIS(max);
+KS_DECLARE_REDUCE_AXIS(min);
+KS_DECLARE_REDUCE_AXIS(argmax);
+KS_DECLARE_REDUCE_AXIS(argmin);
 
 KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
@@ -2414,7 +2442,7 @@ KS_API ks_tensor_int ks_tensor_count(const ks_tensor* t) {
 
 KS_API bool ks_tensor_is_contiguous(const ks_tensor* t) {
     KS_ASSERT_NONNULL_ARGS(t);
-    KS_ASSERT(t->shape && t->strides, "Tensors shape or stride is NULL");
+    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
 
     ks_tensor_int expected_stride = 1;
     const int32_t n = t->ndims - 1;
@@ -2504,6 +2532,7 @@ KS_API ks_status ks_tensor_reshape(ks_tensor* t, const int32_t new_ndims, const 
 
 KS_API ks_status ks_tensor_transpose(ks_tensor* t, const int32_t dim1, const int32_t dim2) {
     KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
 
     if (dim1 < 0 || dim1 >= t->ndims) {
         return KS_STATUS(KS_ERR_BOUNDS, "dim1 out of bounds");
@@ -2524,7 +2553,8 @@ KS_API ks_status ks_tensor_transpose(ks_tensor* t, const int32_t dim1, const int
 }
 
 KS_API void ks_tensor_zeros(ks_tensor* t) {
-    KS_ASSERT_NONNULL_ARGS(t && t->data);
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensors data is NULL");
 
     const ks_tensor_int count = ks_tensor_count(t);
     float* restrict data = t->data;
@@ -2541,7 +2571,8 @@ KS_API void ks_tensor_zeros(ks_tensor* t) {
 }
 
 KS_API void ks_tensor_fill(ks_tensor* t, const float val) {
-    KS_ASSERT_NONNULL_ARGS(t && t->data);
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensors data is NULL");
 
     if (KS_FEQ(val, 0.0f, KS_FEPS_MATH)) {
         ks_tensor_zeros(t);
@@ -2567,6 +2598,7 @@ KS_API void ks_tensor_fill(ks_tensor* t, const float val) {
 
 KS_API void ks_tensor_rand_uniform(ks_tensor* t, const float min, const float max) {
     KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensors data is NULL");
     KS_ASSERT(KS_FLESSEQ(min, max, KS_FEPS_MATH), "Min is greater than max");
 
     if (KS_UNLIKELY(KS_FEQ(min, 0.0f, KS_FEPS_MATH) && KS_FEQ(max, 0.0f, KS_FEPS_MATH))) {
@@ -2592,6 +2624,7 @@ KS_API void ks_tensor_rand_uniform(ks_tensor* t, const float min, const float ma
 
 KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float stddev) {
     KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensors data is NULL");
 
     const ks_tensor_int count = ks_tensor_count(t);
     float* restrict data = t->data;
@@ -2602,84 +2635,192 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         return;
     }
 
+    float a, b, r;
+
     for (ks_tensor_int i = 0; i < count; ++i) {
         ks_tensor_int j = cont ? i : ks_tensor_index(t, i);
 
-        float a = ((float)rand() + 1.0f) / ((float)RAND_MAX + 1.0f);
-        float b = (float)rand() / (float)RAND_MAX;
-        float r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
+        a = ((float)rand() + 1.0f) / ((float)RAND_MAX + 1.0f);
+        b = (float)rand() / (float)RAND_MAX;
+        r = sqrtf(-2.0f * logf(a)) * cosf(KS_2PI * b);
 
         data[j] = r * stddev + mean;
     }
 }
 
-#define KS_TENSOR_UNARY(name, op)                                                   \
-    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a) { \
-        KS_ASSERT_NONNULL_ARGS(out && a);                                           \
-        KS_ASSERT(ks_tensor_same_shape(out, a), "Tensors have different shapes");   \
-                                                                                    \
-        const ks_tensor_int count = ks_tensor_count(out);                           \
-        const bool c1 = ks_tensor_is_contiguous(out);                               \
-        const bool c2 = ks_tensor_is_contiguous(a);                                 \
-        float* restrict d1 = out->data;                                             \
-        const float* restrict d2 = a->data;                                         \
-                                                                                    \
-        if (KS_LIKELY(c1 && c2)) {                                                  \
-            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                \
-                d1[i] = op(d2[i]);                                                  \
-            }                                                                       \
-                                                                                    \
-            return;                                                                 \
-        }                                                                           \
-                                                                                    \
-        for (ks_tensor_int i = 0; i < count; ++i) {                                 \
-            ks_tensor_int j = c1 ? i : ks_tensor_index(out, i);                     \
-            ks_tensor_int k = c2 ? i : ks_tensor_index(a, i);                       \
-            d1[j] = op(d2[k]);                                                      \
-        }                                                                           \
+#define KS_TENSOR_DEFINE_UNARY(name, expr, ...)                                                    \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, ##__VA_ARGS__) { \
+        KS_ASSERT_NONNULL_ARGS(out && a);                                                          \
+        KS_ASSERT(out->data && a->data, "Tensors data is NULL");                                   \
+        KS_ASSERT(ks_tensor_same_shape(out, a), "Tensors have different shapes");                  \
+        KS_ASSERT(out->data != a->data, "Overlapping tensors. Use in-place variants");             \
+                                                                                                   \
+        const ks_tensor_int count = ks_tensor_count(out);                                          \
+        const bool cout = ks_tensor_is_contiguous(out);                                            \
+        const bool ct = ks_tensor_is_contiguous(a);                                                \
+        float* restrict dout = out->data;                                                          \
+        const float* restrict dt = a->data;                                                        \
+        float x;                                                                                   \
+                                                                                                   \
+        if (KS_LIKELY(cout && ct)) {                                                               \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                               \
+                x = dt[i];                                                                         \
+                dout[i] = (expr);                                                                  \
+            }                                                                                      \
+                                                                                                   \
+            return;                                                                                \
+        }                                                                                          \
+                                                                                                   \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                \
+            ks_tensor_int j = cout ? i : ks_tensor_index(out, i);                                  \
+            ks_tensor_int k = ct ? i : ks_tensor_index(a, i);                                      \
+            x = dt[k];                                                                             \
+            dout[j] = (expr);                                                                      \
+        }                                                                                          \
+    }                                                                                              \
+                                                                                                   \
+    KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, ##__VA_ARGS__) {                    \
+        KS_ASSERT_NONNULL_ARGS(a);                                                                 \
+        KS_ASSERT(a->data, "Tensors data is NULL");                                                \
+                                                                                                   \
+        const ks_tensor_int count = ks_tensor_count(a);                                            \
+        float* data = a->data;                                                                     \
+        const bool cont = ks_tensor_is_contiguous(a);                                              \
+        float x;                                                                                   \
+                                                                                                   \
+        if (KS_LIKELY(cont)) {                                                                     \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                               \
+                x = data[i];                                                                       \
+                data[i] = (expr);                                                                  \
+            }                                                                                      \
+                                                                                                   \
+            return;                                                                                \
+        }                                                                                          \
+                                                                                                   \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                \
+            ks_tensor_int j = ks_tensor_index(a, i);                                               \
+            x = data[j];                                                                           \
+            data[j] = (expr);                                                                      \
+        }                                                                                          \
     }
 
-KS_TENSOR_UNARY(exp, expf);
-KS_TENSOR_UNARY(log, logf);
-KS_TENSOR_UNARY(abs, fabsf);
-
-KS_API void ks_tensor_relu(ks_tensor* out, const ks_tensor* a);
-KS_API void ks_tensor_sigmoid(ks_tensor* out, const ks_tensor* a);
-
-KS_API void ks_tensor_add(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_sub(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_mul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-KS_API void ks_tensor_div(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
-
-KS_API float ks_tensor_sum_all(const ks_tensor* a) {
-    KS_ASSERT_NONNULL_ARGS(a);
-    KS_ASSERT(a->data, "Tensor's data is NULL");
-
-    const float* restrict data = a->data;
-    const ks_tensor_int count = ks_tensor_count(a);
-    float sum = 0.0f;
-
-    if (KS_LIKELY(ks_tensor_is_contiguous(a))) {
-        KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {
-            sum += data[i];
-        }
-
-        return sum;
+#define KS_TENSOR_DEFINE_BINARY(name, expr, ...)                                                                       \
+    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, const ks_tensor* b, ##__VA_ARGS__) { \
+        KS_ASSERT_NONNULL_ARGS(out && a && b);                                                                         \
+        KS_ASSERT(out->data && a->data && b->data, "Tensors data is NULL");                                            \
+        KS_ASSERT(ks_tensor_same_shape(out, a) && ks_tensor_same_shape(a, b), "Tensors have different shapes");        \
+        KS_ASSERT(out->data != a->data && out->data != b->data, "Overlapping tensors. Use in-place variants");         \
+                                                                                                                       \
+        const ks_tensor_int count = ks_tensor_count(a);                                                                \
+        float* restrict dout = out->data;                                                                              \
+        const float* restrict da = a->data;                                                                            \
+        const float* restrict db = b->data;                                                                            \
+        const bool cout = ks_tensor_is_contiguous(out);                                                                \
+        const bool ca = ks_tensor_is_contiguous(a);                                                                    \
+        const bool cb = ks_tensor_is_contiguous(b);                                                                    \
+        float x, y;                                                                                                    \
+                                                                                                                       \
+        if (KS_LIKELY(cout && ca && cb)) {                                                                             \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                                                   \
+                float x = da[i];                                                                                       \
+                float y = db[i];                                                                                       \
+                dout[i] = (expr);                                                                                      \
+            }                                                                                                          \
+                                                                                                                       \
+            return;                                                                                                    \
+        }                                                                                                              \
+                                                                                                                       \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                                    \
+            ks_tensor_int j = cout ? i : ks_tensor_index(out, i);                                                      \
+            ks_tensor_int k = ca ? i : ks_tensor_index(a, i);                                                          \
+            ks_tensor_int w = cb ? i : ks_tensor_index(b, i);                                                          \
+            x = da[k];                                                                                                 \
+            y = db[w];                                                                                                 \
+            dout[j] = (expr);                                                                                          \
+        }                                                                                                              \
+    }                                                                                                                  \
+                                                                                                                       \
+    KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, const ks_tensor* b, ##__VA_ARGS__) {                    \
+        KS_ASSERT_NONNULL_ARGS(a && b);                                                                                \
+        KS_ASSERT(a->data && b->data, "Tensors data is NULL");                                                         \
+        KS_ASSERT(ks_tensor_same_shape(a, b), "Tensors have different shapes");                                        \
+                                                                                                                       \
+        const ks_tensor_int count = ks_tensor_count(a);                                                                \
+        float* da = a->data;                                                                                           \
+        const float* db = b->data;                                                                                     \
+        const bool ca = ks_tensor_is_contiguous(a);                                                                    \
+        const bool cb = ks_tensor_is_contiguous(b);                                                                    \
+        float x, y;                                                                                                    \
+                                                                                                                       \
+        if (KS_LIKELY(ca && cb)) {                                                                                     \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                                                   \
+                float x = da[i];                                                                                       \
+                float y = db[i];                                                                                       \
+                da[i] = (expr);                                                                                        \
+            }                                                                                                          \
+                                                                                                                       \
+            return;                                                                                                    \
+        }                                                                                                              \
+                                                                                                                       \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                                    \
+            ks_tensor_int j = ca ? i : ks_tensor_index(a, i);                                                          \
+            ks_tensor_int k = cb ? i : ks_tensor_index(b, i);                                                          \
+            x = da[j];                                                                                                 \
+            y = db[k];                                                                                                 \
+            da[j] = (expr);                                                                                            \
+        }                                                                                                              \
     }
 
-    for (ks_tensor_int i = 0; i < count; ++i) {
-        sum += data[ks_tensor_index(a, i)];
+#define KS_TENSOR_DEFINE_REDUCE_ALL(name, init_val, update_expr)          \
+    KS_API float KS_CONCAT3(ks_tensor_, name, _all)(const ks_tensor* a) { \
+        KS_ASSERT_NONNULL_ARGS(a);                                        \
+        KS_ASSERT(a->data, "Tensors data is NULL");                       \
+                                                                          \
+        const ks_tensor_int count = ks_tensor_count(a);                   \
+        const float* restrict data = a->data;                             \
+        float acc = (init_val), val;                                      \
+                                                                          \
+        if (KS_LIKELY(ks_tensor_is_contiguous(a))) {                      \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {      \
+                val = data[i];                                            \
+                acc = (update_expr);                                      \
+            }                                                             \
+                                                                          \
+            return acc;                                                   \
+        }                                                                 \
+                                                                          \
+        for (ks_tensor_int i = 0; i < count; ++i) {                       \
+            ks_tensor_int j = ks_tensor_index(a, i);                      \
+            val = data[j];                                                \
+            acc = (update_expr);                                          \
+        }                                                                 \
+                                                                          \
+        return acc;                                                       \
     }
 
-    return sum;
-}
+KS_TENSOR_DEFINE_UNARY(neg, -x);
+KS_TENSOR_DEFINE_UNARY(clamp, KS_CLAMP(x, min, max), float min, float max);
+KS_TENSOR_DEFINE_UNARY(pow, powf(x, exponent), float exponent);
+KS_TENSOR_DEFINE_UNARY(sqrt, sqrtf(x));
+KS_TENSOR_DEFINE_UNARY(exp, expf(x));
+KS_TENSOR_DEFINE_UNARY(log, logf(x));
+KS_TENSOR_DEFINE_UNARY(abs, fabsf(x));
+KS_TENSOR_DEFINE_UNARY(sigmoid, 1.0f / (1.0f + expf(-x)));
+KS_TENSOR_DEFINE_UNARY(tanh, 2.0f / (1.0f + expf(-2.0f * x)) - 1.0f);
+KS_TENSOR_DEFINE_UNARY(relu, x > 0.0f ? x : 0.0f);
+KS_TENSOR_DEFINE_UNARY(leaky_relu, x > 0 ? x : alpha * x, float alpha);
+KS_TENSOR_DEFINE_UNARY(softplus, logf(1.0f + expf(x)));
+KS_TENSOR_DEFINE_UNARY(elu, x > 0 ? x : alpha * (expf(x) - 1.0f), float alpha);
+KS_TENSOR_DEFINE_UNARY(selu, x > 0 ? scale * x : scale * alpha * (expf(x) - 1.0f), float scale, float alpha);
 
-KS_API float ks_tensor_max_all(const ks_tensor* a);
+KS_TENSOR_DEFINE_BINARY(add, x + y);
+KS_TENSOR_DEFINE_BINARY(sub, x - y);
+KS_TENSOR_DEFINE_BINARY(mul, x* y);
+KS_TENSOR_DEFINE_BINARY(div, x / y);
 
-KS_API void ks_tensor_sum(ks_tensor* out, const ks_tensor* a, const int32_t axis);
-KS_API void ks_tensor_argmax(ks_tensor* out, const ks_tensor* a, const int32_t axis);
-
-KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
+KS_TENSOR_DEFINE_REDUCE_ALL(sum, 0.0f, acc + val);
+KS_TENSOR_DEFINE_REDUCE_ALL(max, -FLT_MAX, val > acc ? val : acc);
+KS_TENSOR_DEFINE_REDUCE_ALL(min, FLT_MAX, val < acc ? val : acc);
 
 /* Fields */
 
