@@ -1448,10 +1448,10 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, const ks_tensor* b, ##__VA_ARGS__); \
     KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, const ks_tensor* b, ##__VA_ARGS__)
 
-#define KS_DECLARE_REDUCE_ALL(name, ...) \
+#define KS_TENSOR_DECLARE_REDUCE_ALL(name, ...) \
     KS_API float KS_CONCAT3(ks_tensor_, name, _all)(const ks_tensor* a, ##__VA_ARGS__)
 
-#define KS_DECLARE_REDUCE_AXIS(name, ...) \
+#define KS_TENSOR_DECLARE_REDUCE_AXIS(name, ...) \
     KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis, ##__VA_ARGS__)
 
 KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a);
@@ -1495,15 +1495,15 @@ KS_TENSOR_DECLARE_BINARY(sub);
 KS_TENSOR_DECLARE_BINARY(mul);
 KS_TENSOR_DECLARE_BINARY(div);
 
-KS_DECLARE_REDUCE_ALL(sum);
-KS_DECLARE_REDUCE_ALL(max);
-KS_DECLARE_REDUCE_ALL(min);
+KS_TENSOR_DECLARE_REDUCE_ALL(sum);
+KS_TENSOR_DECLARE_REDUCE_ALL(max);
+KS_TENSOR_DECLARE_REDUCE_ALL(min);
 
-KS_DECLARE_REDUCE_AXIS(sum);
-KS_DECLARE_REDUCE_AXIS(max);
-KS_DECLARE_REDUCE_AXIS(min);
-KS_DECLARE_REDUCE_AXIS(argmax);
-KS_DECLARE_REDUCE_AXIS(argmin);
+KS_TENSOR_DECLARE_REDUCE_AXIS(sum);
+KS_TENSOR_DECLARE_REDUCE_AXIS(max);
+KS_TENSOR_DECLARE_REDUCE_AXIS(min);
+KS_TENSOR_DECLARE_REDUCE_AXIS(argmax);
+KS_TENSOR_DECLARE_REDUCE_AXIS(argmin);
 
 KS_API void ks_tensor_matmul(ks_tensor* out, const ks_tensor* a, const ks_tensor* b);
 
