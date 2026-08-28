@@ -557,9 +557,9 @@ static inline void ks_vec3_crossi(ks_vec3* v1, const ks_vec3* v2) {
         KS_ASSERT(m, "Null arguments");                                                        \
         for (int32_t c = 0; c < n; ++c) {                                                      \
             for (int32_t r = c + 1; r < n; ++r) {                                              \
-                float temp = m->data[c * n + r];                                               \
+                float tmp = m->data[c * n + r];                                                \
                 m->data[c * n + r] = m->data[r * n + c];                                       \
-                m->data[r * n + c] = temp;                                                     \
+                m->data[r * n + c] = tmp;                                                      \
             }                                                                                  \
         }                                                                                      \
     }                                                                                          \
@@ -1448,13 +1448,16 @@ static inline void ks_mat4_ortho(ks_mat4* out, float left, float right, float bo
     KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, const ks_tensor* b, ##__VA_ARGS__); \
     KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, const ks_tensor* b, ##__VA_ARGS__)
 
-#define KS_TENSOR_DECLARE_REDUCE_ALL(name, ...) \
-    KS_API float KS_CONCAT3(ks_tensor_, name, _all)(const ks_tensor* a, ##__VA_ARGS__)
+#define KS_TENSOR_DECLARE_REDUCE(name, ...)                                              \
+    KS_API float KS_CONCAT2(ks_tensor_reduce_, name)(const ks_tensor* a, ##__VA_ARGS__); \
+    KS_API void KS_CONCAT3(ks_tensor_reduce_, name, i)(ks_tensor * a, ##__VA_ARGS__)
 
-#define KS_TENSOR_DECLARE_REDUCE_AXIS(name, ...) \
-    KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis, ##__VA_ARGS__)
+#define KS_TENSOR_DECLARE_REDUCE_AXIS(name, ...)                                                            \
+    KS_API void KS_CONCAT2(ks_tensor_reduce_axis_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis, \
+                                                         ##__VA_ARGS__);                                    \
+    KS_API void KS_CONCAT3(ks_tensor_reduce_axis_, name, i)(ks_tensor * a, int32_t axis, ##__VA_ARGS__)
 
-KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a);
+KS_API ks_status ks_tensor_init(ks_tensor* t, const int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a);
 KS_API void ks_tensor_fini(ks_tensor* t);
 
 KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src);
@@ -1495,9 +1498,9 @@ KS_TENSOR_DECLARE_BINARY(sub);
 KS_TENSOR_DECLARE_BINARY(mul);
 KS_TENSOR_DECLARE_BINARY(div);
 
-KS_TENSOR_DECLARE_REDUCE_ALL(sum);
-KS_TENSOR_DECLARE_REDUCE_ALL(max);
-KS_TENSOR_DECLARE_REDUCE_ALL(min);
+KS_TENSOR_DECLARE_REDUCE(sum);
+KS_TENSOR_DECLARE_REDUCE(max);
+KS_TENSOR_DECLARE_REDUCE(min);
 
 KS_TENSOR_DECLARE_REDUCE_AXIS(sum);
 KS_TENSOR_DECLARE_REDUCE_AXIS(max);
@@ -2294,14 +2297,13 @@ KS_API int fft(size_t n, double complex samples[static n]);
 
 /* Tensors */
 
-#define KS_TENSOR_VARS(t, prefix)                                     \
-    ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
-    ks_tensor_int* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+#define KS_TENSOR_VARS(t, prefix)                                                                                      \
+    ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape, * restrict KS_CONCAT2(prefix, strides) = t->strides; \
     float* restrict KS_CONCAT2(prefix, data) = t->data
 
-#define KS_CONST_TENSOR_VARS(t, prefix)                                     \
-    const ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape;     \
-    const ks_tensor_int* restrict KS_CONCAT2(prefix, strides) = t->strides; \
+#define KS_CONST_TENSOR_VARS(t, prefix)                                                                          \
+    const ks_tensor_int* restrict KS_CONCAT2(prefix, shape) = t->shape, * restrict KS_CONCAT2(prefix, strides) = \
+                                                                            t->strides;                          \
     const float* restrict KS_CONCAT2(prefix, data) = t->data
 
 static inline void ks_tensor_calc_strides(ks_tensor_int* strides, int32_t length, const ks_tensor_int* shape) {
@@ -2318,7 +2320,7 @@ static inline void ks_tensor_calc_strides(ks_tensor_int* strides, int32_t length
 
 static inline ks_tensor_int ks_tensor_index(const ks_tensor* t, ks_tensor_int logical_idx) {
     ks_tensor_int physical_idx = 0;
-    ks_tensor_int temp_idx = logical_idx;
+    ks_tensor_int tmp_idx = logical_idx;
 
     const int32_t ndims = t->ndims;
 
@@ -2326,15 +2328,15 @@ static inline ks_tensor_int ks_tensor_index(const ks_tensor* t, ks_tensor_int lo
 
     for (int32_t i = ndims - 1; i >= 0; --i) {
         ks_tensor_int s = tshape[i];
-        ks_tensor_int coord = temp_idx % s;
+        ks_tensor_int coord = tmp_idx % s;
         physical_idx += coord * tstrides[i];
-        temp_idx /= s;
+        tmp_idx /= s;
     }
 
     return physical_idx;
 }
 
-KS_API ks_status ks_tensor_init(ks_tensor* t, int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a) {
+KS_API ks_status ks_tensor_init(ks_tensor* t, const int32_t ndims, const ks_tensor_int* shape, const ks_allocator* a) {
     KS_ASSERT_NONNULL_ARGS(t && shape);
 
     if (ndims < 1 || ndims > 8) {
@@ -2391,8 +2393,7 @@ KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src) {
         count *= s;
     }
 
-    const bool dcont = ks_tensor_is_contiguous(dst);
-    const bool scont = ks_tensor_is_contiguous(src);
+    const bool dcont = ks_tensor_is_contiguous(dst), scont = ks_tensor_is_contiguous(src);
 
     if (dcont && scont) {
         memcpy(ddata, sdata, sizeof(float) * (size_t)count);
@@ -2408,16 +2409,20 @@ KS_API void ks_tensor_copy(ks_tensor* dst, const ks_tensor* src) {
 
 KS_API ks_status ks_tensor_clone(ks_tensor* dst, const ks_tensor* src, const ks_allocator* a) {
     KS_ASSERT_NONNULL_ARGS(dst && src);
+
     ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
     if (status.code != KS_OK) {
         return status;
     }
+
     ks_tensor_copy(dst, src);
+
     return KS_STATUS(KS_OK);
 }
 
 KS_API void ks_tensor_view(ks_tensor* dst, const ks_tensor* src) {
     KS_ASSERT_NONNULL_ARGS(dst && src);
+
     *dst = *src;
     dst->allocator = NULL;
 }
@@ -2446,8 +2451,7 @@ KS_API bool ks_tensor_is_contiguous(const ks_tensor* t) {
 
     ks_tensor_int expected_stride = 1;
     const int32_t n = t->ndims - 1;
-    const ks_tensor_int* restrict shape = t->shape;
-    const ks_tensor_int* restrict strides = t->strides;
+    const ks_tensor_int* restrict shape = t->shape, * restrict strides = t->strides;
 
     for (int32_t i = n; i >= 0; --i) {
         if (strides[i] != expected_stride) {
@@ -2471,8 +2475,7 @@ KS_API bool ks_tensor_same_shape(const ks_tensor* a, const ks_tensor* b) {
         return false;
     }
 
-    const ks_tensor_int* restrict sa = a->shape;
-    const ks_tensor_int* restrict sb = b->shape;
+    const ks_tensor_int* restrict sa = a->shape, * restrict sb = b->shape;
 
     for (int32_t i = 0; i < na; ++i) {
         if (sa[i] != sb[i]) {
@@ -2656,11 +2659,9 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         KS_ASSERT(out->data != a->data, "Overlapping tensors. Use in-place variants");             \
                                                                                                    \
         const ks_tensor_int count = ks_tensor_count(out);                                          \
-        const bool cout = ks_tensor_is_contiguous(out);                                            \
-        const bool ct = ks_tensor_is_contiguous(a);                                                \
-        float* restrict dout = out->data;                                                          \
+        const bool cout = ks_tensor_is_contiguous(out), ct = ks_tensor_is_contiguous(a);           \
+        float* restrict dout = out->data, x;                                                       \
         const float* restrict dt = a->data;                                                        \
-        float x;                                                                                   \
                                                                                                    \
         if (KS_LIKELY(cout && ct)) {                                                               \
             KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                               \
@@ -2684,9 +2685,8 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         KS_ASSERT(a->data, "Tensors data is NULL");                                                \
                                                                                                    \
         const ks_tensor_int count = ks_tensor_count(a);                                            \
-        float* data = a->data;                                                                     \
+        float *data = a->data, x;                                                                  \
         const bool cont = ks_tensor_is_contiguous(a);                                              \
-        float x;                                                                                   \
                                                                                                    \
         if (KS_LIKELY(cont)) {                                                                     \
             KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                               \
@@ -2712,18 +2712,15 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         KS_ASSERT(out->data != a->data && out->data != b->data, "Overlapping tensors. Use in-place variants");         \
                                                                                                                        \
         const ks_tensor_int count = ks_tensor_count(a);                                                                \
-        float* restrict dout = out->data;                                                                              \
-        const float* restrict da = a->data;                                                                            \
-        const float* restrict db = b->data;                                                                            \
-        const bool cout = ks_tensor_is_contiguous(out);                                                                \
-        const bool ca = ks_tensor_is_contiguous(a);                                                                    \
-        const bool cb = ks_tensor_is_contiguous(b);                                                                    \
-        float x, y;                                                                                                    \
+        float* restrict dout = out->data, x, y;                                                                        \
+        const float* restrict da = a->data, * restrict db = b->data;                                                   \
+        const bool cout = ks_tensor_is_contiguous(out), ca = ks_tensor_is_contiguous(a),                               \
+                   cb = ks_tensor_is_contiguous(b);                                                                    \
                                                                                                                        \
         if (KS_LIKELY(cout && ca && cb)) {                                                                             \
             KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                                                   \
-                float x = da[i];                                                                                       \
-                float y = db[i];                                                                                       \
+                x = da[i];                                                                                             \
+                y = db[i];                                                                                             \
                 dout[i] = (expr);                                                                                      \
             }                                                                                                          \
                                                                                                                        \
@@ -2746,16 +2743,14 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         KS_ASSERT(ks_tensor_same_shape(a, b), "Tensors have different shapes");                                        \
                                                                                                                        \
         const ks_tensor_int count = ks_tensor_count(a);                                                                \
-        float* da = a->data;                                                                                           \
+        float *da = a->data, x, y;                                                                                     \
         const float* db = b->data;                                                                                     \
-        const bool ca = ks_tensor_is_contiguous(a);                                                                    \
-        const bool cb = ks_tensor_is_contiguous(b);                                                                    \
-        float x, y;                                                                                                    \
+        const bool ca = ks_tensor_is_contiguous(a), cb = ks_tensor_is_contiguous(b);                                   \
                                                                                                                        \
         if (KS_LIKELY(ca && cb)) {                                                                                     \
             KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {                                                   \
-                float x = da[i];                                                                                       \
-                float y = db[i];                                                                                       \
+                x = da[i];                                                                                             \
+                y = db[i];                                                                                             \
                 da[i] = (expr);                                                                                        \
             }                                                                                                          \
                                                                                                                        \
@@ -2771,31 +2766,290 @@ KS_API void ks_tensor_rand_normal(ks_tensor* t, const float mean, const float st
         }                                                                                                              \
     }
 
-#define KS_TENSOR_DEFINE_REDUCE_ALL(name, init_val, update_expr)          \
-    KS_API float KS_CONCAT3(ks_tensor_, name, _all)(const ks_tensor* a) { \
-        KS_ASSERT_NONNULL_ARGS(a);                                        \
-        KS_ASSERT(a->data, "Tensors data is NULL");                       \
-                                                                          \
-        const ks_tensor_int count = ks_tensor_count(a);                   \
-        const float* restrict data = a->data;                             \
-        float acc = (init_val), val;                                      \
-                                                                          \
-        if (KS_LIKELY(ks_tensor_is_contiguous(a))) {                      \
-            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {      \
-                val = data[i];                                            \
-                acc = (update_expr);                                      \
-            }                                                             \
-                                                                          \
-            return acc;                                                   \
-        }                                                                 \
-                                                                          \
-        for (ks_tensor_int i = 0; i < count; ++i) {                       \
-            ks_tensor_int j = ks_tensor_index(a, i);                      \
-            val = data[j];                                                \
-            acc = (update_expr);                                          \
-        }                                                                 \
-                                                                          \
-        return acc;                                                       \
+#define KS_TENSOR_DEFINE_REDUCE(name, init_val, update_expr)               \
+    KS_API float KS_CONCAT2(ks_tensor_reduce_, name)(const ks_tensor* a) { \
+        KS_ASSERT_NONNULL_ARGS(a);                                         \
+        KS_ASSERT(a->data, "Tensors data is NULL");                        \
+                                                                           \
+        const ks_tensor_int count = ks_tensor_count(a);                    \
+        const float* restrict data = a->data;                              \
+        float acc = (init_val), val;                                       \
+                                                                           \
+        if (KS_LIKELY(ks_tensor_is_contiguous(a))) {                       \
+            KS_SIMD_HINT for (ks_tensor_int i = 0; i < count; ++i) {       \
+                val = data[i];                                             \
+                acc = (update_expr);                                       \
+            }                                                              \
+                                                                           \
+            return acc;                                                    \
+        }                                                                  \
+                                                                           \
+        for (ks_tensor_int i = 0; i < count; ++i) {                        \
+            ks_tensor_int j = ks_tensor_index(a, i);                       \
+            val = data[j];                                                 \
+            acc = (update_expr);                                           \
+        }                                                                  \
+                                                                           \
+        return acc;                                                        \
+    }                                                                      \
+                                                                           \
+    KS_API void KS_CONCAT3(ks_tensor_reduce_, name, i)(ks_tensor * a) {    \
+        KS_ASSERT_NONNULL_ARGS(a);                                         \
+        KS_ASSERT(a->data, "Tensors data is NULL");                        \
+                                                                           \
+        const float res = KS_CONCAT2(ks_tensor_reduce_, name)(a);          \
+                                                                           \
+        a->ndims = 1;                                                      \
+        a->data[0] = res;                                                  \
+        a->shape[0] = 1;                                                   \
+        a->strides[0] = 1;                                                 \
+    }
+
+static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor* out, const ks_tensor* a, int32_t axis) {
+    if (out->ndims != a->ndims || out->shape[axis] != 1) {
+        return false;
+    }
+
+    for (int32_t i = 0; i < a->ndims; ++i) {
+        if (i != axis && out->shape[i] != a->shape[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+#define KS_TENSOR_DEFINE_REDUCE_AXIS(name, init_val, update_expr)                                              \
+    KS_API void KS_CONCAT2(ks_tensor_reduce_axis_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis) {  \
+        KS_ASSERT_NONNULL_ARGS(out && a);                                                                      \
+        KS_ASSERT(out->data != a->data, "Use in-place variant");                                               \
+                                                                                                               \
+        const int32_t na = a->ndims;                                                                           \
+        if (axis < 0) {                                                                                        \
+            axis += na;                                                                                        \
+        }                                                                                                      \
+        KS_ASSERT(axis >= 0 && axis < na, "Axis out of bounds");                                               \
+        KS_ASSERT(ks_tensor_is_valid_reduction_shape(out, a, axis), "Shape mismatch");                         \
+                                                                                                               \
+        const int32_t nout = out->ndims;                                                                       \
+        const ks_tensor_int count = ks_tensor_count(out), *a_shape = a->shape, *a_strides = a->strides,        \
+                            *out_shape = out->shape, *out_strides = out->strides, axis_count = a_shape[axis],  \
+                            axis_stride = a_strides[axis];                                                     \
+        ks_tensor_int tmp, outidx, aidx, coord;                                                                \
+        const float* restrict da = a->data, *row;                                                              \
+        float* restrict dout = out->data, acc, val;                                                            \
+                                                                                                               \
+        if (KS_LIKELY(axis == na - 1 && ks_tensor_is_contiguous(a) && ks_tensor_is_contiguous(out))) {         \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                        \
+                acc = (init_val);                                                                              \
+                row = KS_PTROFF_UNCAST(da, i * axis_count);                                                    \
+                KS_SIMD_HINT for (ks_tensor_int j = 0; j < axis_count; ++j) {                                  \
+                    val = row[j];                                                                              \
+                    acc = (update_expr);                                                                       \
+                }                                                                                              \
+                dout[i] = acc;                                                                                 \
+            }                                                                                                  \
+                                                                                                               \
+            return;                                                                                            \
+        }                                                                                                      \
+                                                                                                               \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                            \
+            tmp = i;                                                                                           \
+            outidx = 0;                                                                                        \
+            aidx = 0;                                                                                          \
+            for (int32_t j = nout - 1; j >= 0; --j) {                                                          \
+                coord = tmp % out_shape[j];                                                                    \
+                outidx += coord * out_strides[j];                                                              \
+                aidx += coord * a_strides[j];                                                                  \
+                tmp /= out_shape[j];                                                                           \
+            }                                                                                                  \
+                                                                                                               \
+            acc = (init_val);                                                                                  \
+            for (ks_tensor_int j = 0; j < axis_count; ++j) {                                                   \
+                val = da[aidx];                                                                                \
+                acc = (update_expr);                                                                           \
+                aidx += axis_stride;                                                                           \
+            }                                                                                                  \
+                                                                                                               \
+            dout[outidx] = acc;                                                                                \
+        }                                                                                                      \
+    }                                                                                                          \
+                                                                                                               \
+    KS_API void KS_CONCAT3(ks_tensor_reduce_axis_, name, i)(ks_tensor * a, int32_t axis) {                     \
+        KS_ASSERT_NONNULL_ARGS(a);                                                                             \
+                                                                                                               \
+        const int32_t na = a->ndims;                                                                           \
+        if (axis < 0) {                                                                                        \
+            axis += na;                                                                                        \
+        }                                                                                                      \
+        KS_ASSERT(axis >= 0 && axis < na, "Axis out of bounds");                                               \
+                                                                                                               \
+        ks_tensor_int *a_shape = a->shape, *a_strides = a->strides, out_shape[8], count = 1, tmp, aidx, coord; \
+        const ks_tensor_int axis_count = a_shape[axis], axis_stride = a_strides[axis];                         \
+        float *data = a->data, acc, val, *row;                                                                 \
+                                                                                                               \
+        memcpy(out_shape, a_shape, sizeof(ks_tensor_int) * (size_t)na);                                        \
+        out_shape[axis] = 1;                                                                                   \
+        for (int32_t j = 0; j < na; ++j) {                                                                     \
+            count *= out_shape[j];                                                                             \
+        }                                                                                                      \
+                                                                                                               \
+        if (KS_LIKELY(axis == na - 1 && ks_tensor_is_contiguous(a))) {                                         \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                        \
+                acc = (init_val);                                                                              \
+                row = KS_PTROFF_UNCAST(data, i * axis_count);                                                  \
+                KS_SIMD_HINT for (ks_tensor_int j = 0; j < axis_count; ++j) {                                  \
+                    val = row[j];                                                                              \
+                    acc = (update_expr);                                                                       \
+                }                                                                                              \
+                data[i] = acc;                                                                                 \
+            }                                                                                                  \
+        } else {                                                                                               \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                        \
+                tmp = i;                                                                                       \
+                aidx = 0;                                                                                      \
+                for (int32_t j = na - 1; j >= 0; --j) {                                                        \
+                    coord = tmp % out_shape[j];                                                                \
+                    aidx += coord * a_strides[j];                                                              \
+                    tmp /= out_shape[j];                                                                       \
+                }                                                                                              \
+                                                                                                               \
+                acc = (init_val);                                                                              \
+                for (ks_tensor_int j = 0; j < axis_count; ++j) {                                               \
+                    val = data[aidx];                                                                          \
+                    acc = (update_expr);                                                                       \
+                    aidx += axis_stride;                                                                       \
+                }                                                                                              \
+                                                                                                               \
+                data[i] = acc;                                                                                 \
+            }                                                                                                  \
+        }                                                                                                      \
+                                                                                                               \
+        a_shape[axis] = 1;                                                                                     \
+        ks_tensor_calc_strides(a_strides, na, a_shape);                                                        \
+    }
+
+#define KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(name, init_val, comp_expr)                                             \
+    KS_API void KS_CONCAT2(ks_tensor_reduce_axis_, name)(ks_tensor * out, const ks_tensor* a, int32_t axis) {     \
+        KS_ASSERT_NONNULL_ARGS(out && a);                                                                         \
+        KS_ASSERT(out->data != a->data, "Use in-place variant");                                                  \
+                                                                                                                  \
+        const int32_t na = a->ndims;                                                                              \
+        if (axis < 0) {                                                                                           \
+            axis += na;                                                                                           \
+        }                                                                                                         \
+        KS_ASSERT(axis >= 0 && axis < na, "Axis out of bounds");                                                  \
+        KS_ASSERT(ks_tensor_is_valid_reduction_shape(out, a, axis), "Shape mismatch");                            \
+                                                                                                                  \
+        const int32_t nout = out->ndims;                                                                          \
+        const ks_tensor_int count = ks_tensor_count(out), *a_shape = a->shape, *a_strides = a->strides,           \
+                            *out_shape = out->shape, *out_strides = out->strides, axis_count = a_shape[axis],     \
+                            axis_stride = a_strides[axis];                                                        \
+        ks_tensor_int best_idx, tmp, outidx, aidx, coord;                                                         \
+        const float* restrict da = a->data, *row;                                                                 \
+        float* restrict dout = out->data, best_val;                                                               \
+                                                                                                                  \
+        if (KS_LIKELY(axis == na - 1 && ks_tensor_is_contiguous(a) && ks_tensor_is_contiguous(out))) {            \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                           \
+                best_val = (init_val);                                                                            \
+                best_idx = 0;                                                                                     \
+                row = KS_PTROFF_UNCAST(da, i * axis_count);                                                       \
+                KS_SIMD_HINT for (ks_tensor_int j = 0; j < axis_count; ++j) {                                     \
+                    if (row[j] comp_expr best_val) {                                                              \
+                        best_val = row[j];                                                                        \
+                        best_idx = j;                                                                             \
+                    }                                                                                             \
+                }                                                                                                 \
+                dout[i] = (float)best_idx;                                                                        \
+            }                                                                                                     \
+                                                                                                                  \
+            return;                                                                                               \
+        }                                                                                                         \
+                                                                                                                  \
+        for (ks_tensor_int i = 0; i < count; ++i) {                                                               \
+            tmp = i;                                                                                              \
+            outidx = 0;                                                                                           \
+            aidx = 0;                                                                                             \
+            for (int32_t d = nout - 1; d >= 0; --d) {                                                             \
+                coord = tmp % out_shape[d];                                                                       \
+                outidx += coord * out_strides[d];                                                                 \
+                aidx += coord * a_strides[d];                                                                     \
+                tmp /= out_shape[d];                                                                              \
+            }                                                                                                     \
+                                                                                                                  \
+            best_val = (init_val);                                                                                \
+            best_idx = 0;                                                                                         \
+            for (ks_tensor_int j = 0; j < axis_count; ++j) {                                                      \
+                if (da[aidx] comp_expr best_val) {                                                                \
+                    best_val = da[aidx];                                                                          \
+                    best_idx = j;                                                                                 \
+                }                                                                                                 \
+                aidx += axis_stride;                                                                              \
+            }                                                                                                     \
+                                                                                                                  \
+            dout[outidx] = (float)best_idx;                                                                       \
+        }                                                                                                         \
+    }                                                                                                             \
+                                                                                                                  \
+    KS_API void KS_CONCAT3(ks_tensor_reduce_axis_, name, i)(ks_tensor * a, int32_t axis) {                        \
+        KS_ASSERT_NONNULL_ARGS(a);                                                                                \
+                                                                                                                  \
+        const int32_t na = a->ndims;                                                                              \
+        if (axis < 0) {                                                                                           \
+            axis += na;                                                                                           \
+        }                                                                                                         \
+        KS_ASSERT(axis >= 0 && axis < na, "Axis out of bounds");                                                  \
+                                                                                                                  \
+        ks_tensor_int *a_shape = a->shape, *a_strides = a->strides, out_shape[8], count = 1, best_idx, tmp, aidx, \
+                      coord;                                                                                      \
+        const ks_tensor_int axis_count = a_shape[axis], axis_stride = a_strides[axis];                            \
+        float *data = a->data, best_val, *row;                                                                    \
+                                                                                                                  \
+        memcpy(out_shape, a_shape, sizeof(ks_tensor_int) * (size_t)na);                                           \
+        out_shape[axis] = 1;                                                                                      \
+        for (int32_t j = 0; j < na; ++j) {                                                                        \
+            count *= out_shape[j];                                                                                \
+        }                                                                                                         \
+                                                                                                                  \
+        if (KS_LIKELY(axis == na - 1 && ks_tensor_is_contiguous(a))) {                                            \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                           \
+                best_val = (init_val);                                                                            \
+                best_idx = 0;                                                                                     \
+                row = KS_PTROFF_UNCAST(data, i * axis_count);                                                     \
+                KS_SIMD_HINT for (ks_tensor_int j = 0; j < axis_count; ++j) {                                     \
+                    if (row[j] comp_expr best_val) {                                                              \
+                        best_val = row[j];                                                                        \
+                        best_idx = j;                                                                             \
+                    }                                                                                             \
+                }                                                                                                 \
+                data[i] = (float)best_idx;                                                                        \
+            }                                                                                                     \
+        } else {                                                                                                  \
+            for (ks_tensor_int i = 0; i < count; ++i) {                                                           \
+                tmp = i;                                                                                          \
+                aidx = 0;                                                                                         \
+                for (int32_t j = na - 1; j >= 0; --j) {                                                           \
+                    coord = tmp % out_shape[j];                                                                   \
+                    aidx += coord * a_strides[j];                                                                 \
+                    tmp /= out_shape[j];                                                                          \
+                }                                                                                                 \
+                                                                                                                  \
+                best_val = (init_val);                                                                            \
+                best_idx = 0;                                                                                     \
+                for (ks_tensor_int j = 0; j < axis_count; ++j) {                                                  \
+                    if (data[aidx] comp_expr best_val) {                                                          \
+                        best_val = data[aidx];                                                                    \
+                        best_idx = j;                                                                             \
+                    }                                                                                             \
+                    aidx += axis_stride;                                                                          \
+                }                                                                                                 \
+                                                                                                                  \
+                data[i] = (float)best_idx;                                                                        \
+            }                                                                                                     \
+        }                                                                                                         \
+                                                                                                                  \
+        a_shape[axis] = 1;                                                                                        \
+        ks_tensor_calc_strides(a_strides, na, a_shape);                                                           \
     }
 
 KS_TENSOR_DEFINE_UNARY(neg, -x);
@@ -2818,9 +3072,15 @@ KS_TENSOR_DEFINE_BINARY(sub, x - y);
 KS_TENSOR_DEFINE_BINARY(mul, x* y);
 KS_TENSOR_DEFINE_BINARY(div, x / y);
 
-KS_TENSOR_DEFINE_REDUCE_ALL(sum, 0.0f, acc + val);
-KS_TENSOR_DEFINE_REDUCE_ALL(max, -FLT_MAX, val > acc ? val : acc);
-KS_TENSOR_DEFINE_REDUCE_ALL(min, FLT_MAX, val < acc ? val : acc);
+KS_TENSOR_DEFINE_REDUCE(sum, 0.0f, acc + val);
+KS_TENSOR_DEFINE_REDUCE(max, -FLT_MAX, val > acc ? val : acc);
+KS_TENSOR_DEFINE_REDUCE(min, FLT_MAX, val < acc ? val : acc);
+
+KS_TENSOR_DEFINE_REDUCE_AXIS(sum, 0.0f, acc + val);
+KS_TENSOR_DEFINE_REDUCE_AXIS(max, -FLT_MAX, val > acc ? val : acc);
+KS_TENSOR_DEFINE_REDUCE_AXIS(min, FLT_MAX, val < acc ? val : acc);
+KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(argmax, -FLT_MAX, >);
+KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(argmin, FLT_MAX, <);
 
 /* Fields */
 
@@ -2872,9 +3132,9 @@ KS_API int fft(size_t n, double complex samples[static n]) {
     for (size_t i = 0; i < n; ++i) {
         size_t j = bit_reverse(i, n);
         if (i < j) {
-            double complex temp = samples[i];
+            double complex tmp = samples[i];
             samples[i] = samples[j];
-            samples[j] = temp;
+            samples[j] = tmp;
         }
     }
 

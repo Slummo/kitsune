@@ -466,6 +466,7 @@ long _InterlockedExchange(long volatile* Target, long Value);
 #define KS_NEXTPOW2(x) ((x <= 1) ? 1ULL : (1ULL << (sizeof(x) * 8 - (size_t)KS_CLZ((x) - 1))))
 
 #define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (size_t)(off))
+#define KS_PTROFF_UNCAST(ptr, off) ((ptr) + (size_t)(off))
 #define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((intptr_t)(ptr1) - (intptr_t)(ptr2)))
 #define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((uintptr_t)(ptr1) - (uintptr_t)(ptr2)))
 

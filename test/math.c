@@ -511,7 +511,7 @@ void test_tensor_initialization_distributions(void) {
 
     // Test Gaussian Normal Distribution (mean = 0.0, stddev = 1.0)
     ks_tensor_rand_normal(&t, 0.0f, 1.0f);
-    float sum = ks_tensor_sum_all(&t);
+    float sum = ks_tensor_reduce_sum(&t);
     float sample_mean = sum / 1000.0f;
     TEST_ASSERT_FLOAT_WITHIN(0.1f, 0.0f, sample_mean);
 
@@ -640,71 +640,142 @@ void test_tensor_binary_math(void) {
     ks_tensor_fini(&out);
 }
 
+// Helper macro to quickly spin up the fresh 2x3 test matrix
+#define INIT_TEST_MATRIX(t)                               \
+    do {                                                  \
+        ks_tensor_int s[] = {2, 3};                       \
+        TEST_ASSERT_OK(ks_tensor_init(&(t), 2, s, NULL)); \
+        (t).data[0] = 1.0f;                               \
+        (t).data[1] = 5.0f;                               \
+        (t).data[2] = 2.0f;                               \
+        (t).data[3] = 9.0f;                               \
+        (t).data[4] = 0.0f;                               \
+        (t).data[5] = 3.0f;                               \
+    } while (0)
+
 void test_tensor_reduce_all(void) {
-    ks_tensor_int shape[] = {2, 3};  // Matrix: [[1, 5, 2], [9, 0, 3]]
     ks_tensor t;
-    TEST_ASSERT_OK(ks_tensor_init(&t, 2, shape, NULL));
+    INIT_TEST_MATRIX(t);
 
-    t.data[0] = 1.0f;
-    t.data[1] = 5.0f;
-    t.data[2] = 2.0f;
-    t.data[3] = 9.0f;
-    t.data[4] = 0.0f;
-    t.data[5] = 3.0f;
+    // ==========================================
+    // 1. Out-of-Place (Returns float directly)
+    // ==========================================
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, ks_tensor_reduce_sum(&t));
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, ks_tensor_reduce_max(&t));
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, ks_tensor_reduce_min(&t));
 
-    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, ks_tensor_sum_all(&t));
-    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, ks_tensor_max_all(&t));
-    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, ks_tensor_min_all(&t));
+    ks_tensor_fini(&t);
 
+    // ==========================================
+    // 2. In-Place (Modifies tensor into a scalar)
+    // ==========================================
+
+    // Sum In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_sumi(&t);
+    TEST_ASSERT_EQUAL_INT(1, t.ndims);     // Tensor is now rank-1
+    TEST_ASSERT_EQUAL_INT(1, t.shape[0]);  // Shape is [1]
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 20.0f, t.data[0]);
+    ks_tensor_fini(&t);
+
+    // Max In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_maxi(&t);
+    TEST_ASSERT_EQUAL_INT(1, t.ndims);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, t.data[0]);
+    ks_tensor_fini(&t);
+
+    // Min In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_mini(&t);
+    TEST_ASSERT_EQUAL_INT(1, t.ndims);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, t.data[0]);
     ks_tensor_fini(&t);
 }
 
-// void test_tensor_reduce_axis(void) {
-//     ks_tensor_int shape[] = {2, 3};  // Matrix: [[1, 5, 2], [9, 0, 3]]
-//     ks_tensor t;
-//     TEST_ASSERT_OK(ks_tensor_init(&t, 2, shape, NULL));
+void test_tensor_reduce_axis(void) {
+    ks_tensor t, out;
 
-//     t.data[0] = 1.0f;
-//     t.data[1] = 5.0f;
-//     t.data[2] = 2.0f;
-//     t.data[3] = 9.0f;
-//     t.data[4] = 0.0f;
-//     t.data[5] = 3.0f;
+    // ==========================================
+    // 1. Out-of-Place Tests
+    // ==========================================
+    INIT_TEST_MATRIX(t);
 
-//     // Axis Reduction: Reduce along columns (axis 1).
-//     // The output shape MUST be [2, 1] to keep ndims aligned with the input.
-//     ks_tensor_int out_shape[] = {2, 1};
-//     ks_tensor out;
-//     TEST_ASSERT_OK(ks_tensor_init(&out, 2, out_shape, NULL));
+    ks_tensor_int out_shape[] = {2, 1};
+    TEST_ASSERT_OK(ks_tensor_init(&out, 2, out_shape, NULL));
 
-//     // Sum
-//     ks_tensor_sum(&out, &t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out.data[0]);   // 1 + 5 + 2 = 8
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out.data[1]);  // 9 + 0 + 3 = 12
+    ks_tensor_reduce_axis_sum(&out, &t, 1);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, out.data[0]);   // 1 + 5 + 2 = 8
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, out.data[1]);  // 9 + 0 + 3 = 12
 
-//     // Max
-//     ks_tensor_max(&out, &t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, out.data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, out.data[1]);
+    ks_tensor_reduce_axis_max(&out, &t, 1);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, out.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, out.data[1]);
 
-//     // Min
-//     ks_tensor_min(&out, &t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);
+    ks_tensor_reduce_axis_min(&out, &t, 1);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);
 
-//     // Argmax (Returns index of max value)
-//     ks_tensor_argmax(&out, &t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);  // Max of row 0 is at index 1 (val 5)
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);  // Max of row 1 is at index 0 (val 9)
+    ks_tensor_reduce_axis_argmax(&out, &t, 1);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[0]);  // Max of row 0 is at index 1 (val 5)
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[1]);  // Max of row 1 is at index 0 (val 9)
 
-//     // Argmin (Returns index of min value)
-//     ks_tensor_argmin(&out, &t, 1);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[0]);  // Min of row 0 is at index 0 (val 1)
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[1]);  // Min of row 1 is at index 1 (val 0)
+    ks_tensor_reduce_axis_argmin(&out, &t, 1);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, out.data[0]);  // Min of row 0 is at index 0 (val 1)
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, out.data[1]);  // Min of row 1 is at index 1 (val 0)
 
-//     ks_tensor_fini(&t);
-//     ks_tensor_fini(&out);
-// }
+    ks_tensor_fini(&t);
+    ks_tensor_fini(&out);
+
+    // ==========================================
+    // 2. In-Place Tests (Packs data into `t`)
+    // ==========================================
+
+    // Sum In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_axis_sumi(&t, 1);
+    TEST_ASSERT_EQUAL_INT(2, t.ndims);     // Should still be rank-2
+    TEST_ASSERT_EQUAL_INT(2, t.shape[0]);  // Row count is unchanged
+    TEST_ASSERT_EQUAL_INT(1, t.shape[1]);  // Col count reduced to 1
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 8.0f, t.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 12.0f, t.data[1]);
+    ks_tensor_fini(&t);
+
+    // Max In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_axis_maxi(&t, 1);
+    TEST_ASSERT_EQUAL_INT(1, t.shape[1]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, t.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, t.data[1]);
+    ks_tensor_fini(&t);
+
+    // Min In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_axis_mini(&t, 1);
+    TEST_ASSERT_EQUAL_INT(1, t.shape[1]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, t.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, t.data[1]);
+    ks_tensor_fini(&t);
+
+    // Argmax In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_axis_argmaxi(&t, 1);
+    TEST_ASSERT_EQUAL_INT(1, t.shape[1]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, t.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, t.data[1]);
+    ks_tensor_fini(&t);
+
+    // Argmin In-Place
+    INIT_TEST_MATRIX(t);
+    ks_tensor_reduce_axis_argmini(&t, 1);
+    TEST_ASSERT_EQUAL_INT(1, t.shape[1]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 0.0f, t.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 1.0f, t.data[1]);
+    ks_tensor_fini(&t);
+}
+
+// Undefine the helper so it doesn't pollute the rest of your test suite
+#undef INIT_TEST_MATRIX
 
 // void test_tensor_matmul(void) {
 //     // A: 2x3, B: 3x2 -> Out: 2x2
@@ -1301,7 +1372,7 @@ int main(void) {
     RUN_TEST(test_tensor_unary_math);
     RUN_TEST(test_tensor_binary_math);
     RUN_TEST(test_tensor_reduce_all);
-    // RUN_TEST(test_tensor_reduce_axis);
+    RUN_TEST(test_tensor_reduce_axis);
     // RUN_TEST(test_tensor_matmul);
 
     // // --- NEURAL NETWORK TESTS ---
@@ -1327,3 +1398,5 @@ int main(void) {
 
     return UNITY_END();
 }
+
+#undef TEST_ASSERT_OK
