@@ -146,7 +146,7 @@ void test_vec4_access_and_comparison(void) {
     ks_vec4_seti(&v1, 2, 9.0f);
     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, v1.z);
 
-    float* ptr = ks_vec4_ptr(&v1);
+    float *ptr = ks_vec4_ptr(&v1);
     ptr[0] = 5.0f;
     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 5.0f, v1.x);
 
@@ -215,7 +215,7 @@ void test_mat4_initialization_and_access(void) {
     ks_vec4 out_r = ks_mat4_getr(&m2, 0);
     TEST_ASSERT_TRUE(ks_vec4_equals(&v, &out_r));
 
-    float* ptr = ks_mat4_ptr(&m2);
+    float *ptr = ks_mat4_ptr(&m2);
     ptr[0] = 9.0f;
     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 9.0f, m2.data[0]);
 }
@@ -1177,15 +1177,15 @@ void test_quat_axis_angle(void) {
 /* CALCULUS & NUMERICAL INTEGRATION                                          */
 /* ========================================================================= */
 
-double cb_deriv_1d(double x, void* args) {
+double cb_deriv_1d(double x, void *args) {
     (void)args;
     return x * x * x;
 }  // x^3
-double cb_deriv_2d(double x, double y, void* args) {
+double cb_deriv_2d(double x, double y, void *args) {
     (void)args;
     return x * x + y * y * y;
 }
-double cb_integ_nd(const double* vars, int32_t dims, void* args) {
+double cb_integ_nd(const double *vars, int32_t dims, void *args) {
     (void)dims;
     (void)args;
     return vars[0] * vars[0];
@@ -1227,12 +1227,12 @@ void test_calculus_integrals(void) {
 /* ODE SOLVERS                                                               */
 /* ========================================================================= */
 
-ks_vec2 cb_ode_2d(double t, ks_vec2 state, void* args) {
+ks_vec2 cb_ode_2d(double t, ks_vec2 state, void *args) {
     (void)t;
     (void)args;
     return KS_VEC2(state.y, -state.x);
 }
-ks_vec3 cb_ode_3d(double t, ks_vec3 state, void* args) {
+ks_vec3 cb_ode_3d(double t, ks_vec3 state, void *args) {
     (void)t;
     (void)args;
     return KS_VEC3(state.y, -state.x, 0.0f);
@@ -1270,8 +1270,8 @@ void test_ode_solvers(void) {
 /* FIELDS                                                                    */
 /* ========================================================================= */
 
-void cb_field_sample(ks_field_ctx* ctx, void* out) {
-    double* val = (double*)out;
+void cb_field_sample(ks_field_ctx *ctx, void *out) {
+    double *val = (double *)out;
     *val = ctx->x * 2.0;  // simple x gradient
 }
 
@@ -1281,7 +1281,7 @@ void test_fields(void) {
 
     ks_field_sample(&f, NULL, 0.0, cb_field_sample);
 
-    double* d = (double*)f.data;
+    double *d = (double *)f.data;
     TEST_ASSERT_FLOAT_WITHIN(TEST_DEPS, 6.0, d[_ks_f3_idx_internal(3, 0, 0, 4, 4)]);
 
     ks_vec2 g = ks_sf2_grad(&f, 1, 1);
@@ -1295,7 +1295,7 @@ void test_fields(void) {
     TEST_ASSERT_NULL(f.data);
 
     ks_field fvec = ks_field_create(4, 4, 4, sizeof(ks_vec3), 1.0);
-    ks_vec3* vd = (ks_vec3*)fvec.data;
+    ks_vec3 *vd = (ks_vec3 *)fvec.data;
 
     // Create a simple divergence field v = (x, y, z)
     for (int z = 0; z < 4; ++z) {

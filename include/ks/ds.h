@@ -41,16 +41,16 @@
 
 #define KS_DA(T)                 \
     KS_STRUCT(T##_da, {          \
-        ks_allocator* allocator; \
-        T* data;                 \
+        ks_allocator *allocator; \
+        T *data;                 \
         size_t len;              \
         size_t cap;              \
     })
 
 #define KS_DA_UNNAMED(T)         \
     struct {                     \
-        ks_allocator* allocator; \
-        T* data;                 \
+        ks_allocator *allocator; \
+        T *data;                 \
         size_t len;              \
         size_t cap;              \
     }
@@ -69,7 +69,7 @@
     do {                                                                                                    \
         size_t oldsize = ks_da_cap(da) * sizeof(*ks_da_data(da));                                           \
         size_t newsize = (n) * sizeof(*ks_da_data(da));                                                     \
-        void* tmp = (da)->allocator->realloc(ks_da_data(da), oldsize, newsize, (da)->allocator->user_data); \
+        void *tmp = (da)->allocator->realloc(ks_da_data(da), oldsize, newsize, (da)->allocator->user_data); \
         if (tmp) {                                                                                          \
             ks_da_data(da) = tmp;                                                                           \
             ks_da_cap(da) = (n);                                                                            \
@@ -112,9 +112,9 @@
         ks_da_cap(da) = 0;                                                     \
     } while (0)
 
-#define ks_array_foreach(it, arr) for (KS_TYPEOF((arr)->data[0])* it = (arr)->data; it < (arr)->data + (arr)->len; ++it)
+#define ks_array_foreach(it, arr) for (KS_TYPEOF((arr)->data[0]) *it = (arr)->data; it < (arr)->data + (arr)->len; ++it)
 
-#define KS_CONTAINER_OF(ptr, type, member) ((type*)((int8_t*)(ptr) - offsetof(type, member)))
+#define KS_CONTAINER_OF(ptr, type, member) ((type *)((int8_t *)(ptr) - offsetof(type, member)))
 
 #endif  // KS_DS_H
 

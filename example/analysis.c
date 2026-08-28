@@ -2,24 +2,24 @@
 
 #include <ks/math.h>
 
-static double cos_cb(double x, KS_UNUSED void* args) {
+static double cos_cb(double x, KS_UNUSED void *args) {
     return cos(x);
 }
 
-static double gaussian(double x, KS_UNUSED void* args) {
+static double gaussian(double x, KS_UNUSED void *args) {
     return exp(-(x * x));
 }
 
-static double cylinder_top_cb(double x, double y, KS_UNUSED void* args) {
+static double cylinder_top_cb(double x, double y, KS_UNUSED void *args) {
     double dist_sq = x * x + y * y;
     return (dist_sq <= 1.0f) ? 1.0f : 0.0f;
 }
 
-static double const_1(KS_UNUSED const double* vars, KS_UNUSED int32_t dims, KS_UNUSED void* args) {
+static double const_1(KS_UNUSED const double *vars, KS_UNUSED int32_t dims, KS_UNUSED void *args) {
     return 1.0;
 }
 
-static double sphere_5d(const double* vars, int32_t dims, KS_UNUSED void* args) {
+static double sphere_5d(const double *vars, int32_t dims, KS_UNUSED void *args) {
     double sum_sq = 0.0;
 
     for (int32_t i = 0; i < dims; ++i) {

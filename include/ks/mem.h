@@ -18,46 +18,46 @@
 /* Allocator */
 
 KS_STRUCT(allocator, {
-    void* ctx;
-    void* (*alloc)(void* ctx, size_t size);
-    void* (*calloc)(void* ctx, size_t n, size_t size);
-    void* (*realloc)(void* ctx, void* ptr, size_t oldsize, size_t newsize);
-    void (*free)(void* ctx, void* ptr);
+    void *ctx;
+    void *(*alloc)(void *ctx, size_t size);
+    void *(*calloc)(void *ctx, size_t n, size_t size);
+    void *(*realloc)(void *ctx, void *ptr, size_t oldsize, size_t newsize);
+    void (*free)(void *ctx, void *ptr);
 });
 
 KS_API extern const ks_allocator std_allocator;
 
-static inline void* ks_alloc(const ks_allocator* a, size_t size) {
+static inline void *ks_alloc(const ks_allocator *a, size_t size) {
     return a ? a->alloc(a->ctx, size) : std_allocator.alloc(std_allocator.ctx, size);
 }
 
-static inline void* ks_calloc(const ks_allocator* a, size_t n, size_t size) {
+static inline void *ks_calloc(const ks_allocator *a, size_t n, size_t size) {
     return a ? a->calloc(a->ctx, n, size) : std_allocator.calloc(std_allocator.ctx, n, size);
 }
 
-static inline void* ks_realloc(const ks_allocator* a, void* ptr, size_t oldsize, size_t newsize) {
+static inline void *ks_realloc(const ks_allocator *a, void *ptr, size_t oldsize, size_t newsize) {
     return a ? a->realloc(a->ctx, ptr, oldsize, newsize)
              : std_allocator.realloc(std_allocator.ctx, ptr, oldsize, newsize);
 }
 
-static inline void ks_free(const ks_allocator* a, void* ptr) {
+static inline void ks_free(const ks_allocator *a, void *ptr) {
     return a ? a->free(a->ctx, ptr) : std_allocator.free(std_allocator.ctx, ptr);
 }
 
-#define KS_ALLOC_ONE(alloc, type) ((type*)ks_alloc(alloc, sizeof(type)))
-#define KS_ALLOC_ARR(alloc, type, count) ((type*)ks_alloc(alloc, sizeof(type) * (size_t)(count)))
-#define KS_CALLOC_ONE(alloc, type) ((type*)ks_calloc(alloc, 1, sizeof(type)))
-#define KS_CALLOC_ARR(alloc, type, count) ((type*)ks_calloc(alloc, (size_t)count, sizeof(type)))
+#define KS_ALLOC_ONE(alloc, type) ((type *)ks_alloc(alloc, sizeof(type)))
+#define KS_ALLOC_ARR(alloc, type, count) ((type *)ks_alloc(alloc, sizeof(type) * (size_t)(count)))
+#define KS_CALLOC_ONE(alloc, type) ((type *)ks_calloc(alloc, 1, sizeof(type)))
+#define KS_CALLOC_ARR(alloc, type, count) ((type *)ks_calloc(alloc, (size_t)count, sizeof(type)))
 
-static inline void ks_ptr_copy(void* dest, const void* src, size_t size) {
+static inline void ks_ptr_copy(void *dest, const void *src, size_t size) {
     KS_ASSERT_NONNULL_ARGS(dest && src);
     memcpy(dest, src, size);
 }
 
-static inline void* ks_ptr_clone(const ks_allocator* a, const void* src, size_t size) {
+static inline void *ks_ptr_clone(const ks_allocator *a, const void *src, size_t size) {
     KS_ASSERT_NONNULL_ARGS(src);
 
-    void* clone = ks_alloc(a, size);
+    void *clone = ks_alloc(a, size);
     if (clone) {
         ks_ptr_copy(clone, src, size);
     }
@@ -68,14 +68,14 @@ static inline void* ks_ptr_clone(const ks_allocator* a, const void* src, size_t 
 /* Arena allocator */
 
 KS_STRUCT(arena, {
-    uint8_t* data;
+    uint8_t *data;
     size_t cap;
     size_t off;
 });
 
-KS_API void ks_arena_init(ks_arena* arena, void* mem, size_t cap);
-KS_API void ks_arena_reset(ks_arena* arena);
-KS_API ks_allocator ks_arena_allocator(ks_arena* arena);
+KS_API void ks_arena_init(ks_arena *arena, void *mem, size_t cap);
+KS_API void ks_arena_reset(ks_arena *arena);
+KS_API ks_allocator ks_arena_allocator(ks_arena *arena);
 
 #endif  // KS_MEM_H
 
@@ -88,19 +88,19 @@ KS_API ks_allocator ks_arena_allocator(ks_arena* arena);
 
 /* Standard allocator */
 
-static void* std_alloc(KS_UNUSED void* ctx, size_t size) {
+static void *std_alloc(KS_UNUSED void *ctx, size_t size) {
     return malloc(size);
 }
 
-static void* std_calloc(KS_UNUSED void* ctx, size_t n, size_t size) {
+static void *std_calloc(KS_UNUSED void *ctx, size_t n, size_t size) {
     return calloc(n, size);
 }
 
-static void* std_realloc(KS_UNUSED void* ctx, void* ptr, KS_UNUSED size_t oldsize, size_t newsize) {
+static void *std_realloc(KS_UNUSED void *ctx, void *ptr, KS_UNUSED size_t oldsize, size_t newsize) {
     return realloc(ptr, newsize);
 }
 
-static void std_free(KS_UNUSED void* ctx, void* ptr) {
+static void std_free(KS_UNUSED void *ctx, void *ptr) {
     free(ptr);
 }
 
@@ -109,29 +109,29 @@ KS_API const ks_allocator
 
 /* Arena allocator */
 
-static void* ks_arena_alloc(void* ctx, size_t size) {
-    ks_arena* arena = ctx;
+static void *ks_arena_alloc(void *ctx, size_t size) {
+    ks_arena *arena = ctx;
     size_t aligned_off = KS_ALIGN_UP(arena->off, 8);
     if (aligned_off + size > arena->cap) {
         return NULL;  // OOM
     }
 
-    void* ptr = KS_PTROFF(arena->data, aligned_off);
+    void *ptr = KS_PTROFF(arena->data, aligned_off);
     arena->off = aligned_off + size;
     return ptr;
 }
 
-static void* ks_arena_calloc(void* ctx, size_t n, size_t size) {
+static void *ks_arena_calloc(void *ctx, size_t n, size_t size) {
     size_t s = n * size;
-    void* ptr = ks_arena_alloc(ctx, s);
+    void *ptr = ks_arena_alloc(ctx, s);
     if (ptr) {
         memset(ptr, 0, s);
     }
     return ptr;
 }
 
-static void* ks_arena_realloc(void* ctx, void* ptr, size_t oldsize, size_t newsize) {
-    ks_arena* arena = ctx;
+static void *ks_arena_realloc(void *ctx, void *ptr, size_t oldsize, size_t newsize) {
+    ks_arena *arena = ctx;
     if (KS_PTROFF(ptr, oldsize) == KS_PTROFF(arena->data, arena->off)) {
         if (arena->off - oldsize + newsize > arena->cap) {
             return NULL;
@@ -141,7 +141,7 @@ static void* ks_arena_realloc(void* ctx, void* ptr, size_t oldsize, size_t newsi
         return ptr;
     }
 
-    void* newptr = ks_arena_alloc(ctx, newsize);
+    void *newptr = ks_arena_alloc(ctx, newsize);
     if (newptr && ptr) {
         size_t cpysize = KS_MIN(oldsize, newsize);
         memcpy(newptr, ptr, cpysize);
@@ -150,22 +150,22 @@ static void* ks_arena_realloc(void* ctx, void* ptr, size_t oldsize, size_t newsi
     return newptr;
 }
 
-static void ks_arena_free(KS_UNUSED void* ctx, KS_UNUSED void* ptr) {
+static void ks_arena_free(KS_UNUSED void *ctx, KS_UNUSED void *ptr) {
 }
 
-KS_API void ks_arena_init(ks_arena* arena, void* mem, size_t cap) {
+KS_API void ks_arena_init(ks_arena *arena, void *mem, size_t cap) {
     KS_ASSERT_NONNULL_ARGS(arena && mem);
-    arena->data = (uint8_t*)mem;
+    arena->data = (uint8_t *)mem;
     arena->cap = cap;
     arena->off = 0;
 }
 
-KS_API void ks_arena_reset(ks_arena* arena) {
+KS_API void ks_arena_reset(ks_arena *arena) {
     KS_ASSERT_NONNULL_ARGS(arena);
     arena->off = 0;
 }
 
-KS_API ks_allocator ks_arena_allocator(ks_arena* arena) {
+KS_API ks_allocator ks_arena_allocator(ks_arena *arena) {
     KS_ASSERT_NONNULL_ARGS(arena);
     return (ks_allocator){.ctx = arena,
                           .alloc = ks_arena_alloc,

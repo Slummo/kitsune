@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-KS_API char* ks_fread(const char* filename);
+KS_API char *ks_fread(const char *filename);
 
 #endif  // KS_IO_H
 
@@ -18,8 +18,8 @@ KS_API char* ks_fread(const char* filename);
 #error "kitsune: io.h requires core.h"
 #endif
 
-KS_API char* ks_fread(const char* filename) {
-    FILE* f = fopen(filename, "r");
+KS_API char *ks_fread(const char *filename) {
+    FILE *f = fopen(filename, "r");
     if (!f) {
         return NULL;
     }
@@ -28,7 +28,7 @@ KS_API char* ks_fread(const char* filename) {
     size_t size = (size_t)ftell(f);
     rewind(f);
 
-    char* content = malloc(size + 1);
+    char *content = malloc(size + 1);
     if (!content) {
         fclose(f);
         return NULL;

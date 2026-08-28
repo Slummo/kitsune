@@ -186,7 +186,7 @@ static void test_convert(void) {
 // -----------------------------------------------------------------------------
 static void test_splitjoin(void) {
     ks_string s = ks_string_new("apple,banana,orange");
-    ks_str* parts = ks_string_split(&s, ",");
+    ks_str *parts = ks_string_split(&s, ",");
 
     TEST_ASSERT_NOT_NULL(parts);
     TEST_ASSERT_EQUAL_UINT(5, parts[0].len);
@@ -213,19 +213,19 @@ static void test_findreplace(void) {
     ks_string needle = ks_string_new("quick");
     ks_string replacement = ks_string_new("slow");
 
-    char* p1 = ks_string_find(&s, &needle);
+    char *p1 = ks_string_find(&s, &needle);
     TEST_ASSERT_NOT_NULL(p1);
     TEST_ASSERT_EQUAL_STRING("quick brown fox", p1);
 
-    char* p2 = ks_string_find_raw(&s, "brown");
+    char *p2 = ks_string_find_raw(&s, "brown");
     TEST_ASSERT_NOT_NULL(p2);
     TEST_ASSERT_EQUAL_STRING("brown fox", p2);
 
-    char* p3 = ks_string_find_raw2(&s, "foxes", 3);
+    char *p3 = ks_string_find_raw2(&s, "foxes", 3);
     TEST_ASSERT_NOT_NULL(p3);
     TEST_ASSERT_EQUAL_STRING("fox", p3);
 
-    char* p4 = ks_string_find_raw(&s, "wolf");
+    char *p4 = ks_string_find_raw(&s, "wolf");
     TEST_ASSERT_NULL(p4);
 
     ks_string_replace(&s, &needle, &replacement);
@@ -313,7 +313,7 @@ static void test_memory(void) {
 // View Tests (ks_str)
 // -----------------------------------------------------------------------------
 static void test_views(void) {
-    const char* raw_text = "hello, world!";
+    const char *raw_text = "hello, world!";
 
     ks_str view1 = ks_str_new(raw_text, 7, 12);
     TEST_ASSERT_EQUAL_UINT(5, ks_str_len(view1));

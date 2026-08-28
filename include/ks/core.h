@@ -248,10 +248,10 @@
 #define KS_ATOMIC_STORE(ptr, val) __atomic_store_n((ptr), (val), __ATOMIC_RELAXED)
 #elif KS_COMPILER_MSVC
 #define KS_ATOMIC_INT volatile long
-long _InterlockedExchange(long volatile* Target, long Value);
+long _InterlockedExchange(long volatile *Target, long Value);
 #pragma intrinsic(_InterlockedExchange)
 #define KS_ATOMIC_LOAD(ptr) (*(ptr))
-#define KS_ATOMIC_STORE(ptr, val) _InterlockedExchange((long volatile*)(ptr), (long)(val))
+#define KS_ATOMIC_STORE(ptr, val) _InterlockedExchange((long volatile *)(ptr), (long)(val))
 #else
 #error "Compiler does not support atomics!"
 #endif
@@ -351,7 +351,7 @@ long _InterlockedExchange(long volatile* Target, long Value);
         KS_TYPEOF(a) _a = (a);  \
         KS_TYPEOF(b) _b = (b);  \
         KS_TYPEOF(t) _t = (t);  \
-        _a * (1 - _t) + _b* _t; \
+        _a * (1 - _t) + _b *_t; \
     })
 #define KS_SMOOTHSTEP(edge0, edge1, x)                                       \
     ({                                                                       \
@@ -397,7 +397,7 @@ long _InterlockedExchange(long volatile* Target, long Value);
     ({                              \
         KS_TYPEOF(x) _x = (x);      \
         KS_TYPEOF(y) _y = (y);      \
-        _x - _y* KS_FLOOR(_x / _y); \
+        _x - _y *KS_FLOOR(_x / _y); \
     })
 #define KS_SWAP(a, b)         \
     do {                      \
@@ -465,7 +465,7 @@ long _InterlockedExchange(long volatile* Target, long Value);
 #define KS_ALIGN_UP(x, a) KS_ALIGN_DOWN((x) + (a) - 1, (a))
 #define KS_NEXTPOW2(x) ((x <= 1) ? 1ULL : (1ULL << (sizeof(x) * 8 - (size_t)KS_CLZ((x) - 1))))
 
-#define KS_PTROFF(ptr, off) ((uint8_t*)(ptr) + (size_t)(off))
+#define KS_PTROFF(ptr, off) ((uint8_t *)(ptr) + (size_t)(off))
 #define KS_PTROFF_UNCAST(ptr, off) ((ptr) + (size_t)(off))
 #define KS_PTRDIFF(ptr1, ptr2) ((ptrdiff_t)((intptr_t)(ptr1) - (intptr_t)(ptr2)))
 #define KS_PTRDIFF_ABS(ptr1, ptr2) ((size_t)((uintptr_t)(ptr1) - (uintptr_t)(ptr2)))
@@ -477,7 +477,7 @@ KS_ENUM(code, {KS_OK = 0, KS_ERR_GENERIC = -1, KS_ERR_INVALID = -2, KS_ERR_OOM =
 
 KS_STRUCT(status, {
     ks_code code;
-    const char* msg;
+    const char *msg;
 });
 
 #define _ks_status_1(code) ((ks_status){code, ""})
@@ -489,17 +489,17 @@ KS_STRUCT(status, {
 
 KS_EXTERN_C_BEGIN
 
-KS_API const char* ks_code_to_str(ks_code code);
-KS_API const char* ks_status_to_str(ks_status status);
+KS_API const char *ks_code_to_str(ks_code code);
+KS_API const char *ks_status_to_str(ks_status status);
 
 KS_EXTERN_C_END
 
-static inline void ks_status_fmt(ks_status status, char* out_buf, size_t buf_size) {
+static inline void ks_status_fmt(ks_status status, char *out_buf, size_t buf_size) {
     if (!out_buf || buf_size == 0) {
         return;
     }
 
-    const char* code_str = ks_code_to_str(status.code);
+    const char *code_str = ks_code_to_str(status.code);
 
     if (status.msg && status.msg[0] != '\0') {
         snprintf(out_buf, buf_size, "%s: %s", code_str, status.msg);
@@ -521,7 +521,7 @@ KS_EXTERN_C_BEGIN
 
 KS_API extern KS_ATOMIC_INT ks_log_level;
 KS_API void ks_log_init(void);
-KS_API void ks_log_impl(int type, const char* file, int line, const char* fmt, ...);
+KS_API void ks_log_impl(int type, const char *file, int line, const char *fmt, ...);
 
 KS_EXTERN_C_END
 
@@ -790,7 +790,7 @@ static KS_FORCE_INLINE uint64_t KS_BSWAP64(uint64_t x) {
         return !self->has_value;                                                   \
     }                                                                              \
                                                                                    \
-    KS_UNUSED static inline T* _KS_OPT_FN(ptr, T)(_KS_OPT(T) * self) {             \
+    KS_UNUSED static inline T *_KS_OPT_FN(ptr, T)(_KS_OPT(T) * self) {             \
         KS_ASSERT(self, "self is NULL");                                           \
         return _KS_OPT_FN(is_some, T)(self) ? &self->value : NULL;                 \
     }                                                                              \
@@ -866,7 +866,7 @@ static KS_FORCE_INLINE uint64_t KS_BSWAP64(uint64_t x) {
 #if defined(KS_CORE_IMPL) && !defined(KS_CORE_IMPL_DONE)
 #define KS_CORE_IMPL_DONE
 
-KS_API const char* ks_code_to_str(ks_code code) {
+KS_API const char *ks_code_to_str(ks_code code) {
     switch (code) {
         case KS_OK:
             return "Success";
@@ -891,7 +891,7 @@ KS_API const char* ks_code_to_str(ks_code code) {
     }
 }
 
-KS_API const char* ks_status_to_str(ks_status status) {
+KS_API const char *ks_status_to_str(ks_status status) {
     static KS_THREAD_LOCAL char buffer[256];
     ks_status_fmt(status, buffer, sizeof(buffer));
     return buffer;
@@ -900,22 +900,22 @@ KS_API const char* ks_status_to_str(ks_status status) {
 KS_API KS_ATOMIC_INT ks_log_level = KSINFO;
 
 void ks_log_init(void) {
-    char* env = getenv("KSLOGLVL");
+    char *env = getenv("KSLOGLVL");
     if (env) {
         KS_ATOMIC_STORE(&ks_log_level, (int)strtol(env, NULL, 10));
     }
 }
 
-void ks_log_impl(int type, const char* file, int line, const char* fmt, ...) {
-    static const char* prefixes[] = {
+void ks_log_impl(int type, const char *file, int line, const char *fmt, ...) {
+    static const char *prefixes[] = {
         "{-}",  // KSERR
         "{~}",  // KSWARN
         "{+}",  // KSINFO
         "{*}"   // KSDEBUG
     };
 
-    FILE* stream = (type == KSERR) ? stderr : stdout;
-    const char* prefix = (type >= 0 && type <= 3) ? prefixes[type] : "{?}";
+    FILE *stream = (type == KSERR) ? stderr : stdout;
+    const char *prefix = (type >= 0 && type <= 3) ? prefixes[type] : "{?}";
 
     fprintf(stream, "%s[%s:%d] ", prefix, file, line);
 
