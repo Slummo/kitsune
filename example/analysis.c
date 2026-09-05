@@ -1,6 +1,7 @@
 #define KS_MEM_IMPL
 
 #include <ks/math.h>
+#include <time.h>
 
 static double cos_cb(double x, KS_UNUSED void *args) {
     return cos(x);

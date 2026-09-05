@@ -5,7 +5,8 @@
 
 #include <complex.h>
 #include <omp.h>
-#include <time.h>
+#include <cblas.h>
+#include <sleef.h>
 
 // clang-format off
 #define KS_E            2.7182818284590452354       // e
@@ -1440,6 +1441,8 @@ static inline void ks_mat4_ortho(ks_mat4 *out, float left, float right, float bo
 
 /* Tensors */
 
+KS_EXTERN_C_BEGIN;
+
 #define KS_TENSOR_DECLARE_UNARY(name, ...)                                                        \
     KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor *a, ##__VA_ARGS__); \
     KS_API void KS_CONCAT3(ks_tensor_, name, i)(ks_tensor * a, ##__VA_ARGS__)
@@ -1460,31 +1463,40 @@ static inline void ks_mat4_ortho(ks_mat4 *out, float left, float right, float bo
 KS_API ks_status ks_tensor_init(ks_tensor *t, const int32_t ndims, const ks_tensor_int *shape, const ks_allocator *a);
 KS_API void ks_tensor_fini(ks_tensor *t);
 
-KS_API void ks_tensor_copy(ks_tensor *dst, const ks_tensor *src);
-KS_API ks_status ks_tensor_clone(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a);
-KS_API void ks_tensor_view(ks_tensor *dst, const ks_tensor *src);
-
-KS_API ks_tensor_int ks_tensor_count(const ks_tensor *t);
-
-KS_API bool ks_tensor_is_contiguous(const ks_tensor *t);
-KS_API bool ks_tensor_same_shape(const ks_tensor *a, const ks_tensor *b);
-
-KS_API ks_status ks_tensor_contiguous(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a);
-KS_API ks_status ks_tensor_reshape(ks_tensor *t, const int32_t new_ndims, const ks_tensor_int *new_shape);
-KS_API ks_status ks_tensor_transpose(ks_tensor *t, const int32_t dim1, const int32_t dim2);
-
 KS_API void ks_tensor_zeros(ks_tensor *t);
 KS_API void ks_tensor_fill(ks_tensor *t, const float val);
 KS_API void ks_tensor_rand_uniform(ks_tensor *t, const float min, const float max);
 KS_API void ks_tensor_rand_normal(ks_tensor *t, const float mean, const float stddev);
 
+KS_API void ks_tensor_copy(ks_tensor *dst, const ks_tensor *src);
+KS_API ks_status ks_tensor_clone(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a);
+KS_API ks_status ks_tensor_contiguous(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a);
+
+KS_API ks_tensor_int ks_tensor_count(const ks_tensor *t);
+KS_API bool ks_tensor_is_contiguous(const ks_tensor *t);
+KS_API bool ks_tensor_same_shape(const ks_tensor *a, const ks_tensor *b);
+
+KS_API void ks_tensor_view(ks_tensor *dst, const ks_tensor *src);
+KS_API ks_status ks_tensor_reshape(ks_tensor *t, const int32_t new_ndims, const ks_tensor_int *new_shape);
+KS_API ks_status ks_tensor_transpose(ks_tensor *t, const int32_t dim1, const int32_t dim2);
+KS_API ks_status ks_tensor_permute(ks_tensor *dst, const ks_tensor *src, const int32_t *axes);
+KS_API ks_status ks_tensor_squeeze(ks_tensor *dst, const ks_tensor *src, int32_t axis);
+KS_API ks_status ks_tensor_unsqueeze(ks_tensor *dst, const ks_tensor *src, int32_t axis);
+KS_API ks_status ks_tensor_slice(ks_tensor *dst, const ks_tensor *src, int32_t axis, ks_tensor_int start,
+                                 ks_tensor_int end, ks_tensor_int step);
+
+KS_API ks_status ks_tensor_cat(ks_tensor *dst, const ks_tensor **tensors, int32_t num_tensors, int32_t axis);
+KS_API ks_status ks_tensor_stack(ks_tensor *dst, const ks_tensor **tensors, int32_t num_tensors, int32_t axis);
+
 KS_TENSOR_DECLARE_UNARY(neg);
+KS_TENSOR_DECLARE_UNARY(abs);
 KS_TENSOR_DECLARE_UNARY(clamp, float min, float max);
+
 KS_TENSOR_DECLARE_UNARY(pow, float exponent);
 KS_TENSOR_DECLARE_UNARY(sqrt);
 KS_TENSOR_DECLARE_UNARY(exp);
 KS_TENSOR_DECLARE_UNARY(log);
-KS_TENSOR_DECLARE_UNARY(abs);
+
 KS_TENSOR_DECLARE_UNARY(sigmoid);
 KS_TENSOR_DECLARE_UNARY(tanh);
 KS_TENSOR_DECLARE_UNARY(relu);
@@ -1492,6 +1504,8 @@ KS_TENSOR_DECLARE_UNARY(leaky_relu, float alpha);
 KS_TENSOR_DECLARE_UNARY(softplus);
 KS_TENSOR_DECLARE_UNARY(elu, float alpha);
 KS_TENSOR_DECLARE_UNARY(selu, float scale, float alpha);
+KS_TENSOR_DECLARE_UNARY(silu);
+KS_TENSOR_DECLARE_UNARY(gelu);
 
 KS_TENSOR_DECLARE_BINARY(add);
 KS_TENSOR_DECLARE_BINARY(sub);
@@ -1505,10 +1519,30 @@ KS_TENSOR_DECLARE_REDUCE(min);
 KS_TENSOR_DECLARE_REDUCE_AXIS(sum);
 KS_TENSOR_DECLARE_REDUCE_AXIS(max);
 KS_TENSOR_DECLARE_REDUCE_AXIS(min);
+
 KS_TENSOR_DECLARE_REDUCE_AXIS(argmax);
 KS_TENSOR_DECLARE_REDUCE_AXIS(argmin);
 
+KS_API void ks_tensor_softmax(ks_tensor *out, const ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_softmaxi(ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_log_softmax(ks_tensor *out, const ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_log_softmaxi(ks_tensor *a, int32_t axis);
+
+KS_API void ks_tensor_layer_norm(ks_tensor *out, const ks_tensor *a, int32_t axis, float eps);
+KS_API void ks_tensor_layer_normi(ks_tensor *a, int32_t axis, float eps);
+
+KS_API void ks_tensor_rms_norm(ks_tensor *out, const ks_tensor *a, int32_t axis, float eps);
+KS_API void ks_tensor_rms_normi(ks_tensor *a, int32_t axis, float eps);
+
+KS_API float ks_tensor_dot(const ks_tensor *a, const ks_tensor *b);
 KS_API void ks_tensor_matmul(ks_tensor *out, const ks_tensor *a, const ks_tensor *b);
+KS_API void ks_tensor_linear(ks_tensor *out, const ks_tensor *x, const ks_tensor *weight, const ks_tensor *bias);
+KS_API void ks_tensor_bmm(ks_tensor *out, const ks_tensor *a, const ks_tensor *b);
+
+KS_API float ks_tensor_mse_loss(const ks_tensor *pred, const ks_tensor *target);
+KS_API float ks_tensor_cross_entropy_loss(const ks_tensor *pred, const ks_tensor *target, int32_t axis);
+
+KS_EXTERN_C_END;
 
 // Euler
 
@@ -2377,184 +2411,6 @@ KS_API void ks_tensor_fini(ks_tensor *t) {
     ks_free(t->allocator, t->data);
 }
 
-KS_API void ks_tensor_copy(ks_tensor *dst, const ks_tensor *src) {
-    KS_ASSERT_NONNULL_ARGS(dst && src);
-    KS_ASSERT(dst->ndims == src->ndims, "Tensor dimensions mismatch");
-    KS_ASSERT(dst->data && src->data, "Tensors must have allocated buffer");
-
-    const int32_t ndims = dst->ndims;
-    KS_TENSOR_VARS(dst, d);
-    KS_CONST_TENSOR_VARS(src, s);
-
-    ks_tensor_int count = 1;
-    for (int32_t i = 0; i < ndims; ++i) {
-        ks_tensor_int s = sshape[i];
-        KS_ASSERT(dshape[i] == s, "Tensor shapes mismatch");
-        count *= s;
-    }
-
-    const bool dcont = ks_tensor_is_contiguous(dst), scont = ks_tensor_is_contiguous(src);
-
-    if (dcont && scont) {
-        memcpy(ddata, sdata, sizeof(float) * (size_t)count);
-        return;
-    }
-
-    for (ks_tensor_int i = 0; i < count; ++i) {
-        ks_tensor_int dsti = dcont ? i : ks_tensor_index(dst, i);
-        ks_tensor_int srci = scont ? i : ks_tensor_index(src, i);
-        ddata[dsti] = sdata[srci];
-    }
-}
-
-KS_API ks_status ks_tensor_clone(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a) {
-    KS_ASSERT_NONNULL_ARGS(dst && src);
-
-    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
-    if (status.code != KS_OK) {
-        return status;
-    }
-
-    ks_tensor_copy(dst, src);
-
-    return KS_STATUS(KS_OK);
-}
-
-KS_API void ks_tensor_view(ks_tensor *dst, const ks_tensor *src) {
-    KS_ASSERT_NONNULL_ARGS(dst && src);
-
-    *dst = *src;
-    dst->allocator = NULL;
-}
-
-KS_API ks_tensor_int ks_tensor_count(const ks_tensor *t) {
-    KS_ASSERT_NONNULL_ARGS(t);
-    KS_ASSERT(t->data, "Tensor is not initialized");
-
-    const int32_t ndims = t->ndims;
-    if (ndims == 0) {
-        return 0;
-    }
-
-    const ks_tensor_int *shape = t->shape;
-    ks_tensor_int count = 1;
-    for (int32_t i = 0; i < ndims; ++i) {
-        count *= shape[i];
-    }
-
-    return count;
-}
-
-KS_API bool ks_tensor_is_contiguous(const ks_tensor *t) {
-    KS_ASSERT_NONNULL_ARGS(t);
-    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
-
-    ks_tensor_int expected_stride = 1;
-    const int32_t n = t->ndims - 1;
-    const ks_tensor_int *restrict shape = t->shape, *restrict strides = t->strides;
-
-    for (int32_t i = n; i >= 0; --i) {
-        if (strides[i] != expected_stride) {
-            return false;
-        }
-
-        expected_stride *= shape[i];
-    }
-
-    return true;
-}
-
-KS_API bool ks_tensor_same_shape(const ks_tensor *a, const ks_tensor *b) {
-    KS_ASSERT_NONNULL_ARGS(a && b);
-    KS_ASSERT(a->shape && b->shape, "Tensors data is NULL");
-
-    const int32_t na = a->ndims;
-    const int32_t nb = b->ndims;
-
-    if (na != nb) {
-        return false;
-    }
-
-    const ks_tensor_int *restrict sa = a->shape, *restrict sb = b->shape;
-
-    for (int32_t i = 0; i < na; ++i) {
-        if (sa[i] != sb[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-KS_API ks_status ks_tensor_contiguous(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a) {
-    KS_ASSERT_NONNULL_ARGS(dst && src);
-
-    if (ks_tensor_is_contiguous(src)) {
-        ks_tensor_view(dst, src);
-        return KS_STATUS(KS_OK);
-    }
-
-    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
-    if (status.code != KS_OK) {
-        return status;
-    }
-
-    ks_tensor_copy(dst, src);
-    return KS_STATUS(KS_OK);
-}
-
-KS_API ks_status ks_tensor_reshape(ks_tensor *t, const int32_t new_ndims, const ks_tensor_int *new_shape) {
-    KS_ASSERT_NONNULL_ARGS(t && new_shape);
-
-    if (new_ndims < 1 || new_ndims > 8) {
-        return KS_STATUS(KS_ERR_BOUNDS, "Number of dimensions out of range [1, 8]");
-    }
-
-    if (!ks_tensor_is_contiguous(t)) {
-        return KS_STATUS(KS_ERR_INVALID, "Tensor is not contiguous");
-    }
-
-    ks_tensor_int new_count = 1;
-    for (int32_t i = 0; i < new_ndims; ++i) {
-        if (new_shape[i] <= 0) {
-            return KS_STATUS(KS_ERR_INVALID, "Shape dimensions must be positive");
-        }
-        new_count *= new_shape[i];
-    }
-
-    if (ks_tensor_count(t) != new_count) {
-        return KS_STATUS(KS_ERR_INVALID, "Shape mismatch");
-    }
-
-    memcpy(t->shape, new_shape, sizeof(ks_tensor_int) * (size_t)new_ndims);
-    ks_tensor_calc_strides(t->strides, new_ndims, new_shape);
-    t->ndims = new_ndims;
-
-    return KS_STATUS(KS_OK);
-}
-
-KS_API ks_status ks_tensor_transpose(ks_tensor *t, const int32_t dim1, const int32_t dim2) {
-    KS_ASSERT_NONNULL_ARGS(t);
-    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
-
-    if (dim1 < 0 || dim1 >= t->ndims) {
-        return KS_STATUS(KS_ERR_BOUNDS, "dim1 out of bounds");
-    }
-
-    if (dim2 < 0 || dim2 >= t->ndims) {
-        return KS_STATUS(KS_ERR_BOUNDS, "dim2 out of bounds");
-    }
-
-    if (dim1 == dim2) {
-        return KS_STATUS(KS_OK);
-    }
-
-    KS_SWAP(t->shape[dim1], t->shape[dim2]);
-    KS_SWAP(t->strides[dim1], t->strides[dim2]);
-
-    return KS_STATUS(KS_OK);
-}
-
 KS_API void ks_tensor_zeros(ks_tensor *t) {
     KS_ASSERT_NONNULL_ARGS(t);
     KS_ASSERT(t->data, "Tensors data is NULL");
@@ -2650,6 +2506,193 @@ KS_API void ks_tensor_rand_normal(ks_tensor *t, const float mean, const float st
         data[j] = r * stddev + mean;
     }
 }
+
+KS_API void ks_tensor_copy(ks_tensor *dst, const ks_tensor *src) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+    KS_ASSERT(dst->ndims == src->ndims, "Tensor dimensions mismatch");
+    KS_ASSERT(dst->data && src->data, "Tensors must have allocated buffer");
+
+    const int32_t ndims = dst->ndims;
+    KS_TENSOR_VARS(dst, d);
+    KS_CONST_TENSOR_VARS(src, s);
+
+    ks_tensor_int count = 1;
+    for (int32_t i = 0; i < ndims; ++i) {
+        ks_tensor_int s = sshape[i];
+        KS_ASSERT(dshape[i] == s, "Tensor shapes mismatch");
+        count *= s;
+    }
+
+    const bool dcont = ks_tensor_is_contiguous(dst), scont = ks_tensor_is_contiguous(src);
+
+    if (dcont && scont) {
+        memcpy(ddata, sdata, sizeof(float) * (size_t)count);
+        return;
+    }
+
+    for (ks_tensor_int i = 0; i < count; ++i) {
+        ks_tensor_int dsti = dcont ? i : ks_tensor_index(dst, i);
+        ks_tensor_int srci = scont ? i : ks_tensor_index(src, i);
+        ddata[dsti] = sdata[srci];
+    }
+}
+
+KS_API ks_status ks_tensor_clone(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+
+    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
+    if (status.code != KS_OK) {
+        return status;
+    }
+
+    ks_tensor_copy(dst, src);
+
+    return KS_STATUS(KS_OK);
+}
+
+KS_API ks_status ks_tensor_contiguous(ks_tensor *dst, const ks_tensor *src, const ks_allocator *a) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+
+    if (ks_tensor_is_contiguous(src)) {
+        ks_tensor_view(dst, src);
+        return KS_STATUS(KS_OK);
+    }
+
+    ks_status status = ks_tensor_init(dst, src->ndims, src->shape, a);
+    if (status.code != KS_OK) {
+        return status;
+    }
+
+    ks_tensor_copy(dst, src);
+    return KS_STATUS(KS_OK);
+}
+
+KS_API ks_tensor_int ks_tensor_count(const ks_tensor *t) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->data, "Tensor is not initialized");
+
+    const int32_t ndims = t->ndims;
+    if (ndims == 0) {
+        return 0;
+    }
+
+    const ks_tensor_int *shape = t->shape;
+    ks_tensor_int count = 1;
+    for (int32_t i = 0; i < ndims; ++i) {
+        count *= shape[i];
+    }
+
+    return count;
+}
+
+KS_API bool ks_tensor_is_contiguous(const ks_tensor *t) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
+
+    ks_tensor_int expected_stride = 1;
+    const int32_t n = t->ndims - 1;
+    const ks_tensor_int *restrict shape = t->shape, *restrict strides = t->strides;
+
+    for (int32_t i = n; i >= 0; --i) {
+        if (strides[i] != expected_stride) {
+            return false;
+        }
+
+        expected_stride *= shape[i];
+    }
+
+    return true;
+}
+
+KS_API bool ks_tensor_same_shape(const ks_tensor *a, const ks_tensor *b) {
+    KS_ASSERT_NONNULL_ARGS(a && b);
+    KS_ASSERT(a->shape && b->shape, "Tensors data is NULL");
+
+    const int32_t na = a->ndims;
+    const int32_t nb = b->ndims;
+
+    if (na != nb) {
+        return false;
+    }
+
+    const ks_tensor_int *restrict sa = a->shape, *restrict sb = b->shape;
+
+    for (int32_t i = 0; i < na; ++i) {
+        if (sa[i] != sb[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+KS_API void ks_tensor_view(ks_tensor *dst, const ks_tensor *src) {
+    KS_ASSERT_NONNULL_ARGS(dst && src);
+
+    *dst = *src;
+    dst->allocator = NULL;
+}
+
+KS_API ks_status ks_tensor_reshape(ks_tensor *t, const int32_t new_ndims, const ks_tensor_int *new_shape) {
+    KS_ASSERT_NONNULL_ARGS(t && new_shape);
+
+    if (new_ndims < 1 || new_ndims > 8) {
+        return KS_STATUS(KS_ERR_BOUNDS, "Number of dimensions out of range [1, 8]");
+    }
+
+    if (!ks_tensor_is_contiguous(t)) {
+        return KS_STATUS(KS_ERR_INVALID, "Tensor is not contiguous");
+    }
+
+    ks_tensor_int new_count = 1;
+    for (int32_t i = 0; i < new_ndims; ++i) {
+        if (new_shape[i] <= 0) {
+            return KS_STATUS(KS_ERR_INVALID, "Shape dimensions must be positive");
+        }
+        new_count *= new_shape[i];
+    }
+
+    if (ks_tensor_count(t) != new_count) {
+        return KS_STATUS(KS_ERR_INVALID, "Shape mismatch");
+    }
+
+    memcpy(t->shape, new_shape, sizeof(ks_tensor_int) * (size_t)new_ndims);
+    ks_tensor_calc_strides(t->strides, new_ndims, new_shape);
+    t->ndims = new_ndims;
+
+    return KS_STATUS(KS_OK);
+}
+
+KS_API ks_status ks_tensor_transpose(ks_tensor *t, const int32_t dim1, const int32_t dim2) {
+    KS_ASSERT_NONNULL_ARGS(t);
+    KS_ASSERT(t->shape && t->strides, "Tensors shape or strides is NULL");
+
+    if (dim1 < 0 || dim1 >= t->ndims) {
+        return KS_STATUS(KS_ERR_BOUNDS, "dim1 out of bounds");
+    }
+
+    if (dim2 < 0 || dim2 >= t->ndims) {
+        return KS_STATUS(KS_ERR_BOUNDS, "dim2 out of bounds");
+    }
+
+    if (dim1 == dim2) {
+        return KS_STATUS(KS_OK);
+    }
+
+    KS_SWAP(t->shape[dim1], t->shape[dim2]);
+    KS_SWAP(t->strides[dim1], t->strides[dim2]);
+
+    return KS_STATUS(KS_OK);
+}
+
+KS_API ks_status ks_tensor_permute(ks_tensor *dst, const ks_tensor *src, const int32_t *axes);
+KS_API ks_status ks_tensor_squeeze(ks_tensor *dst, const ks_tensor *src, int32_t axis);
+KS_API ks_status ks_tensor_unsqueeze(ks_tensor *dst, const ks_tensor *src, int32_t axis);
+KS_API ks_status ks_tensor_slice(ks_tensor *dst, const ks_tensor *src, int32_t axis, ks_tensor_int start,
+                                 ks_tensor_int end, ks_tensor_int step);
+
+KS_API ks_status ks_tensor_cat(ks_tensor *dst, const ks_tensor **tensors, int32_t num_tensors, int32_t axis);
+KS_API ks_status ks_tensor_stack(ks_tensor *dst, const ks_tensor **tensors, int32_t num_tensors, int32_t axis);
 
 #define KS_TENSOR_DEFINE_UNARY(name, expr, ...)                                                    \
     KS_API void KS_CONCAT2(ks_tensor_, name)(ks_tensor * out, const ks_tensor *a, ##__VA_ARGS__) { \
@@ -2822,6 +2865,7 @@ static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor *out, cons
 #define KS_TENSOR_DEFINE_REDUCE_AXIS(name, init_val, update_expr)                                              \
     KS_API void KS_CONCAT2(ks_tensor_reduce_axis_, name)(ks_tensor * out, const ks_tensor *a, int32_t axis) {  \
         KS_ASSERT_NONNULL_ARGS(out && a);                                                                      \
+        KS_ASSERT(out->data && a->data, "Tensors data is NULL");                                               \
         KS_ASSERT(out->data != a->data, "Use in-place variant");                                               \
                                                                                                                \
         const int32_t na = a->ndims;                                                                           \
@@ -2877,6 +2921,7 @@ static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor *out, cons
                                                                                                                \
     KS_API void KS_CONCAT3(ks_tensor_reduce_axis_, name, i)(ks_tensor * a, int32_t axis) {                     \
         KS_ASSERT_NONNULL_ARGS(a);                                                                             \
+        KS_ASSERT(a->data, "Tensors data is NULL");                                                            \
                                                                                                                \
         const int32_t na = a->ndims;                                                                           \
         if (axis < 0) {                                                                                        \
@@ -2932,6 +2977,7 @@ static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor *out, cons
 #define KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(name, init_val, comp_expr)                                             \
     KS_API void KS_CONCAT2(ks_tensor_reduce_axis_, name)(ks_tensor * out, const ks_tensor *a, int32_t axis) {     \
         KS_ASSERT_NONNULL_ARGS(out && a);                                                                         \
+        KS_ASSERT(out->data && a->data, "Tensors data is NULL");                                                  \
         KS_ASSERT(out->data != a->data, "Use in-place variant");                                                  \
                                                                                                                   \
         const int32_t na = a->ndims;                                                                              \
@@ -2993,6 +3039,7 @@ static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor *out, cons
                                                                                                                   \
     KS_API void KS_CONCAT3(ks_tensor_reduce_axis_, name, i)(ks_tensor * a, int32_t axis) {                        \
         KS_ASSERT_NONNULL_ARGS(a);                                                                                \
+        KS_ASSERT(a->data, "Tensors data is NULL");                                                               \
                                                                                                                   \
         const int32_t na = a->ndims;                                                                              \
         if (axis < 0) {                                                                                           \
@@ -3053,19 +3100,23 @@ static inline bool ks_tensor_is_valid_reduction_shape(const ks_tensor *out, cons
     }
 
 KS_TENSOR_DEFINE_UNARY(neg, -x);
-KS_TENSOR_DEFINE_UNARY(clamp, KS_CLAMP(x, min, max), float min, float max);
-KS_TENSOR_DEFINE_UNARY(pow, powf(x, exponent), float exponent);
-KS_TENSOR_DEFINE_UNARY(sqrt, sqrtf(x));
-KS_TENSOR_DEFINE_UNARY(exp, expf(x));
-KS_TENSOR_DEFINE_UNARY(log, logf(x));
 KS_TENSOR_DEFINE_UNARY(abs, fabsf(x));
-KS_TENSOR_DEFINE_UNARY(sigmoid, 1.0f / (1.0f + expf(-x)));
-KS_TENSOR_DEFINE_UNARY(tanh, 2.0f / (1.0f + expf(-2.0f * x)) - 1.0f);
+KS_TENSOR_DEFINE_UNARY(clamp, KS_CLAMP(x, min, max), float min, float max);
+
+KS_TENSOR_DEFINE_UNARY(pow, Sleef_powf_u10(x, exponent), float exponent);
+KS_TENSOR_DEFINE_UNARY(sqrt, Sleef_sqrtf_u05(x));
+KS_TENSOR_DEFINE_UNARY(exp, Sleef_expf_u10(x));
+KS_TENSOR_DEFINE_UNARY(log, Sleef_logf_u10(x));
+
+KS_TENSOR_DEFINE_UNARY(sigmoid, 1.0f / (1.0f + Sleef_expf_u10(-x)));
+KS_TENSOR_DEFINE_UNARY(tanh, Sleef_tanhf_u10(x));
 KS_TENSOR_DEFINE_UNARY(relu, x > 0.0f ? x : 0.0f);
 KS_TENSOR_DEFINE_UNARY(leaky_relu, x > 0 ? x : alpha * x, float alpha);
-KS_TENSOR_DEFINE_UNARY(softplus, logf(1.0f + expf(x)));
-KS_TENSOR_DEFINE_UNARY(elu, x > 0 ? x : alpha * (expf(x) - 1.0f), float alpha);
-KS_TENSOR_DEFINE_UNARY(selu, x > 0 ? scale * x : scale * alpha * (expf(x) - 1.0f), float scale, float alpha);
+KS_TENSOR_DEFINE_UNARY(softplus, Sleef_logf_u10(1.0f + Sleef_expf_u10(x)));
+KS_TENSOR_DEFINE_UNARY(elu, x > 0 ? x : alpha * (Sleef_expf_u10(x) - 1.0f), float alpha);
+KS_TENSOR_DEFINE_UNARY(selu, x > 0 ? scale * x : scale * alpha * (Sleef_expf_u10(x) - 1.0f), float scale, float alpha);
+KS_TENSOR_DEFINE_UNARY(silu, x / (1.0f + Sleef_expf_u10(-x)));
+KS_TENSOR_DEFINE_UNARY(gelu, 0.5f * x * (1.0f + Sleef_tanhf_u10(0.79788456f * (x + 0.044715f * x * x * x))));
 
 KS_TENSOR_DEFINE_BINARY(add, x + y);
 KS_TENSOR_DEFINE_BINARY(sub, x - y);
@@ -3081,6 +3132,131 @@ KS_TENSOR_DEFINE_REDUCE_AXIS(max, -FLT_MAX, val > acc ? val : acc);
 KS_TENSOR_DEFINE_REDUCE_AXIS(min, FLT_MAX, val < acc ? val : acc);
 KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(argmax, -FLT_MAX, >);
 KS_TENSOR_DEFINE_REDUCE_AXIS_INDEX(argmin, FLT_MAX, <);
+
+KS_API void ks_tensor_softmax(ks_tensor *out, const ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_softmaxi(ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_log_softmax(ks_tensor *out, const ks_tensor *a, int32_t axis);
+KS_API void ks_tensor_log_softmaxi(ks_tensor *a, int32_t axis);
+
+KS_API void ks_tensor_layer_norm(ks_tensor *out, const ks_tensor *a, int32_t axis, float eps);
+KS_API void ks_tensor_layer_normi(ks_tensor *a, int32_t axis, float eps);
+
+KS_API void ks_tensor_rms_norm(ks_tensor *out, const ks_tensor *a, int32_t axis, float eps);
+KS_API void ks_tensor_rms_normi(ks_tensor *a, int32_t axis, float eps);
+
+KS_API float ks_tensor_dot(const ks_tensor *a, const ks_tensor *b) {
+    KS_ASSERT_NONNULL_ARGS(a && b);
+    KS_ASSERT(a->data && b->data, "Tensors data is NULL");
+    KS_ASSERT(a->ndims == 1 && b->ndims == 1, "Dot operation requires 1D tensors");
+    KS_ASSERT(a->shape[0] == b->shape[0], "Dimension mismatch");
+
+    // clang-format off
+    return cblas_sdot(
+        a->shape[0],    // number of elements
+        a->data,        // a data
+        a->strides[0],  // a increment
+        b->data,        // b data
+        b->strides[0]   // b increment
+    );
+    // clang-format on
+}
+
+KS_API void ks_tensor_matmul(ks_tensor *out, const ks_tensor *a, const ks_tensor *b) {
+    KS_ASSERT_NONNULL_ARGS(out && a && b);
+    KS_ASSERT(out->data && a->data && b->data, "Tensors data is NULL");
+    KS_ASSERT(out->ndims == 2 && a->ndims == 2 && b->ndims == 2, "Matmul operation requires 2D tensors");
+    KS_ASSERT(out->data != a->data && out->data != b->data, "In-place matmul is not supported");
+
+    const ks_tensor_int m = a->shape[0];
+    const ks_tensor_int k = a->shape[1];
+    const ks_tensor_int n = b->shape[1];
+
+    KS_ASSERT(b->shape[0] == k, "Inner dimensions must match");
+    KS_ASSERT(out->shape[0] == m && out->shape[1] == n, "Shape mismatch");
+
+    // clang-format off
+
+    // alpha * a * b + beta * c
+    cblas_sgemm(
+        CblasRowMajor,              // ordering
+        CblasNoTrans, CblasNoTrans, // don't transpose
+        m, n, k,                    // dimensions
+        1.0f,                       // alpha
+        a->data, k,                 // a data and number of columns
+        b->data, n,                 // b data and number of columns
+        0.0f,                       // beta
+        out->data, n                // out data and number of columns
+    );
+    // clang-format on
+}
+
+KS_API void ks_tensor_linear(ks_tensor *out, const ks_tensor *x, const ks_tensor *weight, const ks_tensor *bias) {
+    KS_ASSERT_NONNULL_ARGS(out && x && weight);
+    KS_ASSERT(out->data && x->data && weight->data, "Tensors data is NULL");
+
+    const ks_tensor_int m = x->shape[0];
+    const ks_tensor_int k = x->shape[1];
+    const ks_tensor_int n = weight->shape[0];
+
+    // Broadcast 1D bias to every row in m
+    if (bias) {
+        for (ks_tensor_int i = 0; i < m; ++i) {
+            memcpy(KS_PTROFF_UNCAST(out->data, i * n), bias->data, sizeof(float) * (size_t)n);
+        }
+    } else {
+        memset(out->data, 0, sizeof(float) * (size_t)(m * n));
+    }
+
+    // clang-format off
+
+    // alpha * a * b + beta * c
+    cblas_sgemm(
+        CblasRowMajor,              // ordering
+        CblasNoTrans, CblasTrans,   // transponse only weights
+        m, n, k,                    // dimensions
+        1.0f,                       // alpha
+        x->data, k,                 // x data and number of columns
+        weight->data, n,            // weight data and number of columns
+        1.0f,                       // beta
+        out->data, n                // out data and number of columns
+    );
+    // clang-format on 
+}
+
+KS_API void ks_tensor_bmm(ks_tensor *out, const ks_tensor *a, const ks_tensor *b) {
+    KS_ASSERT_NONNULL_ARGS(out && a && b);
+    KS_ASSERT(out->data && a->data && b->data, "Tensors data is NULL");
+    KS_ASSERT(out->ndims == 3 && a->ndims == 3 && b->ndims == 3, "BMM operation requires 3D tenrsors");
+
+    const ks_tensor_int batch = a->shape[0];
+    const ks_tensor_int m = a->shape[1];
+    const ks_tensor_int k = a->shape[2];
+    const ks_tensor_int n = b->shape[2];
+
+    const size_t sa = (size_t)(m * k);
+    const size_t sb = (size_t)(k * n);
+    const size_t sc = (size_t)(m * n);
+
+    for (ks_tensor_int i = 0; i < batch; ++i) {
+        // clang-format off
+        
+        // alpha * a * b + beta * c
+        cblas_sgemm(
+            CblasRowMajor,                                  // ordering
+            CblasNoTrans, CblasTrans,                       // don't transpose
+            m, n, k,                                        // dimensions
+            1.0f,                                           // alpha
+            KS_PTROFF_UNCAST(a->data, (size_t)i * sa), k,   // a data and number of columns
+            KS_PTROFF_UNCAST(b->data, (size_t)i * sb), n,   // weight data and number of columns
+            1.0f,                                           // beta
+            KS_PTROFF_UNCAST(out->data, (size_t)i * sc), n  // out data and number of columns
+        );
+        // clang-format off
+    }
+}
+
+KS_API float ks_tensor_mse_loss(const ks_tensor *pred, const ks_tensor *target);
+KS_API float ks_tensor_cross_entropy_loss(const ks_tensor *pred, const ks_tensor *target, int32_t axis);
 
 /* Fields */
 

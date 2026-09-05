@@ -18,10 +18,6 @@ endif()
 
 # Library
 add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
 add_library(${PROJECT_NAME}::lib ALIAS ${PROJECT_NAME})
 target_compile_features(${PROJECT_NAME} INTERFACE c_std_11)
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -36,8 +32,31 @@ if (IS_SELF)
 endif()
 
 # Dependencies
-find_package(OpenMP)
-target_link_libraries(${PROJECT_NAME} INTERFACE m OpenMP::OpenMP_C)
+find_package(OpenMP REQUIRED)
+find_package(BLAS REQUIRED)
+find_package(sleef CONFIG REQUIRED)
+
+find_path(CBLAS_INCLUDE_DIR 
+    NAMES cblas.h
+    PATH_SUFFIXES openblas flexiblas
+)
+
+if(NOT CBLAS_INCLUDE_DIR)
+    message(FATAL_ERROR "cblas.h not found! Please install the BLAS development headers.")
+endif()
+
+target_link_libraries(${PROJECT_NAME} INTERFACE
+    m
+    OpenMP::OpenMP_C
+    BLAS::BLAS
+    sleef
+)
+
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${CBLAS_INCLUDE_DIR}
+)
 
 # Tests & Examples
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)

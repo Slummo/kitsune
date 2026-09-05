@@ -8,6 +8,7 @@
 #include <unity.h>
 #include <math.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define TEST_EPS 1e-4f
 #define TEST_DEPS 1e-6
@@ -777,48 +778,48 @@ void test_tensor_reduce_axis(void) {
 // Undefine the helper so it doesn't pollute the rest of your test suite
 #undef INIT_TEST_MATRIX
 
-// void test_tensor_matmul(void) {
-//     // A: 2x3, B: 3x2 -> Out: 2x2
-//     ks_tensor_int shape_a[] = {2, 3};
-//     ks_tensor_int shape_b[] = {3, 2};
-//     ks_tensor_int shape_c[] = {2, 2};
+void test_tensor_matmul(void) {
+    // A: 2x3, B: 3x2 -> Out: 2x2
+    ks_tensor_int shape_a[] = {2, 3};
+    ks_tensor_int shape_b[] = {3, 2};
+    ks_tensor_int shape_c[] = {2, 2};
 
-//     ks_tensor a, b, c;
-//     TEST_ASSERT_OK(ks_tensor_init(&a, 2, shape_a, NULL));
-//     TEST_ASSERT_OK(ks_tensor_init(&b, 2, shape_b, NULL));
-//     TEST_ASSERT_OK(ks_tensor_init(&c, 2, shape_c, NULL));
+    ks_tensor a, b, c;
+    TEST_ASSERT_OK(ks_tensor_init(&a, 2, shape_a, NULL));
+    TEST_ASSERT_OK(ks_tensor_init(&b, 2, shape_b, NULL));
+    TEST_ASSERT_OK(ks_tensor_init(&c, 2, shape_c, NULL));
 
-//     // A = [[1, 2, 3], [4, 5, 6]]
-//     a.data[0] = 1.0f;
-//     a.data[1] = 2.0f;
-//     a.data[2] = 3.0f;
-//     a.data[3] = 4.0f;
-//     a.data[4] = 5.0f;
-//     a.data[5] = 6.0f;
+    // A = [[1, 2, 3], [4, 5, 6]]
+    a.data[0] = 1.0f;
+    a.data[1] = 2.0f;
+    a.data[2] = 3.0f;
+    a.data[3] = 4.0f;
+    a.data[4] = 5.0f;
+    a.data[5] = 6.0f;
 
-//     // B = [[7, 8], [9, 1], [2, 3]]
-//     b.data[0] = 7.0f;
-//     b.data[1] = 8.0f;
-//     b.data[2] = 9.0f;
-//     b.data[3] = 1.0f;
-//     b.data[4] = 2.0f;
-//     b.data[5] = 3.0f;
+    // B = [[7, 8], [9, 1], [2, 3]]
+    b.data[0] = 7.0f;
+    b.data[1] = 8.0f;
+    b.data[2] = 9.0f;
+    b.data[3] = 1.0f;
+    b.data[4] = 2.0f;
+    b.data[5] = 3.0f;
 
-//     ks_tensor_matmul(&c, &a, &b);
+    ks_tensor_matmul(&c, &a, &b);
 
-//     // C[0,0] = 1*7 + 2*9 + 3*2 = 31
-//     // C[0,1] = 1*8 + 2*1 + 3*3 = 19
-//     // C[1,0] = 4*7 + 5*9 + 6*2 = 79
-//     // C[1,1] = 4*8 + 5*1 + 6*3 = 55
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 31.0f, c.data[0]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 19.0f, c.data[1]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 79.0f, c.data[2]);
-//     TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 55.0f, c.data[3]);
+    // C[0,0] = 1*7 + 2*9 + 3*2 = 31
+    // C[0,1] = 1*8 + 2*1 + 3*3 = 19
+    // C[1,0] = 4*7 + 5*9 + 6*2 = 85
+    // C[1,1] = 4*8 + 5*1 + 6*3 = 55
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 31.0f, c.data[0]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 19.0f, c.data[1]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 85.0f, c.data[2]);
+    TEST_ASSERT_FLOAT_WITHIN(TEST_EPS, 55.0f, c.data[3]);
 
-//     ks_tensor_fini(&a);
-//     ks_tensor_fini(&b);
-//     ks_tensor_fini(&c);
-// }
+    ks_tensor_fini(&a);
+    ks_tensor_fini(&b);
+    ks_tensor_fini(&c);
+}
 
 // /* ========================================================================= */
 // /* NEURAL NETWORKS (ks_nn)                                                   */
@@ -1373,7 +1374,7 @@ int main(void) {
     RUN_TEST(test_tensor_binary_math);
     RUN_TEST(test_tensor_reduce_all);
     RUN_TEST(test_tensor_reduce_axis);
-    // RUN_TEST(test_tensor_matmul);
+    RUN_TEST(test_tensor_matmul);
 
     // // --- NEURAL NETWORK TESTS ---
     // RUN_TEST(test_nn_linear_layer_forward_backward);
